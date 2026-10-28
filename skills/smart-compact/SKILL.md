@@ -11,5 +11,7 @@ When a prompt starts a new, unrelated task, smart-compact blocks it, runs `/comp
 - `same: <prompt>`: never compact for this prompt.
 - The judge (Haiku through `claude -p`) only runs when context since the last compaction is above `SMART_COMPACT_MIN_TOKENS` (default 20000, estimated as characters / 4).
 - `SMART_COMPACT_OFF=1` turns the plugin off. Set env vars in `~/.claude/settings.json` under `"env"`.
-- Auto-typing works only in Apple Terminal. Elsewhere the block message says to run `/compact` and then type `go`.
+- `SMART_COMPACT_MODE=clear` uses `/clear` instead of `/compact`: cheaper and faster, but keeps no summary, only a few carried-over facts plus the archive.
+- Every switch archives the old conversation to `${CLAUDE_PLUGIN_DATA}/archive/` and, when the caveman CLI is installed, indexes it with `caveman mem remember`. Find old work with `caveman mem recall <words>`, then read the archive file.
+- Auto-typing works in macOS Terminal.app and in Windows consoles. Elsewhere the block message says to run the command yourself and then type `go`.
 - Saved tasks live in `${CLAUDE_PLUGIN_DATA}/pending/` and expire after 10 minutes.

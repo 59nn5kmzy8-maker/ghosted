@@ -5,8 +5,8 @@ A Claude Code plugin that compacts context when you switch to a new task, not wh
 ## How it works
 
 1. You send a prompt. A `UserPromptSubmit` hook checks whether there's enough context since the last compaction (default about 20k tokens). If so, Haiku decides whether the prompt is a new task or a continuation.
-2. For a new task, the hook saves your prompt, blocks it, and types `/compact Keep only what helps with the next task: <focus>` into your Terminal tab.
-3. After compaction, a `SessionStart` hook (matcher `compact`) injects your saved prompt and types `Start the pending task.` Claude then does your task with clean context.
+2. For a new task, the hook saves your prompt and archives the old conversation, then blocks the prompt. It types `/compact Keep only what helps with the next task: <focus>` into your session (or `/clear` in clear mode).
+3. After that, a `SessionStart` hook (matcher `compact|clear`) injects your saved prompt, any facts carried over and the archive path, then types `Start the pending task.` Claude then does your task with clean context.
 
 Any error fails open: your prompt goes through as normal.
 
@@ -21,17 +21,29 @@ To try it without installing, run `claude --plugin-dir ~/smart-compact`.
 
 ## Controls
 
-- `new: <prompt>`: force compaction.
+- `new: <prompt>`: force a switch.
 - `same: <prompt>`: skip it.
+- `SMART_COMPACT_MODE=clear`: use `/clear` instead of `/compact`. It's cheaper and faster, but keeps no summary, only up to 5 lines of carried-over facts from the judge plus the archive.
 - `SMART_COMPACT_MIN_TOKENS`: the size threshold.
+- `SMART_COMPACT_ARCHIVE=0`: don't archive the old conversation.
+- `SMART_COMPACT_CAVEMAN=0`: don't index archives in caveman memory.
 - `SMART_COMPACT_OFF=1`: turn the plugin off.
+
+## Caveman connection
+
+Compaction loses information. Before each switch the plugin writes the old conversation verbatim to `${CLAUDE_PLUGIN_DATA}/archive/`. If the caveman CLI is installed, it also stores a short entry in caveman memory (`caveman mem remember`) with the old task and the archive path. Any later session can then find the old work with `caveman mem recall <words>` and open the full log. After the switch, Claude is told where the archive is and reads it only if the new task needs it.
+
+## Platforms
+
+- **macOS:** auto-typing works in Terminal.app, through AppleScript `do script` aimed at your tab's tty. It doesn't focus or raise the window. macOS asks once for permission to let the hook control Terminal.
+- **Windows:** `type-keys.ps1` attaches to Claude Code's console and writes key events with `WriteConsoleInput`, so no focus is needed. CI checks this end to end on `windows-latest`. If typing fails, the block message tells you to run the command yourself.
+- **Elsewhere** (iTerm, tmux, Linux): the block message asks you to run `/compact` and then type `go`. The task is still restored.
 
 ## Known limits
 
-- Auto-typing only works in Apple Terminal, through AppleScript `do script` aimed at your tab's tty. It doesn't focus or raise the window. In other terminals the block message asks you to run `/compact` and then type `go`. The task is still restored.
-- macOS asks once for permission to let the hook control Terminal. Allow it in that dialog.
-- Each judged prompt adds about 5s, because `claude -p` starts a new process.
+- Each judged prompt adds about 5s, because `claude -p` starts a new process. The judge runs with `--setting-sources= --strict-mcp-config --tools= --disable-slash-commands`, so none of your hooks, plugins or MCP servers load into it. That costs about $0.0004 per judgement instead of $0.005.
 - The transcript's `compact_boundary` marker isn't documented. If it changes, the whole transcript counts toward the size check, so the judge just runs more often.
+- The pending task is keyed by working directory, because `/clear` starts a new session id. Two sessions in the same folder switching task at the same moment would collide.
 
 ## Measured: 10 A/B scenarios
 
