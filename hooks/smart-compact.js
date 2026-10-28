@@ -94,7 +94,7 @@ function findTty() {
 // shortcut: Apple Terminal only (AppleScript); add tmux send-keys / iTerm "write text" when used.
 function typeLater(steps) {
   if (process.env.SMART_COMPACT_DRY_TYPE) {
-    fs.appendFileSync(process.env.SMART_COMPACT_DRY_TYPE, steps.map(s => s[1]).join('') + '\n');
+    fs.appendFileSync(process.env.SMART_COMPACT_DRY_TYPE, JSON.stringify(steps) + '\n'); // one JSON line per call
     return true;
   }
   const tty = process.env.TERM_PROGRAM === 'Apple_Terminal' ? findTty() : null;

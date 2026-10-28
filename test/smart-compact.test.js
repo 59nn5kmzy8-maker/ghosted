@@ -26,6 +26,11 @@ function run(mode, input, env) {
   return r.stdout ? JSON.parse(r.stdout) : null;
 }
 
+// typed keystrokes per hook call, as plain text, one line per call
+function typedText(s) {
+  return fs.readFileSync(s.typed, 'utf8').trim().split('\n').map(l => JSON.parse(l).map(x => x[1]).join('')).join('\n');
+}
+
 function envFor(s, judge) {
   return { CLAUDE_PLUGIN_DATA: s.dir, SMART_COMPACT_DRY_TYPE: s.typed, SMART_COMPACT_FAKE_JUDGE: judge };
 }
@@ -36,11 +41,11 @@ test('new task blocks, saves prompt, types /compact; resume injects and types go
   const out = run('prompt', input, envFor(s, 'new'));
   assert.equal(out.decision, 'block');
   assert.equal(fs.readFileSync(path.join(s.dir, 'pending', 'abc.md'), 'utf8'), 'build a new login page');
-  assert.match(fs.readFileSync(s.typed, 'utf8'), /^\x03\/compact Keep only what helps with the next task: fake focus\r\r\n$/);
+  assert.equal(typedText(s), '\x03/compact Keep only what helps with the next task: fake focus\r\r');
 
   const res = run('resume', { session_id: 'abc' }, envFor(s, 'new'));
   assert.match(res.hookSpecificOutput.additionalContext, /build a new login page/);
-  assert.match(fs.readFileSync(s.typed, 'utf8'), /Start the pending task\.\r\n$/);
+  assert.equal(typedText(s).split('\n')[1], 'Start the pending task.\r');
 
   // the typed resume message passes and clears the pending task
   assert.equal(run('prompt', { ...input, prompt: 'Start the pending task.' }, envFor(s, 'new')), null);
