@@ -88,32 +88,22 @@ function findTty() {
   return null;
 }
 
-const TYPE_SCRIPT = `on run argv
-  tell application "Terminal"
-    repeat with w in windows
-      repeat with t in tabs of w
-        if tty of t is (item 2 of argv) then
-          do script (item 1 of argv) in t
-          return
-        end if
-      end repeat
-    end repeat
-  end tell
-end run`;
-
-// Types text + Enter into this Claude Code tab after the current hook returns.
-// shortcut: Apple Terminal only; add tmux send-keys / iTerm "write text" when used.
-function typeLater(text) {
-  if (process.env.SMART_COMPACT_DRY_TYPE) { fs.appendFileSync(process.env.SMART_COMPACT_DRY_TYPE, text + '\n'); return true; }
-  const tty = findTty();
-  if (!tty || process.env.TERM_PROGRAM !== 'Apple_Terminal') return false;
-  // Claude Code's input submits on CR, but a CR arriving with the text counts as pasted, so send it separately.
-  const cmd = 'sleep 0.7; osascript -e "$0" "$1" "$3"; sleep 0.5; exec osascript -e "$0" "$2" "$3"';
-  const child = spawn('/bin/sh', ['-c', cmd, TYPE_SCRIPT, text, '\r', tty], {
-    detached: true, stdio: 'ignore',
-  });
-  child.unref();
-  return true;
+// Types keystrokes into this Claude Code input after the current hook returns.
+// steps: [[delaySeconds, text], ...]. Claude Code submits on a CR that arrives on its own
+// (a CR inside a burst of text counts as pasted), so callers send '\r' as a separate step.
+function typeLater(steps) {
+  if (process.env.SMART_COMPACT_DRY_TYPE) {
+    fs.appendFileSync(process.env.SMART_COMPACT_DRY_TYPE, steps.map(s => s[1]).join('') + '\n');
+    return true;
+  }
+  const tty = process.env.TERM_PROGRAM === 'Apple_Terminal' ? findTty() : null;
+  try {
+    // not detached: the helper must keep this terminal as its controlling tty for TIOCSTI
+    const child = spawn('python3', [path.join(__dirname, 'type-keys.py'), JSON.stringify(steps), tty || ''], { stdio: 'ignore' });
+    child.on('error', () => {});
+    child.unref();
+    return true;
+  } catch { return false; }
 }
 
 function onPrompt(input) {
@@ -123,7 +113,10 @@ function onPrompt(input) {
   if (prompt.startsWith('/') || /^same:/i.test(prompt)) return;
 
   const pending = readPending(input.session_id);
-  if (pending) { fs.rmSync(pending.file, { force: true }); return; } // our own resume message (or user typed first)
+  if (pending) {
+    if (prompt === RESUME_TEXT) fs.rmSync(pending.file, { force: true });
+    return; // mid-handoff: never judge
+  }
 
   let verdict;
   if (/^new:/i.test(prompt)) {
@@ -140,7 +133,8 @@ function onPrompt(input) {
   fs.mkdirSync(path.dirname(pendingPath(input.session_id)), { recursive: true });
   fs.writeFileSync(pendingPath(input.session_id), input.prompt);
   const focus = String(verdict.focus || '').replace(/\s+/g, ' ').slice(0, 200);
-  const typed = typeLater(`/compact Keep only what helps with the next task: ${focus}`);
+  // Claude Code puts a blocked prompt back in the input; Ctrl-C clears it before /compact.
+  const typed = typeLater([[0.7, '\x03'], [0.4, `/compact Keep only what helps with the next task: ${focus}`], [0.5, '\r']]);
   const reason = typed
     ? 'smart-compact: new task detected, compacting first. Your task will start automatically.'
     : 'smart-compact: new task detected. Run /compact, then type "go". Your task is saved and will be restored.';
@@ -156,7 +150,7 @@ function onResume(input) {
       additionalContext: `smart-compact compacted the context because the user started a new task. The user's next task (verbatim), to start on their next message:\n\n${pending.text}`,
     },
   }));
-  typeLater(RESUME_TEXT);
+  typeLater([[1.0, RESUME_TEXT], [0.5, '\r']]);
 }
 
 function debug(...a) {

@@ -1,6 +1,6 @@
 {
   "name": "smart-compact",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Compacts context when you switch to a new task, then starts that task automatically.",
   "author": { "name": "gio" }
 }
