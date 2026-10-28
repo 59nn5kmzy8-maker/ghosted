@@ -47,13 +47,13 @@ test('new task blocks, saves prompt, types /compact; resume injects and types go
   assert.ok(!fs.existsSync(path.join(s.dir, 'pending', 'abc.md')));
 });
 
-test('passes through: same task, judge error, slash, !same, small context, child', () => {
+test('passes through: same task, judge error, slash, same:, small context, child', () => {
   const s = setup();
   const input = { session_id: 'abc', transcript_path: s.transcript, prompt: 'tweak it' };
   assert.equal(run('prompt', input, envFor(s, 'same')), null);
   assert.equal(run('prompt', input, envFor(s, 'error')), null);
   assert.equal(run('prompt', { ...input, prompt: '/compact' }, envFor(s, 'new')), null);
-  assert.equal(run('prompt', { ...input, prompt: '!same do x' }, envFor(s, 'new')), null);
+  assert.equal(run('prompt', { ...input, prompt: 'same: do x' }, envFor(s, 'new')), null);
   assert.equal(run('prompt', input, { ...envFor(s, 'new'), SMART_COMPACT_MIN_TOKENS: '999999' }), null);
   assert.equal(run('prompt', input, { ...envFor(s, 'new'), SMART_COMPACT_CHILD: '1' }), null);
   assert.ok(!fs.existsSync(s.typed));
@@ -65,9 +65,9 @@ test('context before the last compact boundary is ignored', () => {
   assert.equal(run('prompt', { session_id: 'abc', transcript_path: s.transcript, prompt: 'x' }, envFor(s, 'new')), null);
 });
 
-test('!new forces compaction without judge', () => {
+test('new: forces compaction without judge', () => {
   const s = setup();
-  const out = run('prompt', { session_id: 'abc', transcript_path: s.transcript, prompt: '!new write docs' }, envFor(s, 'error'));
+  const out = run('prompt', { session_id: 'abc', transcript_path: s.transcript, prompt: 'new: write docs' }, envFor(s, 'error'));
   assert.equal(out.decision, 'block');
 });
 

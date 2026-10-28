@@ -21,8 +21,8 @@ To try it without installing, run `claude --plugin-dir ~/smart-compact`.
 
 ## Controls
 
-- `!new <prompt>`: force compaction.
-- `!same <prompt>`: skip it.
+- `new: <prompt>`: force compaction.
+- `same: <prompt>`: skip it.
 - `SMART_COMPACT_MIN_TOKENS`: the size threshold.
 - `SMART_COMPACT_OFF=1`: turn the plugin off.
 

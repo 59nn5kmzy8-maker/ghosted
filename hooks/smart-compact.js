@@ -119,13 +119,14 @@ function typeLater(text) {
 function onPrompt(input) {
   const prompt = (input.prompt || '').trim();
   if (process.env.SMART_COMPACT_OFF || process.env.SMART_COMPACT_CHILD) return;
-  if (prompt.startsWith('/') || prompt.startsWith('!same')) return;
+  // `!` is Claude Code's shell mode, so the overrides are plain-word prefixes.
+  if (prompt.startsWith('/') || /^same:/i.test(prompt)) return;
 
   const pending = readPending(input.session_id);
   if (pending) { fs.rmSync(pending.file, { force: true }); return; } // our own resume message (or user typed first)
 
   let verdict;
-  if (prompt.startsWith('!new')) {
+  if (/^new:/i.test(prompt)) {
     verdict = { new_task: true, focus: prompt.slice(4).trim().slice(0, 120) };
   } else {
     const recent = conversationSinceCompact(input.transcript_path);
