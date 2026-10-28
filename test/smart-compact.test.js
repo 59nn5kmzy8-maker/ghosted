@@ -36,7 +36,7 @@ test('new task blocks, saves prompt, types /compact; resume injects and types go
   const out = run('prompt', input, envFor(s, 'new'));
   assert.equal(out.decision, 'block');
   assert.equal(fs.readFileSync(path.join(s.dir, 'pending', 'abc.md'), 'utf8'), 'build a new login page');
-  assert.match(fs.readFileSync(s.typed, 'utf8'), /^\x03\/compact Keep only what helps with the next task: fake focus\r\n$/);
+  assert.match(fs.readFileSync(s.typed, 'utf8'), /^\x03\/compact Keep only what helps with the next task: fake focus\r\r\n$/);
 
   const res = run('resume', { session_id: 'abc' }, envFor(s, 'new'));
   assert.match(res.hookSpecificOutput.additionalContext, /build a new login page/);

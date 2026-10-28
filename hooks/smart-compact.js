@@ -134,7 +134,8 @@ function onPrompt(input) {
   fs.writeFileSync(pendingPath(input.session_id), input.prompt);
   const focus = String(verdict.focus || '').replace(/\s+/g, ' ').slice(0, 200);
   // Claude Code puts a blocked prompt back in the input; Ctrl-C clears it before /compact.
-  const typed = typeLater([[0.7, '\x03'], [0.4, `/compact Keep only what helps with the next task: ${focus}`], [0.5, '\r']]);
+  // The first CR can be taken by the slash-command menu; a second CR on an empty input does nothing.
+  const typed = typeLater([[0.7, '\x03'], [0.4, `/compact Keep only what helps with the next task: ${focus}`], [0.8, '\r'], [0.8, '\r']]);
   const reason = typed
     ? 'smart-compact: new task detected, compacting first. Your task will start automatically.'
     : 'smart-compact: new task detected. Run /compact, then type "go". Your task is saved and will be restored.';
