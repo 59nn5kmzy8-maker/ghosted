@@ -96,8 +96,9 @@ function typeLater(text) {
   if (process.env.SMART_COMPACT_DRY_TYPE) { fs.appendFileSync(process.env.SMART_COMPACT_DRY_TYPE, text + '\n'); return true; }
   const tty = findTty();
   if (!tty || process.env.TERM_PROGRAM !== 'Apple_Terminal') return false;
-  // Claude Code's input submits on CR; the LF that `do script` appends only inserts a newline.
-  const child = spawn('/bin/sh', ['-c', 'sleep 0.7; exec osascript -e "$0" "$1" "$2"', TYPE_SCRIPT, text + '\r', tty], {
+  // Claude Code's input submits on CR, but a CR arriving with the text counts as pasted, so send it separately.
+  const cmd = 'sleep 0.7; osascript -e "$0" "$1" "$3"; sleep 0.5; exec osascript -e "$0" "$2" "$3"';
+  const child = spawn('/bin/sh', ['-c', cmd, TYPE_SCRIPT, text, '\r', tty], {
     detached: true, stdio: 'ignore',
   });
   child.unref();
@@ -117,8 +118,10 @@ function onPrompt(input) {
     verdict = { new_task: true, focus: prompt.slice(4).trim().slice(0, 120) };
   } else {
     const recent = conversationSinceCompact(input.transcript_path);
+    debug('context tokens est', Math.round(recent.length / 4));
     if (recent.length / 4 < MIN_TOKENS) return;
     verdict = judge(recent.slice(-6000), prompt.slice(0, 4000));
+    debug('verdict', JSON.stringify(verdict));
     if (!verdict || verdict.new_task !== true) return; // fail open
   }
 
@@ -144,9 +147,16 @@ function onResume(input) {
   typeLater(RESUME_TEXT);
 }
 
+function debug(...a) {
+  if (!process.env.SMART_COMPACT_DEBUG) return;
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  fs.appendFileSync(path.join(DATA_DIR, 'debug.log'), `${new Date().toISOString()} ${a.join(' ')}\n`);
+}
+
 function main() {
   let input = {};
   try { input = JSON.parse(fs.readFileSync(0, 'utf8') || '{}'); } catch {}
+  debug(process.argv[2], JSON.stringify({ ...input, prompt: (input.prompt || '').slice(0, 60) }));
   try {
     if (process.argv[2] === 'prompt') onPrompt(input);
     else if (process.argv[2] === 'resume') onResume(input);
