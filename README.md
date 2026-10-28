@@ -33,24 +33,28 @@ To try it without installing, run `claude --plugin-dir ~/smart-compact`.
 - Each judged prompt adds about 5s, because `claude -p` starts a new process.
 - The transcript's `compact_boundary` marker isn't documented. If it changes, the whole transcript counts toward the size check, so the judge just runs more often.
 
-## Measured (Opus, about 34k tokens of earlier context, then one small unrelated task)
+## Measured: 10 A/B scenarios
 
-| | Time | Cost |
-|---|---|---|
-| Without plugin | 17s | $1.56 |
-| With plugin | about 70s | $2.45, plus $0.005 for the judge |
+Each scenario ran twice, without and with the plugin, starting from the same seeded context. The two runs used separate seeds, so the second couldn't benefit from the first's prompt cache. The context in the seed was the real token count from the API.
 
-Bigger context (Opus, about 129k tokens estimated, 269k real, then a 3-turn new task: build a todo CLI with tests, add priorities, add clear-done):
+| # | Context | Model | Turns | Without | With (incl. judge) | Saved | Time diff |
+|---|---|---|---|---|---|---|---|
+| 1 | 57k | Opus | 1 | $1.76 | $2.14 | -22% | +16s |
+| 2 | 57k | Opus | 5 | $1.63 | $1.37 | 16% | +12s |
+| 3 | 176k | Opus | 1 | $3.07 | $2.47 | 20% | +22s |
+| 4 | 176k | Opus | 5 | $4.22 | $3.12 | 26% | -15s |
+| 5 | 290k | Opus | 3 | $5.59 | $4.29 | 23% | -4s |
+| 6 | 290k | Opus | 6 | $6.77 | $4.69 | 31% | +34s |
+| 7 | 176k | Opus | 2, related task | $3.21 | $3.23 | 0% (judge kept the context, correctly) | +6s |
+| 8 | 176k | Opus | 2, half-related | $3.29 | $2.73 | 17% | +22s |
+| 9 | 176k | Sonnet | 3 | $2.07 | $2.00 | 4% | +26s |
+| 10 | 176k | Opus | 3 different tasks | $3.47 | $2.69 | 22% | +12s |
 
-| | Turn times | Total time | Cost |
-|---|---|---|---|
-| Without plugin | 27s / 29s / 25s | 89s | $4.61 |
-| With plugin | 65s / 25s / 17s | 116s | $4.41, plus $0.005 for the judge |
+Total: $35.08 without, $28.72 with, so the plugin saved 18%. Tests passed in every run that had tests. The judge cost $0.005–0.013 per run.
 
-Compaction took about 29s and cut 269k tokens to 21k. The plugin is ahead after 3 turns, and each later turn adds to the gap.
-
-For a single short task right after the switch, compaction costs more than it saves. Compaction runs on the main model and rewrites the prompt cache. The savings come from the many later turns that no longer carry the old context.
-
+- The more context there is and the more turns follow, the bigger the saving. A small context followed by a single turn loses money.
+- Compaction adds 10–74s, but later turns are faster, so long tasks often finish sooner.
+- Related follow-ups are not compacted. The only cost of the plugin there is the judge.
 - With `--fork-session`, the first prompt is never judged, because the new transcript is still empty at that point.
 
 ## Test
