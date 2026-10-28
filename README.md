@@ -40,6 +40,15 @@ To try it without installing, run `claude --plugin-dir ~/smart-compact`.
 | Without plugin | 17s | $1.56 |
 | With plugin | about 70s | $2.45, plus $0.005 for the judge |
 
+Bigger context (Opus, about 129k tokens estimated, 269k real, then a 3-turn new task: build a todo CLI with tests, add priorities, add clear-done):
+
+| | Turn times | Total time | Cost |
+|---|---|---|---|
+| Without plugin | 27s / 29s / 25s | 89s | $4.61 |
+| With plugin | 65s / 25s / 17s | 116s | $4.41, plus $0.005 for the judge |
+
+Compaction took about 29s and cut 269k tokens to 21k. The plugin is ahead after 3 turns, and each later turn adds to the gap.
+
 For a single short task right after the switch, compaction costs more than it saves. Compaction runs on the main model and rewrites the prompt cache. The savings come from the many later turns that no longer carry the old context.
 
 - With `--fork-session`, the first prompt is never judged, because the new transcript is still empty at that point.
