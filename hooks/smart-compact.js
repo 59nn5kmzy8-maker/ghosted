@@ -96,7 +96,8 @@ function typeLater(text) {
   if (process.env.SMART_COMPACT_DRY_TYPE) { fs.appendFileSync(process.env.SMART_COMPACT_DRY_TYPE, text + '\n'); return true; }
   const tty = findTty();
   if (!tty || process.env.TERM_PROGRAM !== 'Apple_Terminal') return false;
-  const child = spawn('/bin/sh', ['-c', 'sleep 0.7; exec osascript -e "$0" "$1" "$2"', TYPE_SCRIPT, text, tty], {
+  // Claude Code's input submits on CR; the LF that `do script` appends only inserts a newline.
+  const child = spawn('/bin/sh', ['-c', 'sleep 0.7; exec osascript -e "$0" "$1" "$2"', TYPE_SCRIPT, text + '\r', tty], {
     detached: true, stdio: 'ignore',
   });
   child.unref();
