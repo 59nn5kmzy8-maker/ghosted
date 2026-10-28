@@ -33,6 +33,17 @@ To try it without installing, run `claude --plugin-dir ~/smart-compact`.
 - Each judged prompt adds about 5s, because `claude -p` starts a new process.
 - The transcript's `compact_boundary` marker isn't documented. If it changes, the whole transcript counts toward the size check, so the judge just runs more often.
 
+## Measured (Opus, about 34k tokens of earlier context, then one small unrelated task)
+
+| | Time | Cost |
+|---|---|---|
+| Without plugin | 17s | $1.56 |
+| With plugin | about 70s | $2.45, plus $0.005 for the judge |
+
+For a single short task right after the switch, compaction costs more than it saves. Compaction runs on the main model and rewrites the prompt cache. The savings come from the many later turns that no longer carry the old context.
+
+- With `--fork-session`, the first prompt is never judged, because the new transcript is still empty at that point.
+
 ## Test
 
 ```sh
