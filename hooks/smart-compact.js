@@ -1,0 +1,157 @@
+#!/usr/bin/env node
+// smart-compact: compact when the user switches task, then start that task.
+// `prompt` runs on UserPromptSubmit, `resume` on SessionStart(compact).
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const { spawn, spawnSync } = require('child_process');
+
+const MIN_TOKENS = Number(process.env.SMART_COMPACT_MIN_TOKENS || 20000);
+const PENDING_TTL_MS = 10 * 60 * 1000;
+const RESUME_TEXT = 'Start the pending task.';
+const DATA_DIR = process.env.CLAUDE_PLUGIN_DATA || path.join(os.homedir(), '.claude', 'smart-compact');
+
+function pendingPath(sessionId) {
+  return path.join(DATA_DIR, 'pending', `${String(sessionId).replace(/[^\w-]/g, '_')}.md`);
+}
+
+function readPending(sessionId) {
+  const file = pendingPath(sessionId);
+  try {
+    if (Date.now() - fs.statSync(file).mtimeMs > PENDING_TTL_MS) { fs.rmSync(file, { force: true }); return null; }
+    return { file, text: fs.readFileSync(file, 'utf8') };
+  } catch { return null; }
+}
+
+// Text of the conversation since the last compaction, oldest first.
+function conversationSinceCompact(transcriptPath) {
+  let lines;
+  try { lines = fs.readFileSync(transcriptPath, 'utf8').split('\n'); } catch { return ''; }
+  // shortcut: compact_boundary marker is undocumented; if missing, whole transcript counts (judges more often, still safe).
+  let start = 0;
+  lines.forEach((l, i) => { if (l.includes('"subtype":"compact_boundary"')) start = i + 1; });
+  const out = [];
+  for (const line of lines.slice(start)) {
+    let entry;
+    try { entry = JSON.parse(line); } catch { continue; }
+    const msg = entry.message;
+    if (!msg || (entry.type !== 'user' && entry.type !== 'assistant')) continue;
+    const parts = typeof msg.content === 'string' ? [{ type: 'text', text: msg.content }] : msg.content || [];
+    for (const p of parts) {
+      if (p.type === 'text') out.push(`${msg.role}: ${p.text}`);
+      else if (p.type === 'tool_use') out.push(`tool_use: ${JSON.stringify(p.input)}`);
+      else if (p.type === 'tool_result') out.push(`tool_result: ${typeof p.content === 'string' ? p.content : JSON.stringify(p.content)}`);
+    }
+  }
+  return out.join('\n');
+}
+
+function judge(recent, prompt) {
+  const fake = process.env.SMART_COMPACT_FAKE_JUDGE;
+  if (fake) return fake === 'error' ? null : { new_task: fake === 'new', focus: 'fake focus' };
+  const question = [
+    'You decide if a coding-assistant user just switched to a NEW, unrelated task.',
+    'NEW = the earlier conversation is not needed to do the new request.',
+    'SAME = follow-up, fix, tweak, question about, or continuation of the earlier work.',
+    'Reply with only JSON: {"new_task": true|false, "focus": "<5-15 word summary of the new request>"}',
+    '', '<recent_conversation>', recent, '</recent_conversation>',
+    '', '<new_request>', prompt, '</new_request>',
+  ].join('\n');
+  const r = spawnSync('claude', ['-p', '--model', 'haiku', '--no-session-persistence', question], {
+    env: { ...process.env, SMART_COMPACT_CHILD: '1' }, encoding: 'utf8', timeout: 25000,
+  });
+  const m = (r.stdout || '').match(/\{[\s\S]*\}/);
+  if (r.status !== 0 || !m) return null;
+  try { return JSON.parse(m[0]); } catch { return null; }
+}
+
+// tty of the terminal running Claude Code, e.g. /dev/ttys003.
+function findTty() {
+  let pid = process.ppid;
+  for (let i = 0; i < 10 && pid > 1; i++) {
+    const r = spawnSync('ps', ['-o', 'ppid=,tty=', '-p', String(pid)], { encoding: 'utf8' });
+    const [ppid, tty] = (r.stdout || '').trim().split(/\s+/);
+    if (tty && tty !== '??') return `/dev/${tty}`;
+    pid = Number(ppid);
+  }
+  return null;
+}
+
+const TYPE_SCRIPT = `on run argv
+  tell application "Terminal"
+    repeat with w in windows
+      repeat with t in tabs of w
+        if tty of t is (item 2 of argv) then
+          do script (item 1 of argv) in t
+          return
+        end if
+      end repeat
+    end repeat
+  end tell
+end run`;
+
+// Types text + Enter into this Claude Code tab after the current hook returns.
+// shortcut: Apple Terminal only; add tmux send-keys / iTerm "write text" when used.
+function typeLater(text) {
+  if (process.env.SMART_COMPACT_DRY_TYPE) { fs.appendFileSync(process.env.SMART_COMPACT_DRY_TYPE, text + '\n'); return true; }
+  const tty = findTty();
+  if (!tty || process.env.TERM_PROGRAM !== 'Apple_Terminal') return false;
+  const child = spawn('/bin/sh', ['-c', 'sleep 0.7; exec osascript -e "$0" "$1" "$2"', TYPE_SCRIPT, text, tty], {
+    detached: true, stdio: 'ignore',
+  });
+  child.unref();
+  return true;
+}
+
+function onPrompt(input) {
+  const prompt = (input.prompt || '').trim();
+  if (process.env.SMART_COMPACT_OFF || process.env.SMART_COMPACT_CHILD) return;
+  if (prompt.startsWith('/') || prompt.startsWith('!same')) return;
+
+  const pending = readPending(input.session_id);
+  if (pending) { fs.rmSync(pending.file, { force: true }); return; } // our own resume message (or user typed first)
+
+  let verdict;
+  if (prompt.startsWith('!new')) {
+    verdict = { new_task: true, focus: prompt.slice(4).trim().slice(0, 120) };
+  } else {
+    const recent = conversationSinceCompact(input.transcript_path);
+    if (recent.length / 4 < MIN_TOKENS) return;
+    verdict = judge(recent.slice(-6000), prompt.slice(0, 4000));
+    if (!verdict || verdict.new_task !== true) return; // fail open
+  }
+
+  fs.mkdirSync(path.dirname(pendingPath(input.session_id)), { recursive: true });
+  fs.writeFileSync(pendingPath(input.session_id), input.prompt);
+  const focus = String(verdict.focus || '').replace(/\s+/g, ' ').slice(0, 200);
+  const typed = typeLater(`/compact Keep only what helps with the next task: ${focus}`);
+  const reason = typed
+    ? 'smart-compact: new task detected, compacting first. Your task will start automatically.'
+    : 'smart-compact: new task detected. Run /compact, then type "go". Your task is saved and will be restored.';
+  process.stdout.write(JSON.stringify({ decision: 'block', reason }));
+}
+
+function onResume(input) {
+  const pending = readPending(input.session_id);
+  if (!pending) return;
+  process.stdout.write(JSON.stringify({
+    hookSpecificOutput: {
+      hookEventName: 'SessionStart',
+      additionalContext: `smart-compact compacted the context because the user started a new task. The user's next task (verbatim), to start on their next message:\n\n${pending.text}`,
+    },
+  }));
+  typeLater(RESUME_TEXT);
+}
+
+function main() {
+  let input = {};
+  try { input = JSON.parse(fs.readFileSync(0, 'utf8') || '{}'); } catch {}
+  try {
+    if (process.argv[2] === 'prompt') onPrompt(input);
+    else if (process.argv[2] === 'resume') onResume(input);
+  } catch (e) {
+    process.stderr.write(`smart-compact: ${e.message}\n`); // never block the user on our own bug
+  }
+}
+
+main();
