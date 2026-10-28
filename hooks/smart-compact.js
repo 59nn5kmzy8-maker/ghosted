@@ -88,22 +88,23 @@ function findTty() {
   return null;
 }
 
-// Types keystrokes into this Claude Code input after the current hook returns.
+// Types keystrokes into this Claude Code tab after the current hook returns.
 // steps: [[delaySeconds, text], ...]. Claude Code submits on a CR that arrives on its own
 // (a CR inside a burst of text counts as pasted), so callers send '\r' as a separate step.
+// shortcut: Apple Terminal only (AppleScript); add tmux send-keys / iTerm "write text" when used.
 function typeLater(steps) {
   if (process.env.SMART_COMPACT_DRY_TYPE) {
     fs.appendFileSync(process.env.SMART_COMPACT_DRY_TYPE, steps.map(s => s[1]).join('') + '\n');
     return true;
   }
   const tty = process.env.TERM_PROGRAM === 'Apple_Terminal' ? findTty() : null;
-  try {
-    // not detached: the helper must keep this terminal as its controlling tty for TIOCSTI
-    const child = spawn('python3', [path.join(__dirname, 'type-keys.py'), JSON.stringify(steps), tty || ''], { stdio: 'ignore' });
-    child.on('error', () => {});
-    child.unref();
-    return true;
-  } catch { return false; }
+  if (!tty) return false;
+  const child = spawn('python3', [path.join(__dirname, 'type-keys.py'), JSON.stringify(steps), tty], {
+    detached: true, stdio: 'ignore',
+  });
+  child.on('error', () => {});
+  child.unref();
+  return true;
 }
 
 function onPrompt(input) {
