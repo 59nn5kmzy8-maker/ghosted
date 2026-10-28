@@ -46,7 +46,7 @@ function conversationSinceCompact(transcriptPath) {
   return out.join('\n');
 }
 
-function judge(recent, prompt) {
+function judge(recent, prompt, sessionId) {
   const fake = process.env.SMART_COMPACT_FAKE_JUDGE;
   if (fake) return fake === 'error' ? null : { new_task: fake === 'new', focus: 'fake focus' };
   const question = [
@@ -57,12 +57,23 @@ function judge(recent, prompt) {
     '', '<recent_conversation>', recent, '</recent_conversation>',
     '', '<new_request>', prompt, '</new_request>',
   ].join('\n');
-  const r = spawnSync('claude', ['-p', '--model', 'haiku', '--no-session-persistence', question], {
-    env: { ...process.env, SMART_COMPACT_CHILD: '1' }, encoding: 'utf8', timeout: 25000,
+  const r = spawnSync('claude', ['-p', '--model', 'haiku', '--no-session-persistence', '--output-format', 'json', question], {
+    env: { ...process.env, SMART_COMPACT_CHILD: '1' }, encoding: 'utf8', timeout: 25000, input: '',
   });
-  const m = (r.stdout || '').match(/\{[\s\S]*\}/);
+  debug('judge exit', r.status, r.error ? r.error.message : '', (r.stderr || '').slice(0, 300));
+  let out;
+  try { out = JSON.parse(r.stdout); } catch { return null; }
+  logCost(sessionId, out.total_cost_usd);
+  const m = String(out.result || '').match(/\{[\s\S]*\}/);
   if (r.status !== 0 || !m) return null;
   try { return JSON.parse(m[0]); } catch { return null; }
+}
+
+// Judge spend per session, so the cost of the plugin itself is visible.
+function logCost(sessionId, usd) {
+  if (typeof usd !== 'number') return;
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  fs.appendFileSync(path.join(DATA_DIR, 'judge-costs.jsonl'), JSON.stringify({ ts: new Date().toISOString(), session: sessionId, usd }) + '\n');
 }
 
 // tty of the terminal running Claude Code, e.g. /dev/ttys003.
@@ -120,7 +131,7 @@ function onPrompt(input) {
     const recent = conversationSinceCompact(input.transcript_path);
     debug('context tokens est', Math.round(recent.length / 4));
     if (recent.length / 4 < MIN_TOKENS) return;
-    verdict = judge(recent.slice(-6000), prompt.slice(0, 4000));
+    verdict = judge(recent.slice(-6000), prompt.slice(0, 4000), input.session_id);
     debug('verdict', JSON.stringify(verdict));
     if (!verdict || verdict.new_task !== true) return; // fail open
   }
