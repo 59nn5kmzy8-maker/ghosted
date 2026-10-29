@@ -285,7 +285,7 @@ function ancestorPids() {
 function obviousFollowUp(prompt) {
   if (prompt.split(/\s+/).filter(Boolean).length <= 2) return true;
   if (/^(ok(ay)?|yes|yep|no|nope|sure|thanks|thank you|great|nice|perfect|continue|go on|go ahead|do it|also|again|retry|try again|fix (it|that|this))\b/i.test(prompt)) return true;
-  return /\b(you (already|just)|as (before|above)|above|earlier|previous(ly)?|that (file|function|change|one|error|bug)|those|the same)\b/i.test(prompt);
+  return /\b(you (already|just)|what you (saw|read|found|wrote|did)|based on (that|this|what|your)|your (analysis|summary|comparison|overview|answer|code)|as (before|above)|above|earlier|previous(ly)?|that (file|function|change|one|error|bug)|those|the same)\b/i.test(prompt);
 }
 
 function onPrompt(input) {
