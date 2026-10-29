@@ -44,6 +44,15 @@ Six scenarios, three arms each, two repetitions per arm (36 runs, Opus). Costs a
 
 Total: off $15.88, compact $10.47 (34% saved), clear $4.78 (70% saved). Wall time was about the same: 666s off, 720s compact, 674s clear. Tests passed in every run that had tests. The judge cost $0.0013 per switch, $0.033 across all 24 plugin runs. Since then, clear has been the default.
 
+Two more scenarios, run the same way:
+
+| # | Context | Model | Turns | Off | Compact | Clear |
+|---|---|---|---|---|---|---|
+| 7 | 176k | Opus | 2, related follow-up | $1.99 | $1.97 | $1.27 |
+| 9 | 176k | Sonnet | 3 | $1.25 | $0.86 | $0.42 |
+
+In scenario 7 the right answer is not to switch, and the judge got it right in 3 of 4 runs. In the fourth it judged "From the files you already read: write notes.md…" a new task, cleared, and `notes.md` was never written. That is the risk clear mode carries: a wrong switch loses what the request points at. 0.3.1 tells the judge to treat back-references as the same task and to answer SAME when unsure. In a recheck the follow-up was judged same 8 of 8 times, and real new tasks were still judged new 6 of 6 times. If a switch is wrong, `same: <prompt>` prevents it, and the archive keeps the old conversation.
+
 ## Caveman connection
 
 Compaction loses information. Before each switch the plugin writes the old conversation verbatim to `${CLAUDE_PLUGIN_DATA}/archive/`. If the caveman CLI is installed, it also stores a short entry in caveman memory (`caveman mem remember`) with the old task and the archive path. Any later session can then find the old work with `caveman mem recall <words>` and open the full log. After the switch, Claude is told where the archive is and reads it only if the new task needs it.

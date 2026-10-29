@@ -67,6 +67,8 @@ function judge(head, recent, prompt, sessionId) {
     'You decide if a coding-assistant user just switched to a NEW, unrelated task.',
     'NEW = the earlier conversation is not needed to do the new request.',
     'SAME = follow-up, fix, tweak, question about, or continuation of the earlier work.',
+    'Also SAME when the new request refers back to the earlier conversation ("you already read", "those", "above", "that file", "it")',
+    'or needs anything only that conversation holds. Clearing then loses what the user is pointing at. If unsure, answer SAME.',
     'Reply with only JSON:',
     '{"new_task": true|false, "focus": "<5-15 word summary of the new request>",',
     ' "old_task": "<5-20 word summary of the earlier work>",',
