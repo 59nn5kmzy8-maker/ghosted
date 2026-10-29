@@ -60,9 +60,15 @@ Each has an environment override: `GHOSTED_MAX_CONTEXT`, `GHOSTED_MIN_TOKENS`, `
 
 | | |
 |---|---|
-| `new: <prompt>` | force a switch |
-| `same: <prompt>` | never switch for this prompt |
+| `/ghosted full` · `lite` · `auto` · `off` | terse answers (`auto` = full, off when caveman is active) |
+| `/ghosted max 250k` · `max off` | compact mid-run at this context size, then continue |
+| `/ghosted pause` · `resume` | turn ghosted_ off or on |
+| `/ghosted stats` | task switches, mid-run compactions, judge calls and their cost |
+| `/ghosted reset` · `help` | back to your `/config` settings · list the commands |
 | `/ghosted:recall <words>` | find archived work |
+| `new: <prompt>` · `same: <prompt>` | force or block a task switch |
+
+`/ghosted` settings stick across sessions. Environment variables still win over them.
 
 ## Platforms
 

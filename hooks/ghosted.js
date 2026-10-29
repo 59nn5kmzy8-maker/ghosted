@@ -9,9 +9,17 @@ const path = require('path');
 const crypto = require('crypto');
 const { spawn, spawnSync } = require('child_process');
 
-// Settings: an env var wins, then the value the user picked in the plugin's config (/config), then the default.
-const opt = (env, key, dflt) => process.env[env] || process.env[`CLAUDE_PLUGIN_OPTION_${key}`]
+// Skills run through the Bash tool, which has no CLAUDE_PLUGIN_DATA, so they pass the dir as an argument.
+const DATA_DIR = (['recall', 'cmd'].includes(process.argv[2]) && process.argv[3]) || process.env.CLAUDE_PLUGIN_DATA
+  || path.join(os.homedir(), '.claude', 'ghosted');
+// What /ghosted changed (terse level, limits, pause), kept across sessions.
+const OVERRIDES_FILE = path.join(DATA_DIR, 'settings.json');
+let OVERRIDES = {};
+try { OVERRIDES = JSON.parse(fs.readFileSync(OVERRIDES_FILE, 'utf8')); } catch {}
+// Settings: an env var wins, then /ghosted, then the value picked in the plugin's config (/config), then the default.
+const opt = (env, key, dflt) => process.env[env] || OVERRIDES[key.toLowerCase()] || process.env[`CLAUDE_PLUGIN_OPTION_${key}`]
   || process.env[`CLAUDE_PLUGIN_OPTION_${key.toLowerCase()}`] || dflt;
+const OFF = process.env.GHOSTED_OFF || OVERRIDES.paused;
 // Token counts: 250000, 250k or 1m. Anything unreadable falls back to the default instead of silently disabling a check.
 function tokens(v, dflt) {
   const m = String(v).trim().match(/^(\d+(?:\.\d+)?)\s*([km]?)$/i);
@@ -40,9 +48,6 @@ const PENDING_TTL_MS = 10 * 60 * 1000;
 const RESUME_TEXT = 'Start the pending task.';
 const CONTINUE_TEXT = 'Continue where you left off.';
 const TERSE_SUMMARY = 'Write the summary as terse notes: no filler, keep paths, names, numbers and decisions exact.';
-// The recall skill runs through the Bash tool, which has no CLAUDE_PLUGIN_DATA, so it passes the dir as an argument.
-const DATA_DIR = (process.argv[2] === 'recall' && process.argv[3]) || process.env.CLAUDE_PLUGIN_DATA
-  || path.join(os.homedir(), '.claude', 'ghosted');
 const WIN = process.platform === 'win32';
 
 // Keyed by working directory, not session: /clear starts a new session id.
@@ -160,6 +165,66 @@ function judge(head, recent, prompt, sessionId) {
   const m = String(out.result || '').match(/\{[\s\S]*\}/);
   if (r.status !== 0 || !m) return null;
   try { return JSON.parse(m[0]); } catch { return null; }
+}
+
+// What ghosted_ did, for /ghosted stats.
+function logEvent(kind, tokens) {
+  privateDir(DATA_DIR);
+  fs.appendFileSync(path.join(DATA_DIR, 'events.jsonl'), JSON.stringify({ ts: new Date().toISOString(), kind, tokens }) + '\n', PRIVATE);
+}
+
+function jsonl(file) {
+  const out = [];
+  try { for (const l of fs.readFileSync(file, 'utf8').split('\n')) try { out.push(JSON.parse(l)); } catch {} } catch {}
+  return out;
+}
+
+const HELP = `ghosted_ commands
+  /ghosted full | lite | auto | off   terse answers (auto = full, off when caveman is active)
+  /ghosted max <tokens> | max off     compact mid-run at this context size (e.g. 250k), then continue
+  /ghosted pause | resume             turn ghosted_ off or on (all features)
+  /ghosted stats                      what ghosted_ did and what the judge cost
+  /ghosted reset                      drop these overrides, back to /config
+  /ghosted:recall <words>             find archived work
+  new: <prompt> / same: <prompt>      force or block a task switch`;
+
+// /ghosted <args>: change overrides or report. Returns the text to show.
+function command(args) {
+  const [verb = 'help', value] = args.join(' ').trim().toLowerCase().split(/\s+/);
+  const save = o => { privateDir(DATA_DIR); fs.writeFileSync(OVERRIDES_FILE, JSON.stringify(o), PRIVATE); };
+  if (['full', 'lite', 'auto', 'off'].includes(verb)) {
+    save({ ...OVERRIDES, terse: verb });
+    const now = verb === 'auto' ? (cavemanActive() ? 'off (caveman is active)' : 'full') : verb;
+    return `ghosted_ terse: ${verb}${verb === 'auto' ? ` -> ${now}` : ''}. Applies from the next message${verb === 'off' ? '' : '; use this style from now on'}.`
+      + (verb !== 'off' && verb !== 'auto' ? `\n\n${TERSE_RULES[verb]}` : '');
+  }
+  if (verb === 'max') {
+    const n = value === 'off' ? 0 : tokens(value, NaN);
+    if (Number.isNaN(n)) return 'Usage: /ghosted max <tokens> (e.g. 250k) or /ghosted max off';
+    save({ ...OVERRIDES, max_context: String(n) });
+    return n ? `ghosted_ will compact mid-run at ${Math.max(n, 100000).toLocaleString('en')} tokens, then continue.` : 'ghosted_ mid-run compaction off.';
+  }
+  if (verb === 'pause' || verb === 'resume') {
+    save({ ...OVERRIDES, paused: verb === 'pause' });
+    return verb === 'pause' ? 'ghosted_ paused: no judging, compaction or terse rules until /ghosted resume.' : 'ghosted_ resumed.';
+  }
+  if (verb === 'reset') { fs.rmSync(OVERRIDES_FILE, { force: true }); return 'ghosted_ overrides cleared; /config settings apply.'; }
+  if (verb === 'stats') {
+    const ev = jsonl(path.join(DATA_DIR, 'events.jsonl')), costs = jsonl(path.join(DATA_DIR, 'judge-costs.jsonl'));
+    const sum = (a, f) => a.reduce((t, x) => t + (Number(f(x)) || 0), 0);
+    const idx = jsonl(path.join(DATA_DIR, 'archive', 'index.jsonl'));
+    const midRuns = idx.filter(r => /mid-run/.test(r.task)).length; // the archive index predates events.jsonl, so count from it
+    const sw = ev.filter(e => e.kind === 'switch');
+    const k = n => `${Math.round(n / 1000).toLocaleString('en')}k`;
+    return [
+      'ghosted_ stats',
+      `  task switches        ${idx.length - midRuns}${sw.length ? `  (last ${sw.length}: ${k(sum(sw, e => e.tokens))} tokens of old conversation no longer re-sent each turn)` : ''}`,
+      `  mid-run compactions  ${midRuns}`,
+      `  judge calls          ${costs.length}  ($${sum(costs, c => c.usd).toFixed(4)} total)`,
+      `  settings             terse ${TERSE_SETTING}${TERSE_SETTING === 'auto' ? ` (${TERSE})` : ''}, mid-run ${MAX_CONTEXT ? k(MAX_CONTEXT) : 'off'}, judge above ${k(MIN_TOKENS)}${OFF ? ', PAUSED' : ''}`,
+    ].join('\n');
+  }
+  return HELP;
 }
 
 // Judge spend per session, so the cost of the plugin itself is visible.
@@ -303,7 +368,7 @@ function obviousFollowUp(prompt) {
 
 function onPrompt(input) {
   const prompt = (input.prompt || '').trim();
-  if (process.env.GHOSTED_OFF || process.env.GHOSTED_CHILD) return;
+  if (OFF || process.env.GHOSTED_CHILD) return;
   // `!` is Claude Code's shell mode, so the overrides are plain-word prefixes.
   if (prompt.startsWith('/') || /^same:/i.test(prompt) || prompt === RESUME_TEXT || prompt === CONTINUE_TEXT) return;
 
@@ -325,6 +390,7 @@ function onPrompt(input) {
   const oneLine = s => String(s || '').replace(/\s+/g, ' ').trim();
   const archived = archive(conversation, input, oneLine(verdict.old_task).slice(0, 200) || 'earlier task');
   if (!writePending(input.cwd, { prompt: input.prompt, mode: MODE, carry: String(verdict.carry || '').slice(0, 1500), archive: archived })) return;
+  logEvent('switch', Math.round(conversation.length / 4));
   const focus = oneLine(verdict.focus).slice(0, 200);
   const command = MODE === 'clear' ? '/clear' : `/compact Keep only what helps with the next task: ${focus}. ${TERSE_SUMMARY}`;
   // Claude Code puts a blocked prompt back in the input; Ctrl-C clears it first.
@@ -342,12 +408,13 @@ function onPrompt(input) {
 
 // After each tool call: past the context limit, stop the run, compact, and let it carry on.
 function onTool(input) {
-  if (process.env.GHOSTED_OFF || process.env.GHOSTED_CHILD || !(MAX_CONTEXT > 0)) return;
+  if (OFF || process.env.GHOSTED_CHILD || !(MAX_CONTEXT > 0)) return;
   if (readPending(input.cwd)) return;
   const tokens = contextTokens(input.transcript_path);
   debug('tool context tokens', tokens);
   if (!tokens || tokens < MAX_CONTEXT) return;
   if (!writePending(input.cwd, { mode: 'continue', tokens })) return; // another tool call got there first
+  logEvent('midrun', tokens);
   const archived = archive(conversationSinceCompact(input.transcript_path), input, 'run in progress (compacted mid-run)');
   writeJson(pendingPath(input.cwd), { mode: 'continue', tokens, archive: archived });
   // Always /compact here: /clear would drop the task itself. The input is empty after a stop, so no Ctrl-C
@@ -418,12 +485,12 @@ const TERSE_RULES = {
 const TERSE_REMINDER = { lite: 'reply without filler or recap', full: 'compressed notes: no articles, filler, narration around tool calls or recap' };
 function onStart() {
   const rule = TERSE_RULES[TERSE];
-  if (!rule || process.env.GHOSTED_OFF || process.env.GHOSTED_CHILD) return;
+  if (!rule || OFF || process.env.GHOSTED_CHILD) return;
   process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: `ghosted_ terse mode (${TERSE}): ${rule}` } }));
 }
 
 function terseReminder() {
-  if (!TERSE_RULES[TERSE] || process.env.GHOSTED_OFF || process.env.GHOSTED_CHILD) return;
+  if (!TERSE_RULES[TERSE] || OFF || process.env.GHOSTED_CHILD) return;
   process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: 'UserPromptSubmit',
     additionalContext: `ghosted_ terse mode (${TERSE}): ${TERSE_REMINDER[TERSE]}. Files you write stay normal.` } }));
 }
@@ -436,6 +503,12 @@ function debug(...a) {
 
 function main() {
   // recall <data dir> [words...]; words come on stdin when none are given, so the skill never puts them through the shell
+  if (process.argv[2] === 'cmd') {
+    let args = process.argv.slice(4);
+    if (!args.length) try { args = [fs.readFileSync(0, 'utf8')]; } catch {}
+    process.stdout.write(command(args) + '\n');
+    return;
+  }
   if (process.argv[2] === 'recall') {
     let words = process.argv.slice(4);
     if (!words.length) try { words = [fs.readFileSync(0, 'utf8')]; } catch {}

@@ -199,3 +199,22 @@ test('terse mode adds a one-line reminder to prompts that pass, not to blocked o
   assert.match(run('prompt', input, env).hookSpecificOutput.additionalContext, /compressed notes/);
   assert.equal(run('prompt', { ...input, prompt: 'new: write docs' }, env).decision, 'block');
 });
+
+test('/ghosted command: terse level, max, pause, stats, help', () => {
+  const s = setup();
+  const cmd = (...a) => spawnSync(process.execPath, [SCRIPT, 'cmd', s.dir, ...a], { encoding: 'utf8', env: { ...process.env, GHOSTED_TERSE: '' } }).stdout;
+  assert.match(cmd('lite'), /terse: lite/);
+  const env = { ...envFor(s, 'new'), GHOSTED_TERSE: '' };
+  assert.match(run('start', {}, env).hookSpecificOutput.additionalContext, /terse mode \(lite\)/); // override beats the default
+  assert.match(cmd('max', '250k'), /250,000 tokens/);
+  const input = { session_id: 'abc', cwd: s.cwd, transcript_path: s.transcript };
+  withUsage(s, 260000);
+  assert.equal(run('tool', input, env).continue, false);
+  assert.match(cmd('pause'), /paused/);
+  assert.equal(run('start', {}, env), null);
+  assert.match(cmd('stats'), /mid-run compactions  1[\s\S]*PAUSED/);
+  assert.match(cmd('reset'), /cleared/);
+  assert.match(cmd(), /\/ghosted full \| lite/);
+  // arguments on stdin, as the skill passes them
+  assert.match(spawnSync(process.execPath, [SCRIPT, 'cmd', s.dir], { input: 'full\n', encoding: 'utf8' }).stdout, /terse: full/);
+});
