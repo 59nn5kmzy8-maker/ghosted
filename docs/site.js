@@ -39,17 +39,35 @@
     addEventListener('resize', home); document.fonts && document.fonts.ready.then(home); home();
   }
 
+  // Terminal logs play live: prompts are typed out, output lines appear one by one. Replays each time it's shown.
+  const playLog = async log => {
+    const lines = [...log.querySelectorAll('.l')], my = (log._run = (log._run || 0) + 1);
+    lines.forEach(l => { if (l.dataset.text === undefined) l.dataset.text = l.textContent; l.classList.remove('on'); l.textContent = l.dataset.text; });
+    if (still) { lines.forEach(l => l.classList.add('on')); return; }
+    const pause = ms => new Promise(r => setTimeout(r, ms));
+    await pause(250);
+    for (const l of lines) {
+      if (log._run !== my) return;
+      if (l.classList.contains('u')) {
+        const t = l.dataset.text; l.textContent = ''; l.classList.add('on', 'typing');
+        for (let i = 1; i <= t.length; i++) { if (log._run !== my) return; l.textContent = t.slice(0, i); await pause(22); }
+        l.classList.remove('typing'); await pause(380);
+      } else { l.classList.add('on'); await pause(l.classList.contains('d') ? 260 : 520); }
+    }
+  };
+
   // Tabs: click or arrow keys; data-hash lists open a tab from the URL (legal.html#privacy).
   $$('[role="tablist"]').forEach(list => {
     const tabs = [...list.querySelectorAll('[role="tab"]')];
     const p = pillFor(list, '[aria-selected="true"]');
-    const show = (tab, focus) => {
+    const show = (tab, focus, play = true) => {
       tabs.forEach(t => {
         const on = t === tab;
         t.setAttribute('aria-selected', on); t.tabIndex = on ? 0 : -1;
         document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
       });
       p.move(tab);
+      if (play) document.getElementById(tab.getAttribute('aria-controls')).querySelectorAll('.tlog').forEach(playLog);
       if (focus) tab.focus();
       if (list.dataset.hash) history.replaceState(null, '', '#' + tab.dataset.key);
     };
@@ -61,7 +79,14 @@
       });
     });
     const fromHash = list.dataset.hash && tabs.find(t => t.dataset.key === location.hash.slice(1));
-    show(fromHash || tabs[0]);
+    show(fromHash || tabs[0], false, false);
+    // the first tab plays once the tabs scroll into view
+    new IntersectionObserver(([e], o) => {
+      if (!e.isIntersecting) return;
+      o.disconnect();
+      const cur = tabs.find(t => t.getAttribute('aria-selected') === 'true');
+      document.getElementById(cur.getAttribute('aria-controls')).querySelectorAll('.tlog').forEach(playLog);
+    }, { threshold: .3 }).observe(list.parentElement);
     addEventListener('resize', () => p.move(p.current()));
     document.fonts && document.fonts.ready.then(() => p.move(p.current()));
   });

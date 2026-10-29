@@ -19,7 +19,7 @@
 <link rel="icon" href="favicon.png">
 <link rel="preload" href="fonts/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/instrument-serif-latin-400-italic.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="style.css?v=ddc54404">
+<link rel="stylesheet" href="style.css?v=048bcdc2">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -109,8 +109,7 @@
         <div class="tabbody">
           <div><h3>Task switch <code>on</code></h3><p>Above 20k tokens of context, a prompt that starts something new triggers a clean restart.</p>
             <ul><li>Old chat archived, readable only by you</li><li>Prompt restored and started automatically</li><li>Up to 5 facts from the old work carried over</li></ul></div>
-          <div class="term"><div class="tbar"><i></i><i></i><i></i><span>context 176k → 18k</span></div><div class="tlog">
-            <div class="l u">now write the release notes</div><div class="l g">ghosted: new task detected, clearing first.</div><div class="l u">/clear</div><div class="l u">Start the pending task.</div><div class="l">● Reading CHANGELOG.md</div></div></div>
+          <div class="term"><div class="tbar"><i></i><i></i><i></i><span>context 176k → 18k</span></div><div class="tlog"><div class="l u">fix the token refresh in auth.ts</div><div class="l">⏺ Fixed the expiry check · 3 tests pass</div><div class="l u">now write the release notes</div><div class="l d">  ghosted_ asks Haiku: new task? → yes (3.4s, $0.0013)</div><div class="l g">ghosted: new task detected, clearing first.</div><div class="l d">  ✓ old chat archived  ✓ your prompt saved</div><div class="l u">/clear</div><div class="l u">Start the pending task.</div><div class="l d">  ✓ carried: CHANGELOG uses Keep a Changelog · next version 2.4.0 · auth fix merged</div><div class="l">⏺ Reading CHANGELOG.md</div><div class="l">⏺ Drafted the 2.4.0 notes</div></div></div>
         </div>
       </div>
 
@@ -119,8 +118,8 @@
           <div><h3>Terse answers <code>auto</code></h3><p>Short notes in the terminal instead of paragraphs. Code and files Claude writes stay normal.</p>
             <ul><li>20% less text, 19% lower cost in tests</li><li>Steps aside when caveman is installed</li><li><code>/ghosted full</code>, <code>lite</code> or <code>off</code></li></ul></div>
           <div class="grid2" style="gap:10px">
-            <div class="term"><div class="tbar"><span>off</span></div><div class="tlog" style="font-size:12px"><div class="l d">I've looked into the issue and it seems the problem is that the token expiry check uses a strict less-than comparison, which means…</div></div></div>
-            <div class="term"><div class="tbar"><span>full</span></div><div class="tlog" style="font-size:12px"><div class="l">Bug in auth middleware. Expiry check uses &lt; not &lt;=. Fix:</div></div></div>
+            <div class="term"><div class="tbar"><span>off</span></div><div class="tlog" style="font-size:12px"><div class="l u">why does the login test fail?</div><div class="l">I've looked into the issue and it seems the problem is that the token expiry check uses a strict less-than comparison, which means tokens expire one second early…</div></div></div>
+            <div class="term"><div class="tbar"><span>full</span></div><div class="tlog" style="font-size:12px"><div class="l u">why does the login test fail?</div><div class="l">Expiry check uses &lt; not &lt;=. Tokens expire 1s early. Fix in auth.ts:42.</div></div></div>
           </div>
         </div>
       </div>
@@ -129,8 +128,7 @@
         <div class="tabbody">
           <div><h3>Recall <code>on</code></h3><p>Every cleared conversation is indexed on your machine. Ask for it back in a few words.</p>
             <ul><li>Ranked search over past tasks</li><li>Returns a short digest, not the whole chat</li><li>Nothing leaves your machine</li></ul></div>
-          <div class="term"><div class="tbar"><i></i><i></i><i></i><span>recall</span></div><div class="tlog">
-            <div class="l u">/ghosted-recall auth expiry</div><div class="l d">  1 match · 2026-10-28 · "fix the auth flow"</div><div class="l">  Expiry check changed to &lt;=, test added in auth.test.ts…</div></div></div>
+          <div class="term"><div class="tbar"><i></i><i></i><i></i><span>recall</span></div><div class="tlog"><div class="l u">/ghosted-recall auth expiry</div><div class="l d">  1 match · 28 Oct · "fix the token refresh in auth.ts"</div><div class="l">  You: the token refresh fails after an hour</div><div class="l">  Claude: expiry check used < instead of <=, fixed in auth.ts:42</div><div class="l">  Claude: added a test in auth.test.ts for the boundary</div><div class="l d">  full conversation: ~/.claude/plugins/data/ghosted-ghosted/archive/…</div></div></div>
         </div>
       </div>
 
@@ -138,8 +136,7 @@
         <div class="tabbody">
           <div><h3>Cache warming <code>on · 2h</code></h3><p>Claude's prompt cache expires after a break. Coming back then means writing the whole context to the cache again, at up to 2× the input price. ghosted_ keeps it warm while you're away.</p>
             <ul><li>A hidden copy of the session sends one short turn just before expiry</li><li>Measured: 191,089 tokens read from cache, 372 written</li><li>Stops when you're back, or before it costs half of what it saves</li></ul></div>
-          <div class="term"><div class="tbar"><i></i><i></i><i></i><span>you're on a break</span></div><div class="tlog">
-            <div class="l d">  12:00  your last turn · cache warm for 1h</div><div class="l">  12:55  ping · 191k read from cache</div><div class="l">  13:50  ping · 191k read from cache</div><div class="l u">14:20  you're back</div><div class="l g">cache hit · no full rewrite</div></div></div>
+          <div class="term"><div class="tbar"><i></i><i></i><i></i><span>you step away</span></div><div class="tlog"><div class="l d">12:00  your last turn · cache lives 1 hour</div><div class="l d">12:55  ghosted_ opens a hidden copy of the session</div><div class="l">12:55  ping · 191,089 tokens read from cache · 372 written</div><div class="l d">12:55  hidden copy deleted · your chat untouched</div><div class="l">13:50  ping · 191,089 read · cache alive until 14:50</div><div class="l u">back at 14:20: continue with the tests</div><div class="l g">cache hit · no full rewrite of 191k tokens</div></div></div>
         </div>
       </div>
 
@@ -147,8 +144,7 @@
         <div class="tabbody">
           <div><h3>Long runs <code>opt-in</code></h3><p>For runs that go on long after their early context went stale. Off by default, because in single runs it cost more than it saved.</p>
             <ul><li>Set a limit: <code>/ghosted max 250k</code></li><li>Past it: stop, <code>/compact</code>, continue</li><li><code>/ghosted max off</code> to turn it off</li></ul></div>
-          <div class="term"><div class="tbar"><i></i><i></i><i></i><span>limit 250k</span></div><div class="tlog">
-            <div class="l">● Editing src/api/routes.ts</div><div class="l g">ghosted: context at 251k (limit 250k), compacting.</div><div class="l u">/compact</div><div class="l u">Continue where you left off.</div><div class="l">● Editing src/api/handlers.ts</div></div></div>
+          <div class="term"><div class="tbar"><i></i><i></i><i></i><span>limit 250k</span></div><div class="tlog"><div class="l u">migrate every API route to the new router</div><div class="l">⏺ Editing src/api/users.ts</div><div class="l">⏺ Editing src/api/orders.ts</div><div class="l d">  … 31 files later, context 251k</div><div class="l g">ghosted: context at 251k (limit 250k), compacting. The run continues automatically.</div><div class="l u">/compact</div><div class="l u">Continue where you left off.</div><div class="l">⏺ Editing src/api/payments.ts</div></div></div>
         </div>
       </div>
 
@@ -156,8 +152,7 @@
         <div class="tabbody">
           <div><h3>Overrides</h3><p>One word at the start of a prompt decides for the judge.</p>
             <ul><li><code>same:</code> never switch on this prompt</li><li><code>new:</code> always switch, no judge</li><li><code>/ghosted pause</code> turns everything off</li></ul></div>
-          <div class="term"><div class="tbar"><i></i><i></i><i></i><span>overrides</span></div><div class="tlog">
-            <div class="l u">same: now do the same for the admin page</div><div class="l d">  passes through, no judge</div><div class="l u">new: plan next week's sprint</div><div class="l g">ghosted: new task detected, clearing first.</div></div></div>
+          <div class="term"><div class="tbar"><i></i><i></i><i></i><span>overrides</span></div><div class="tlog"><div class="l u">same: now do the same for the admin page</div><div class="l d">  same: → stays in this task, no judge</div><div class="l">⏺ Applying the same change to src/admin</div><div class="l u">new: plan next week's sprint</div><div class="l d">  new: → switch now, no judge</div><div class="l g">ghosted: new task detected, clearing first.</div></div></div>
         </div>
       </div>
     </div>
@@ -196,6 +191,6 @@
   </div>
   <div class="wordmark" aria-hidden="true">ghosted_</div>
 </footer>
-<script src="site.js?v=ddc54404"></script>
+<script src="site.js?v=048bcdc2"></script>
 </body>
 </html>
