@@ -19,7 +19,7 @@
 <link rel="icon" href="favicon.png">
 <link rel="preload" href="fonts/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/instrument-serif-latin-400-italic.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="style.css?v=132aff20">
+<link rel="stylesheet" href="style.css?v=36f0c57c">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -37,7 +37,26 @@
   .hero { display: grid; grid-template-columns: 1.35fr .65fr; gap: 40px; align-items: center; padding: 104px 0 72px; }
   .hero h1 { font-size: clamp(44px, 6.6vw, 88px); margin: 0 0 22px; }
   .hero .lede { margin: 0 0 32px; }
-  #ghost { width: 100%; aspect-ratio: 1; display: block; opacity: .9; }
+  .cmdpill { padding-left: 16px; }
+  .proof { display: grid; grid-template-columns: repeat(3, 1fr); margin: 40px 0 0; border-top: 1px solid var(--line); max-width: 640px; }
+  .proof div { padding: 18px 18px 0 0; }
+  .proof div + div { padding-left: 18px; border-left: 1px solid var(--line); }
+  .proof dt { font: 600 28px/1 var(--sans); letter-spacing: -0.04em; color: var(--hi); }
+  .proof dd { margin: 8px 0 0; font-size: 13px; color: var(--dim); line-height: 1.4; }
+  .ctxcard { position: relative; border: 1px solid var(--line2); border-radius: 16px; background: linear-gradient(180deg, #0d0d0d, #080808); padding: 18px; font: 12.5px/1.6 var(--mono); box-shadow: 0 40px 100px -40px rgba(0,0,0,.9); }
+  .cc-top { display: flex; align-items: center; gap: 12px; color: var(--faint); padding-bottom: 14px; border-bottom: 1px solid var(--line); margin-bottom: 12px; }
+  .cc-meter { flex: 1; height: 5px; border-radius: 9px; background: #1a1a1a; overflow: hidden; }
+  .cc-meter i { display: block; height: 100%; width: 88%; background: var(--hi); border-radius: 9px; transition: width 1.4s var(--ease); }
+  .cc-top b { color: var(--hi); min-width: 4.5ch; text-align: right; font-weight: 600; }
+  .cc-list { display: grid; gap: 6px; min-height: 352px; align-content: start; padding-bottom: 40px; }
+  .cc { padding: 7px 10px; border-radius: 8px; background: #111; color: #9a9a9a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: opacity .7s var(--ease), filter .7s var(--ease), transform .7s var(--ease), max-height .6s var(--ease) .5s, padding .6s var(--ease) .5s, margin .6s var(--ease) .5s; max-height: 40px; }
+  .cc.you { background: #181818; color: var(--hi); }
+  .cc.note { background: transparent; color: var(--hi); padding-top: 2px; padding-bottom: 2px; }
+  .cc.note + .cc.note { color: var(--dim); }
+  .js .cc.new { opacity: 0; transform: translateY(6px); }
+  .js .cc.new.on { opacity: 1; transform: none; }
+  .js .cc.old.gone { opacity: 0; filter: blur(6px); transform: translateY(-6px); max-height: 0; padding-top: 0; padding-bottom: 0; margin: -3px 0; }
+  .cc-replay { position: absolute; right: 14px; bottom: 14px; }
   .cmdpill { display: inline-flex; align-items: center; gap: 14px; height: 44px; padding: 0 6px 0 18px; border: 1px solid var(--line2); border-radius: 999px; background: var(--s1); font: 13px var(--mono); color: var(--dim); }
   .cmdpill b { color: var(--hi); font-weight: 400; }
   .stars { display: inline-flex; gap: 8px; align-items: center; margin-top: 26px; font-size: 13.5px; color: var(--dim); text-decoration: none; }
@@ -78,7 +97,7 @@
     .frame .tlog { font-size: 11.5px; padding: 16px; }
     .nums, .feat { grid-template-columns: 1fr; } .nums > div + div, .feat > div + div { padding-left: 0; border-left: 0; }
     .cmdpill { display: none; }
-    .hero { grid-template-columns: 1fr; padding-top: 56px; } #ghost { max-width: 220px; order: -1; }
+    .hero { grid-template-columns: 1fr; padding-top: 56px; } .proof { grid-template-columns: 1fr; } .proof div + div { padding-left: 0; border-left: 0; }
   }
   .dashframe iframe { display: block; width: 100%; height: var(--fit, 860px); min-height: 520px; border: 0; background: #050505; }
   @media (max-width: 900px) { .dashframe iframe { height: 720px; } }
@@ -99,18 +118,33 @@
     <div>
       <p class="kicker">Claude Code plugin · free and open source</p>
       <h1>Stop paying for context you no longer <em>need.</em></h1>
-      <p class="lede">Claude re-reads your whole chat on every message, so finished work keeps costing you. <b>ghosted_ notices when you start something new, saves the old chat and starts your task fresh.</b> You keep typing as usual.</p>
+      <p class="lede">Claude re-reads your whole chat on every message. <b>ghosted_ clears finished work when you switch tasks, and starts your next one for you.</b></p>
       <div class="row-cta">
-        <span class="cmdpill">$ <b>claude plugin marketplace add giovanbelle/ghosted</b> <span style="color:#555">+1 more</span><button type="button" class="btn sm" data-copy="claude plugin marketplace add giovanbelle/ghosted\nclaude plugin install ghosted@ghosted" aria-label="Copy both install commands">Copy</button></span>
-        <a class="btn primary" href="docs.html">Get started</a>
+        <a class="btn primary" href="#install">Install in 30 seconds</a>
+        <span class="cmdpill"><b>claude plugin install ghosted@ghosted</b><button type="button" class="btn sm" data-copy="claude plugin marketplace add giovanbelle/ghosted\nclaude plugin install ghosted@ghosted" aria-label="Copy both install commands">Copy</button></span>
       </div>
-      <ul class="facts">
-        <li><b>Pay per token?</b> Up to 70% cheaper on sessions where you switch tasks.</li>
-        <li><b>On Pro or Max?</b> In sessions where you switch tasks, your limit covers about 3× more work. Measured: the same 36 runs used $15.88 of usage without ghosted_, $4.78 with it.</li>
-        <li><b>Nothing is deleted.</b> Old chats are saved and searchable. When unsure, it keeps your chat.</li>
-      </ul>
+      <dl class="proof">
+        <div><dt>−70%</dt><dd>cost in sessions where you switch tasks</dd></div>
+        <div><dt>3.3×</dt><dd>more work per Pro/Max limit, same sessions</dd></div>
+        <div><dt>0 / 64</dt><dd>wrong switches. Old chats are never deleted</dd></div>
+      </dl>
     </div>
-    <canvas id="ghost" data-src="ghost.png" aria-hidden="true"></canvas>
+
+    <div class="ctxcard" id="herocard" aria-label="Animation: old chat lines fade out, context drops from 176k to 18k tokens and the new task starts.">
+      <div class="cc-top"><span>Context</span><span class="cc-meter"><i id="hcbar"></i></span><b id="hcnum">176k</b></div>
+      <div class="cc-list">
+        <div class="cc old">› fix the token refresh in auth.ts</div>
+        <div class="cc old">⏺ Read auth.ts, session.ts and 14 more</div>
+        <div class="cc old">⏺ 3 tests fixed · expiry uses &lt;=</div>
+        <div class="cc old">› also cover the logout race</div>
+        <div class="cc old">⏺ Edited session.ts · tests pass</div>
+        <div class="cc new you">› add dark mode to the settings page</div>
+        <div class="cc new note">ghosted_ · old chat saved, then cleared</div>
+        <div class="cc new note">5 facts carried over</div>
+        <div class="cc new">⏺ Reading SettingsPage.tsx</div>
+      </div>
+      <button type="button" class="btn sm cc-replay" id="hcreplay" hidden>Replay</button>
+    </div>
   </section>
 
   <section id="install" class="quick" aria-labelledby="qi-h" style="padding-top:8px">
@@ -233,6 +267,6 @@
   </div>
   <div class="wordmark" aria-hidden="true">ghosted_</div>
 </footer>
-<script src="site.js?v=132aff20"></script>
+<script src="site.js?v=36f0c57c"></script>
 </body>
 </html>

@@ -4,7 +4,7 @@
   const ease = k => 1 - Math.pow(1 - k, 4);
   const tween = (ms, fn, done) => {
     const t0 = performance.now();
-    const step = t => { const k = Math.min(1, (t - t0) / ms); fn(ease(k)); if (k < 1) requestAnimationFrame(step); else if (done) done(); };
+    const step = t => { const k = Math.max(0, Math.min(1, (t - t0) / ms)); fn(ease(k)); if (k < 1) requestAnimationFrame(step); else if (done) done(); };
     requestAnimationFrame(step);
   };
 
@@ -214,6 +214,30 @@
     $$('.chips button').forEach(b => b.addEventListener('click', () => { q.value = b.textContent; go(b.textContent); }));
     const shared = new URLSearchParams(location.search).get('try'); // how-it-works.html?try=<prompt> runs it on load
     if (shared) { q.value = shared; go(shared); }
+  }
+
+  // Hero card: old chat fades out, context drops, the new task starts. Plays once; Replay plays again.
+  const hc = $('#herocard');
+  if (hc) {
+    const olds = [...hc.querySelectorAll('.cc.old')], news = [...hc.querySelectorAll('.cc.new')];
+    const num = $('#hcnum'), bar = $('#hcbar'), again = $('#hcreplay');
+    let timers = [];
+    const at = (ms, fn) => timers.push(setTimeout(fn, still ? 0 : ms));
+    const play = () => {
+      timers.forEach(clearTimeout); timers = [];
+      olds.forEach(x => x.classList.remove('gone')); news.forEach(x => x.classList.remove('on'));
+      num.textContent = '176k'; bar.style.width = '88%'; again.hidden = true;
+      at(900, () => news[0].classList.add('on'));
+      at(1900, () => { olds.forEach((x, i) => setTimeout(() => x.classList.add('gone'), still ? 0 : i * 110));
+        if (still) num.textContent = '18k'; else tween(1300, k => { num.textContent = Math.round(176 - 158 * k) + 'k'; });
+        bar.style.width = '9%'; });
+      at(2600, () => news[1].classList.add('on'));
+      at(3300, () => news[2].classList.add('on'));
+      at(4000, () => news[3].classList.add('on'));
+      at(4800, () => { again.hidden = false; });
+    };
+    again.addEventListener('click', play);
+    play();
   }
 
   const fill = root => root.querySelectorAll('.f[data-w]').forEach(f => { f.style.width = f.dataset.w + '%'; });
