@@ -1,6 +1,6 @@
 {
   "name": "smart-compact",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Frees context when you switch task (/clear) and compacts long runs mid-run, then carries on automatically. Built-in terse mode and recall of old work.",
   "author": {
     "name": "gio"
@@ -25,13 +25,13 @@
     "terse": {
       "type": "string",
       "title": "Terse answers",
-      "description": "Make Claude answer with fewer words to cut output tokens: off, lite (no filler) or full (compressed note style).",
+      "description": "Make Claude answer with fewer words: off (default), lite (no filler) or full (compressed note style). In coding tests it did not lower cost, because most output is code; it helps more in chat-heavy use.",
       "options": [
         "off",
         "lite",
         "full"
       ],
-      "default": "lite"
+      "default": "off"
     }
   }
 }

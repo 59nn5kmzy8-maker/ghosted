@@ -9,7 +9,7 @@ A Claude Code plugin that frees context when you switch to a new task, not when 
 3. After that, a `SessionStart` hook (matcher `compact|clear`) injects your saved prompt, any facts carried over and the archive path, then types `Start the pending task.` Claude then does your task with clean context.
 
 4. Mid-run (optional, off by default): a `PostToolUse` hook reads the real context size from the API usage in the transcript. When it passes your limit, the hook stops the run, archives the conversation and types `/compact` (always compact here: clear would drop the task). After that it types `Continue where you left off.` and Claude picks the task back up.
-5. Terse mode: a `SessionStart` hook adds a short style rule (lite or full) so answers use fewer output tokens. It is added again after every `/compact` and `/clear`.
+5. Terse mode (optional): a `SessionStart` hook adds a short style rule (lite or full) so answers use fewer words. It is added again after every `/compact` and `/clear`.
 
 Any error fails open: your prompt goes through as normal.
 
@@ -30,7 +30,7 @@ When you enable the plugin, Claude Code asks for these. Change them later in `/c
 |---|---|---|
 | Compact mid-run at (tokens) | 0 (off) | During a long run, compact at this context size (for example 250000), then continue |
 | Check for a new task above (tokens) | 20000 | Below this, prompts are never judged |
-| Terse answers | lite | `off`, `lite` (no filler) or `full` (compressed note style) |
+| Terse answers | off | `off`, `lite` (no filler) or `full` (compressed note style) |
 
 An environment variable overrides each one: `SMART_COMPACT_MAX_CONTEXT`, `SMART_COMPACT_MIN_TOKENS`, `SMART_COMPACT_TERSE`.
 
@@ -71,6 +71,16 @@ In scenario 7 the right answer is not to switch, and the judge got it right in 3
 
 Compaction loses information, so before each switch or mid-run compaction the plugin writes the old conversation verbatim to `${CLAUDE_PLUGIN_DATA}/archive/` and lists it in `archive/index.jsonl`. `recall` searches that index and the archive text and returns a digest, not the whole log. What is carried into the new task is kept small: the judge writes up to 5 note-style lines, and `/compact` is asked for a terse summary that keeps paths, names, numbers and decisions exact.
 
+## Measured: terse mode (scenario 4, Opus, 3 runs each)
+
+| Terse | Avg cost | Avg output tokens |
+|---|---|---|
+| off | $0.90 | 9.9k |
+| lite | $1.26 | 13.4k |
+| full | $0.95 (2 runs) | 10.8k |
+
+All runs passed their tests. Terse mode did not lower the cost of a coding task: most of the output is code and tool calls, which a style rule doesn't shorten, and with `lite` the model even wrote more. That is why it is off by default. It is there for chat-heavy use, where the answer text is most of the output.
+
 ## Measured: mid-run compaction (one long run, Opus)
 
 Claude Code's own auto-compact window was set to 250k, so this tests the mid-run idea itself:
@@ -91,7 +101,8 @@ The task finished correctly every time, and each run continued after compacting.
 
 ## Known limits
 
-- Each judged prompt adds about 5s, because `claude -p` starts a new process. The judge runs with `--setting-sources= --strict-mcp-config --tools= --disable-slash-commands`, so none of your hooks, plugins or MCP servers load into it. That costs about $0.0004 per judgement instead of $0.005.
+- Each judged prompt adds about 3.5s, because `claude -p` starts a new process. Obvious follow-ups skip the judge: prompts of 1–2 words, ones starting with "ok", "also", "fix it" and the like, and back-references such as "that file" or "what you saw".
+- Judge accuracy: on 32 labelled prompts against a real 176k-token conversation (run twice), there were 0 wrong switches. One real new task was missed when a judge call timed out, which fails safe. The judge runs with `--setting-sources= --strict-mcp-config --tools= --disable-slash-commands`, so none of your hooks, plugins or MCP servers load into it. That costs about $0.0004 per judgement instead of $0.005.
 - The transcript's `compact_boundary` marker isn't documented. If it changes, the whole transcript counts toward the size check, so the judge just runs more often.
 - The pending task is keyed by working directory, because `/clear` starts a new session id. Two sessions in the same folder switching task at the same moment would collide.
 

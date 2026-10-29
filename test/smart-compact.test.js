@@ -142,9 +142,10 @@ test('mid-run: over the limit stops, types /compact, and resumes with "Continue 
   assert.equal(run('tool', input, { ...env, SMART_COMPACT_MAX_CONTEXT: '0' }), null);
 });
 
-test('terse mode: lite by default, off adds nothing', () => {
+test('terse mode: off by default, lite and full add a style rule', () => {
   const s = setup();
-  assert.match(run('start', {}, envFor(s, 'new')).hookSpecificOutput.additionalContext, /terse mode \(lite\)/);
+  assert.equal(run('start', {}, envFor(s, 'new')), null);
+  assert.match(run('start', {}, { ...envFor(s, 'new'), SMART_COMPACT_TERSE: 'lite' }).hookSpecificOutput.additionalContext, /terse mode \(lite\)/);
   assert.match(run('start', {}, { ...envFor(s, 'new'), SMART_COMPACT_TERSE: 'full' }).hookSpecificOutput.additionalContext, /drop articles/);
   assert.equal(run('start', {}, { ...envFor(s, 'new'), SMART_COMPACT_TERSE: 'off' }), null);
 });

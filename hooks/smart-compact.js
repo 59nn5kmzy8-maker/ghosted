@@ -21,7 +21,7 @@ const MIN_TOKENS = tokens(opt('SMART_COMPACT_MIN_TOKENS', 'SWITCH_MIN_TOKENS', 2
 const MAX_RAW = tokens(opt('SMART_COMPACT_MAX_CONTEXT', 'MAX_CONTEXT', 0), 0); // 0 = no mid-run compaction
 // Below ~100k, Claude Code's fixed overhead plus the summary could keep it over the limit and compact on every tool call.
 const MAX_CONTEXT = MAX_RAW > 0 ? Math.max(MAX_RAW, 100000) : 0;
-const TERSE = opt('SMART_COMPACT_TERSE', 'TERSE', 'lite');
+const TERSE = opt('SMART_COMPACT_TERSE', 'TERSE', 'off'); // off by default: in tests it did not lower agentic-coding cost
 const MODE = process.env.SMART_COMPACT_MODE === 'compact' ? 'compact' : 'clear';
 const PENDING_TTL_MS = 10 * 60 * 1000;
 const RESUME_TEXT = 'Start the pending task.';
