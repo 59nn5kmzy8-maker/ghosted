@@ -46,6 +46,8 @@ public static class Pty {
 
         var si = new STARTUPINFOEX();
         si.StartupInfo.cb = Marshal.SizeOf(typeof(STARTUPINFOEX));
+        // Without this the child inherits our redirected std handles instead of attaching to the pseudo console.
+        si.StartupInfo.dwFlags = 0x00000100; // STARTF_USESTDHANDLES, all handles left null
         IntPtr size = IntPtr.Zero;
         InitializeProcThreadAttributeList(IntPtr.Zero, 1, 0, ref size);
         si.lpAttributeList = Marshal.AllocHGlobal(size);
