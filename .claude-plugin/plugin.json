@@ -1,6 +1,6 @@
 {
   "name": "smart-compact",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Frees context when you switch task (/clear) and compacts long runs mid-run, then carries on automatically. Built-in terse mode and recall of old work.",
   "author": {
     "name": "gio"

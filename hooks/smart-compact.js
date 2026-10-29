@@ -2,7 +2,7 @@
 // smart-compact: when the user switches task, free the context (/compact or /clear), then start that task.
 // It also compacts mid-run when the context passes a limit, then lets the run continue.
 // `prompt` runs on UserPromptSubmit, `tool` on PostToolUse, `resume` on SessionStart(compact|clear),
-// `start` on every SessionStart (terse mode), `recall <words>` from the recall skill.
+// `start` on every SessionStart (terse mode), `recall <data dir> [words]` from the recall skill.
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -10,9 +10,15 @@ const crypto = require('crypto');
 const { spawn, spawnSync } = require('child_process');
 
 // Settings: an env var wins, then the value the user picked in the plugin's config (/config), then the default.
-const opt = (env, key, dflt) => process.env[env] || process.env[`CLAUDE_PLUGIN_OPTION_${key}`] || dflt;
-const MIN_TOKENS = Number(opt('SMART_COMPACT_MIN_TOKENS', 'SWITCH_MIN_TOKENS', 20000));
-const MAX_RAW = Number(opt('SMART_COMPACT_MAX_CONTEXT', 'MAX_CONTEXT', 0)); // 0 = no mid-run compaction
+const opt = (env, key, dflt) => process.env[env] || process.env[`CLAUDE_PLUGIN_OPTION_${key}`]
+  || process.env[`CLAUDE_PLUGIN_OPTION_${key.toLowerCase()}`] || dflt;
+// Token counts: 250000, 250k or 1m. Anything unreadable falls back to the default instead of silently disabling a check.
+function tokens(v, dflt) {
+  const m = String(v).trim().match(/^(\d+(?:\.\d+)?)\s*([km]?)$/i);
+  return m ? Math.round(m[1] * { '': 1, k: 1e3, m: 1e6 }[m[2].toLowerCase()]) : dflt;
+}
+const MIN_TOKENS = tokens(opt('SMART_COMPACT_MIN_TOKENS', 'SWITCH_MIN_TOKENS', 20000), 20000);
+const MAX_RAW = tokens(opt('SMART_COMPACT_MAX_CONTEXT', 'MAX_CONTEXT', 0), 0); // 0 = no mid-run compaction
 // Below ~100k, Claude Code's fixed overhead plus the summary could keep it over the limit and compact on every tool call.
 const MAX_CONTEXT = MAX_RAW > 0 ? Math.max(MAX_RAW, 100000) : 0;
 const TERSE = opt('SMART_COMPACT_TERSE', 'TERSE', 'lite');
@@ -21,7 +27,9 @@ const PENDING_TTL_MS = 10 * 60 * 1000;
 const RESUME_TEXT = 'Start the pending task.';
 const CONTINUE_TEXT = 'Continue where you left off.';
 const TERSE_SUMMARY = 'Write the summary as terse notes: no filler, keep paths, names, numbers and decisions exact.';
-const DATA_DIR = process.env.CLAUDE_PLUGIN_DATA || path.join(os.homedir(), '.claude', 'smart-compact');
+// The recall skill runs through the Bash tool, which has no CLAUDE_PLUGIN_DATA, so it passes the dir as an argument.
+const DATA_DIR = (process.argv[2] === 'recall' && process.argv[3]) || process.env.CLAUDE_PLUGIN_DATA
+  || path.join(os.homedir(), '.claude', 'smart-compact');
 const WIN = process.platform === 'win32';
 
 // Keyed by working directory, not session: /clear starts a new session id.
@@ -31,8 +39,27 @@ function pendingPath(cwd) {
   return path.join(DATA_DIR, 'pending', `${key}.json`);
 }
 
-function readPending(cwd) {
-  const file = pendingPath(cwd);
+// Private files: archives and pending tasks can hold secrets from tool output.
+const PRIVATE = { mode: 0o600 };
+function privateDir(dir) { fs.mkdirSync(dir, { recursive: true, mode: 0o700 }); return dir; }
+
+// wx: fail if one exists, so parallel tool calls (or two sessions in one folder) start only one handoff.
+function writePending(cwd, data) {
+  privateDir(path.dirname(pendingPath(cwd)));
+  try { fs.writeFileSync(pendingPath(cwd), JSON.stringify(data), { ...PRIVATE, flag: 'wx' }); return true; } catch { return false; }
+}
+
+// anyCwd: after /clear the new session may start in another folder (Claude cd'd during the old task),
+// so resume also accepts the newest fresh pending file.
+function readPending(cwd, anyCwd = false) {
+  let file = pendingPath(cwd);
+  if (anyCwd && !fs.existsSync(file)) {
+    const dir = path.dirname(file);
+    let names = [];
+    try { names = fs.readdirSync(dir).filter(n => n.endsWith('.json')); } catch {}
+    const newest = names.map(n => path.join(dir, n)).sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs)[0];
+    if (newest) file = newest;
+  }
   try {
     if (Date.now() - fs.statSync(file).mtimeMs > PENDING_TTL_MS) { fs.rmSync(file, { force: true }); return null; }
     return { file, ...JSON.parse(fs.readFileSync(file, 'utf8')) };
@@ -77,7 +104,7 @@ function contextTokens(transcriptPath) {
   const lines = text.split('\n');
   for (let i = lines.length - 1; i >= 0; i--) {
     if (lines[i].includes('"subtype":"compact_boundary"')) return null;
-    if (!lines[i].includes('"usage"')) continue;
+    if (!lines[i].includes('"usage"') || lines[i].includes('"isSidechain":true')) continue;
     let u;
     try { u = JSON.parse(lines[i]).message.usage; } catch { continue; }
     if (u) return (u.input_tokens || 0) + (u.cache_read_input_tokens || 0) + (u.cache_creation_input_tokens || 0);
@@ -133,12 +160,11 @@ function logCost(sessionId, usd) {
 // so `recall` finds it again from any later session.
 function archive(conversation, input, oldTask) {
   if (process.env.SMART_COMPACT_ARCHIVE === '0') return null;
-  const dir = path.join(DATA_DIR, 'archive');
-  fs.mkdirSync(dir, { recursive: true });
+  const dir = privateDir(path.join(DATA_DIR, 'archive'));
   const ts = new Date().toISOString();
   const file = path.join(dir, `${ts.replace(/[:.]/g, '-')}-${String(input.session_id).slice(0, 8)}.md`);
-  fs.writeFileSync(file, `# smart-compact archive\ncwd: ${input.cwd}\nsession: ${input.session_id}\ntask: ${oldTask}\n\n${conversation}\n`);
-  fs.appendFileSync(path.join(dir, 'index.jsonl'), JSON.stringify({ ts, cwd: input.cwd, task: oldTask, file }) + '\n');
+  fs.writeFileSync(file, `# smart-compact archive\ncwd: ${input.cwd}\nsession: ${input.session_id}\ntask: ${oldTask}\n\n${conversation}\n`, PRIVATE);
+  fs.appendFileSync(path.join(dir, 'index.jsonl'), JSON.stringify({ ts, cwd: input.cwd, task: oldTask, file }) + '\n', PRIVATE);
   return file;
 }
 
@@ -161,7 +187,9 @@ function recall(words) {
   const terms = words.join(' ').toLowerCase().split(/\W+/).filter(w => w.length > 2);
   let rows = [];
   try {
-    rows = fs.readFileSync(path.join(DATA_DIR, 'archive', 'index.jsonl'), 'utf8').split('\n').filter(Boolean).map(l => JSON.parse(l));
+    for (const l of fs.readFileSync(path.join(DATA_DIR, 'archive', 'index.jsonl'), 'utf8').split('\n')) {
+      try { rows.push(JSON.parse(l)); } catch {} // a half-written line must not hide the rest
+    }
   } catch {}
   const scored = rows.map(r => {
     let text = '';
@@ -207,6 +235,17 @@ const MAC_TYPE = `on run argv
   end tell
 end run`;
 
+const MAC_FIND = `on run argv
+  tell application "Terminal"
+    repeat with w in windows
+      repeat with t in tabs of w
+        if tty of t is (item 1 of argv) then return "ok"
+      end repeat
+    end repeat
+  end tell
+  return "none"
+end run`;
+
 // Types keystrokes into this Claude Code session after the current hook returns.
 // steps: [[delaySeconds, text], ...]. Claude Code submits on a CR that arrives on its own
 // (a CR inside a burst of text counts as pasted), so callers send '\r' as a separate step.
@@ -224,7 +263,8 @@ function typeLater(steps) {
       '-Steps', Buffer.from(JSON.stringify(steps)).toString('base64'), '-Pids', ancestorPids().join(',')], { detached: true, stdio: 'ignore', windowsHide: true });
   } else {
     const tty = process.env.TERM_PROGRAM === 'Apple_Terminal' ? findTty() : null;
-    if (!tty) return false;
+    // Check first that the tab is there and Terminal may be scripted: otherwise say so instead of promising typing.
+    if (!tty || spawnSync('osascript', ['-e', MAC_FIND, tty], { encoding: 'utf8', timeout: 3000 }).stdout?.trim() !== 'ok') return false;
     child = spawn('osascript', ['-e', MAC_TYPE, tty, ...steps.flatMap(([d, t]) => [String(d), t])], { detached: true, stdio: 'ignore' });
   }
   child.on('error', () => {});
@@ -240,17 +280,21 @@ function ancestorPids() {
   return (r.stdout || '').trim().split(',').filter(Boolean);
 }
 
+// Prompts that can only continue the current work: short replies, continuation words, back-references.
+// Erring towards "same" is safe: the worst case is the old behaviour (no switch).
+function obviousFollowUp(prompt) {
+  if (prompt.split(/\s+/).filter(Boolean).length <= 2) return true;
+  if (/^(ok(ay)?|yes|yep|no|nope|sure|thanks|thank you|great|nice|perfect|continue|go on|go ahead|do it|also|again|retry|try again|fix (it|that|this))\b/i.test(prompt)) return true;
+  return /\b(you (already|just)|as (before|above)|above|earlier|previous(ly)?|that (file|function|change|one|error|bug)|those|the same)\b/i.test(prompt);
+}
+
 function onPrompt(input) {
   const prompt = (input.prompt || '').trim();
   if (process.env.SMART_COMPACT_OFF || process.env.SMART_COMPACT_CHILD) return;
   // `!` is Claude Code's shell mode, so the overrides are plain-word prefixes.
-  if (prompt.startsWith('/') || /^same:/i.test(prompt)) return;
+  if (prompt.startsWith('/') || /^same:/i.test(prompt) || prompt === RESUME_TEXT || prompt === CONTINUE_TEXT) return;
 
-  const pending = readPending(input.cwd);
-  if (pending) {
-    if (prompt === RESUME_TEXT || prompt === CONTINUE_TEXT) fs.rmSync(pending.file, { force: true });
-    return; // mid-handoff: never judge
-  }
+  if (readPending(input.cwd)) return; // mid-handoff: never judge
 
   const conversation = conversationSinceCompact(input.transcript_path);
   let verdict;
@@ -259,6 +303,7 @@ function onPrompt(input) {
   } else {
     debug('context tokens est', Math.round(conversation.length / 4));
     if (conversation.length / 4 < MIN_TOKENS) return;
+    if (obviousFollowUp(prompt)) return; // saves the ~3.5s judge call
     verdict = judge(conversation.slice(0, 2000), conversation.slice(-6000), prompt.slice(0, 4000), input.session_id);
     debug('verdict', JSON.stringify(verdict));
     if (!verdict || verdict.new_task !== true) return; // fail open
@@ -266,10 +311,7 @@ function onPrompt(input) {
 
   const oneLine = s => String(s || '').replace(/\s+/g, ' ').trim();
   const archived = archive(conversation, input, oneLine(verdict.old_task).slice(0, 200) || 'earlier task');
-  fs.mkdirSync(path.dirname(pendingPath(input.cwd)), { recursive: true });
-  fs.writeFileSync(pendingPath(input.cwd), JSON.stringify({
-    prompt: input.prompt, mode: MODE, carry: String(verdict.carry || '').slice(0, 1500), archive: archived,
-  }));
+  if (!writePending(input.cwd, { prompt: input.prompt, mode: MODE, carry: String(verdict.carry || '').slice(0, 1500), archive: archived })) return;
   const focus = oneLine(verdict.focus).slice(0, 200);
   const command = MODE === 'clear' ? '/clear' : `/compact Keep only what helps with the next task: ${focus}. ${TERSE_SUMMARY}`;
   // Claude Code puts a blocked prompt back in the input; Ctrl-C clears it first.
@@ -291,9 +333,9 @@ function onTool(input) {
   const tokens = contextTokens(input.transcript_path);
   debug('tool context tokens', tokens);
   if (!tokens || tokens < MAX_CONTEXT) return;
+  if (!writePending(input.cwd, { mode: 'continue', tokens })) return; // another tool call got there first
   const archived = archive(conversationSinceCompact(input.transcript_path), input, 'run in progress (compacted mid-run)');
-  fs.mkdirSync(path.dirname(pendingPath(input.cwd)), { recursive: true });
-  fs.writeFileSync(pendingPath(input.cwd), JSON.stringify({ mode: 'continue', tokens, archive: archived }));
+  writeJson(pendingPath(input.cwd), { mode: 'continue', tokens, archive: archived });
   // Always /compact here: /clear would drop the task itself. The input is empty after a stop, so no Ctrl-C
   // (Ctrl-C on an empty input arms "press again to exit").
   const command = `/compact Context limit reached mid-task. Keep everything needed to finish the current task: the goal, files, decisions, what is done and what is left. ${TERSE_SUMMARY}`;
@@ -307,9 +349,13 @@ function onTool(input) {
   }));
 }
 
+function writeJson(file, data) { fs.writeFileSync(file, JSON.stringify(data), PRIVATE); }
+
 function onResume(input) {
-  const pending = readPending(input.cwd);
+  const pending = readPending(input.cwd, true);
   if (!pending) return;
+  // Used once: a later /clear, /compact or auto-compact must not inject this task again.
+  fs.rmSync(pending.file, { force: true });
   if (pending.mode === 'continue') {
     process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: [
       `smart-compact compacted mid-run because the context reached ${pending.tokens} tokens.`,
@@ -351,7 +397,13 @@ function debug(...a) {
 }
 
 function main() {
-  if (process.argv[2] === 'recall') { process.stdout.write(recall(process.argv.slice(3)) + '\n'); return; }
+  // recall <data dir> [words...]; words come on stdin when none are given, so the skill never puts them through the shell
+  if (process.argv[2] === 'recall') {
+    let words = process.argv.slice(4);
+    if (!words.length) try { words = [fs.readFileSync(0, 'utf8')]; } catch {}
+    process.stdout.write(recall(words) + '\n');
+    return;
+  }
   let input = {};
   try { input = JSON.parse(fs.readFileSync(0, 'utf8') || '{}'); } catch {}
   debug(process.argv[2], JSON.stringify({ ...input, prompt: (input.prompt || '').slice(0, 60) }));

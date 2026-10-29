@@ -4,8 +4,10 @@ description: Finds earlier work that smart-compact archived when it cleared or c
 argument-hint: "<words to search for>"
 ---
 
-Run this and use its output to answer. Read the archive file it names only if the digest lacks a detail you need.
+Run this with the search words on the line between the markers, then answer from its output. Read the archive file it names only if the digest lacks a detail you need. The quoted heredoc keeps the words away from the shell.
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/hooks/smart-compact.js" recall $ARGUMENTS
+node "${CLAUDE_PLUGIN_ROOT}/hooks/smart-compact.js" recall "${CLAUDE_PLUGIN_DATA}" <<'SMART_COMPACT_WORDS'
+$ARGUMENTS
+SMART_COMPACT_WORDS
 ```

@@ -64,7 +64,7 @@ test('new task: blocks, archives, types /compact; resume injects task and archiv
 test('clear is the default: types /clear and says so on resume', () => {
   const s = setup();
   const env = envFor(s, 'new');
-  const input = { session_id: 'abc', cwd: s.cwd, transcript_path: s.transcript, prompt: 'next thing' };
+  const input = { session_id: 'abc', cwd: s.cwd, transcript_path: s.transcript, prompt: 'write a brand new readme for the docs folder' };
   assert.equal(run('prompt', input, env).decision, 'block');
   assert.equal(typedText(s)[0], '\x03/clear\r\r');
   assert.match(run('resume', { session_id: 'x', cwd: s.cwd }, env).hookSpecificOutput.additionalContext, /freed the context \(clear\)/);
@@ -104,11 +104,15 @@ test('recall finds an archived conversation and shows a digest without tool outp
   const s = setup();
   fs.appendFileSync(s.transcript, '\n' + JSON.stringify({ type: 'user', message: { role: 'user', content: [{ type: 'tool_result', content: 'SECRET-TOOL-OUTPUT' }] } }));
   run('prompt', { session_id: 'abc', cwd: s.cwd, transcript_path: s.transcript, prompt: 'new: other thing' }, envFor(s, 'error'));
-  const out = run('recall', {}, envFor(s, 'new'), ['old', 'task']);
+  const out = run('recall', {}, envFor(s, 'new'), [s.dir, 'old', 'task']);
   assert.match(out, /Matches/);
   assert.match(out, /user: old task x/);
   assert.ok(!out.includes('SECRET-TOOL-OUTPUT'));
-  assert.match(run('recall', {}, envFor(s, 'new'), ['zzzqqq']), /no archived conversation matches/);
+  assert.match(run('recall', {}, envFor(s, 'new'), [s.dir, 'zzzqqq']), /no archived conversation matches/);
+  // words on stdin (how the skill passes them), shell metacharacters stay plain text; a broken index line is skipped
+  fs.appendFileSync(path.join(s.dir, 'archive', 'index.jsonl'), '{"half-writ');
+  const r = spawnSync(process.execPath, [SCRIPT, 'recall', s.dir], { input: "what's old task; $(rm -rf x)", encoding: 'utf8' });
+  assert.match(r.stdout, /Matches/);
 });
 
 function withUsage(s, tokens) {
@@ -143,4 +147,40 @@ test('terse mode: lite by default, off adds nothing', () => {
   assert.match(run('start', {}, envFor(s, 'new')).hookSpecificOutput.additionalContext, /terse mode \(lite\)/);
   assert.match(run('start', {}, { ...envFor(s, 'new'), SMART_COMPACT_TERSE: 'full' }).hookSpecificOutput.additionalContext, /drop articles/);
   assert.equal(run('start', {}, { ...envFor(s, 'new'), SMART_COMPACT_TERSE: 'off' }), null);
+});
+
+test('obvious follow-ups skip the judge', () => {
+  const s = setup();
+  const input = { session_id: 'abc', cwd: s.cwd, transcript_path: s.transcript };
+  for (const prompt of ['ok', 'yes do it', 'also add a docstring to every function please', 'fix it and run the tests again',
+    'update that file so the parser handles empty input too', 'apply the same pattern to the other two modules'])
+    assert.equal(run('prompt', { ...input, prompt }, envFor(s, 'new')), null, prompt);
+  assert.equal(run('prompt', { ...input, prompt: 'build a small web server that serves static files' }, envFor(s, 'new')).decision, 'block');
+});
+
+test('settings accept 250k, unreadable values fall back to the default', () => {
+  const s = setup();
+  const input = { session_id: 'abc', cwd: s.cwd, transcript_path: s.transcript };
+  withUsage(s, 260000);
+  assert.equal(run('tool', input, { ...envFor(s, 'new'), CLAUDE_PLUGIN_OPTION_max_context: '250k' }).continue, false);
+  const t = setup();
+  assert.equal(run('prompt', { session_id: 'a', cwd: t.cwd, transcript_path: t.transcript, prompt: 'build a small web server for static files' },
+    { ...envFor(t, 'new'), SMART_COMPACT_MIN_TOKENS: 'lots' }).decision, 'block'); // 'lots' -> default 20000, transcript is ~25k
+});
+
+test('resume consumes the pending task once and finds it from another folder', () => {
+  const s = setup();
+  run('prompt', { session_id: 'abc', cwd: s.cwd, transcript_path: s.transcript, prompt: 'new: write the docs' }, envFor(s, 'error'));
+  const res = run('resume', { session_id: 'x', cwd: path.join(s.cwd, 'sub') }, envFor(s, 'new'));
+  assert.match(res.hookSpecificOutput.additionalContext, /write the docs/);
+  assert.equal(pendingFiles(s).length, 0);
+  assert.equal(run('resume', { session_id: 'y', cwd: s.cwd }, envFor(s, 'new')), null); // a later /clear injects nothing
+});
+
+test('archives and pending files are private', { skip: process.platform === 'win32' }, () => {
+  const s = setup();
+  run('prompt', { session_id: 'abc', cwd: s.cwd, transcript_path: s.transcript, prompt: 'new: write the docs' }, envFor(s, 'error'));
+  const dir = path.join(s.dir, 'archive');
+  assert.equal(fs.statSync(dir).mode & 0o777, 0o700);
+  for (const f of fs.readdirSync(dir)) assert.equal(fs.statSync(path.join(dir, f)).mode & 0o777, 0o600, f);
 });
