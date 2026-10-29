@@ -229,7 +229,7 @@ test('/ghosted warm sets the keep-warm window; stats shows it', () => {
   assert.match(cmd('warm', 'soon'), /Usage/);
 });
 
-test('stop: starts one warmer per session above the threshold, none when off or small', { skip: process.platform === 'win32' }, () => {
+test('stop: starts one warmer per session above the threshold, none when off or small', async () => {
   const s = setup();
   const usage = n => JSON.stringify({ type: 'assistant', message: { role: 'assistant', model: 'claude-test', content: [], usage: { input_tokens: 0, cache_read_input_tokens: n, cache_creation_input_tokens: 0 } } });
   const input = { session_id: 'warm1', cwd: s.cwd, transcript_path: s.transcript };
@@ -246,7 +246,7 @@ test('stop: starts one warmer per session above the threshold, none when off or 
   run('stop', input, env); // the next turn replaces the warmer
   const second = Number(fs.readFileSync(pidFile, 'utf8'));
   assert.notEqual(first, second);
-  spawnSync('sleep', ['0.3']);
+  await new Promise(r => setTimeout(r, 500));
   assert.throws(() => process.kill(first, 0), 'old warmer stopped');
   process.kill(second, 'SIGTERM');
 });

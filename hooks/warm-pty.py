@@ -1,13 +1,13 @@
 # Runs Claude Code in a hidden pseudo-terminal and types one message once it has fully loaded.
-# Used by ghosted.js for cache warming: usage: warm-pty.py <delay-seconds> <message> <claude args...>
+# Used by ghosted.js for cache warming: usage: warm-pty.py <delay-seconds> <message> <program> <args...>
 # Typing after a delay (instead of passing the message as an argument) lets MCP and claude.ai tools
 # load first, so the request carries the same tool list as the session and hits its cache.
 import os, pty, select, signal, struct, sys, time, fcntl, termios
 
-delay, message, args = float(sys.argv[1]), sys.argv[2], sys.argv[3:]
+delay, message, prog, args = float(sys.argv[1]), sys.argv[2], sys.argv[3], sys.argv[4:]
 pid, fd = pty.fork()
 if pid == 0:
-    os.execvp('claude', ['claude'] + args)
+    os.execvp(prog, [prog] + args)
 fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack('HHHH', 50, 140, 0, 0))
 signal.signal(signal.SIGTERM, lambda *_: (os.kill(pid, signal.SIGKILL), sys.exit(0)))
 

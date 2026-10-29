@@ -518,7 +518,7 @@ function terseReminder() {
 // against 0.1x for a cache read. So while the session sits idle, re-send it just before the cache expires.
 // `claude -p` builds a different request than the interactive app and misses its cache (measured: 0 tokens
 // read), so the ping runs the interactive app itself, forked from the session, in a hidden pseudo-terminal
-// (hooks/warm-pty.py; needs python3).
+// (hooks/warm-pty.py with python3 on macOS and Linux, hooks/warm-pty.ps1 with ConPTY on Windows).
 const WARM_TEXT = 'ghosted_ keep-warm ping. Reply with only: ok';
 
 // Cache TTL of the session's last cache write, in seconds.
@@ -556,8 +556,7 @@ function claudePid() {
 }
 
 function onStop(input) {
-  // shortcut: the pseudo-terminal comes from python3's pty module, so macOS and Linux only; Windows would need ConPTY.
-  if (OFF || !WARM_MS || WIN || process.env.GHOSTED_CHILD || process.env.GHOSTED_WARMING || !input.transcript_path || !input.session_id) return;
+  if (OFF || !WARM_MS || process.env.GHOSTED_CHILD || process.env.GHOSTED_WARMING || !input.transcript_path || !input.session_id) return;
   const dir = privateDir(path.join(DATA_DIR, 'warm'));
   const pidFile = path.join(dir, `${input.session_id.replace(/[^\w-]/g, '')}.pid`);
   try { process.kill(Number(fs.readFileSync(pidFile, 'utf8')), 'SIGTERM'); } catch {} // one warmer per session
@@ -617,8 +616,9 @@ const PREFIX_FLAGS = new Set(['--plugin-dir', '--setting-sources', '--settings',
   '--permission-mode', '--dangerously-skip-permissions', '--agents', '--agent']);
 function startFlags(pid) {
   if (!pid) return [];
-  // shortcut: ps joins argv with spaces, so a flag value containing a space is cut short; the miss check then stops warming.
-  const argv = (spawnSync('ps', ['-o', 'args=', '-p', String(pid)], { encoding: 'utf8' }).stdout || '').trim().split(/\s+/);
+  // shortcut: on macOS and Linux ps joins argv with spaces, so a flag value containing a space is cut short;
+  // the miss check then stops warming.
+  const argv = WIN ? winArgs(pid) : (spawnSync('ps', ['-o', 'args=', '-p', String(pid)], { encoding: 'utf8' }).stdout || '').trim().split(/\s+/);
   const out = [];
   for (let i = 1; i < argv.length; i++) {
     const [flag] = argv[i].split('=');
@@ -643,9 +643,32 @@ function pingEnv(claudeEnvNames) {
   return env;
 }
 
+// Windows: a process's command line, split the way the C runtime splits it (quotes group, \" is a quote).
+function winArgs(pid) {
+  const r = spawnSync('powershell.exe', ['-NoProfile', '-Command', `(Get-CimInstance Win32_Process -Filter "ProcessId=${Number(pid)}").CommandLine`],
+    { encoding: 'utf8', windowsHide: true, timeout: 8000 });
+  return splitCommandLine((r.stdout || '').trim());
+}
+function splitCommandLine(line) {
+  const out = []; let cur = '', quoted = false, any = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '\\') {
+      let n = 0; while (line[i] === '\\') { n++; i++; }
+      if (line[i] === '"') { cur += '\\'.repeat(n >> 1); if (n % 2) { cur += '"'; any = true; continue; } i--; continue; }
+      cur += '\\'.repeat(n); i--; any = true; continue;
+    }
+    if (c === '"') { quoted = !quoted; any = true; continue; }
+    if (!quoted && /\s/.test(c)) { if (any) out.push(cur); cur = ''; any = false; continue; }
+    cur += c; any = true;
+  }
+  if (any) out.push(cur);
+  return out;
+}
+
 // Names of the variables in a process's environment (macOS `ps -E`; Linux /proc).
 function envNames(pid) {
-  if (!pid) return null;
+  if (!pid || WIN) return null; // Windows: no way to read another process's environment; the known markers are dropped instead
   try { return fs.readFileSync(`/proc/${pid}/environ`, 'utf8').split('\0').map(x => x.split('=')[0]).filter(Boolean); } catch {}
   const out = spawnSync('ps', ['-wwE', '-o', 'command=', '-p', String(pid)], { encoding: 'utf8' }).stdout || '';
   const names = [...out.matchAll(/(?:^|\s)([A-Za-z_][A-Za-z0-9_]*)=/g)].map(m => m[1]);
@@ -658,8 +681,12 @@ async function warmPing(job, model) {
   const before = new Set(fs.readdirSync(projDir));
   const args = [...(job.flags || []), '--resume', job.session, '--fork-session', ...(model ? ['--model', model] : [])];
   const delay = process.env.GHOSTED_WARM_DELAY_S || '20';
-  const child = spawn('python3', [path.join(__dirname, 'warm-pty.py'), delay, WARM_TEXT, ...args],
-    { cwd: job.cwd, detached: true, stdio: 'ignore', env: pingEnv(job.envNames) });
+  const child = WIN
+    ? spawn('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', path.join(__dirname, 'warm-pty.ps1'), '-Job',
+      Buffer.from(JSON.stringify({ delay: Number(delay), message: WARM_TEXT, exe: 'claude', args })).toString('base64')],
+    { cwd: job.cwd, detached: true, stdio: 'ignore', windowsHide: true, env: pingEnv(job.envNames) })
+    : spawn('python3', [path.join(__dirname, 'warm-pty.py'), delay, WARM_TEXT, 'claude', ...args],
+      { cwd: job.cwd, detached: true, stdio: 'ignore', env: pingEnv(job.envNames) });
   child.on('error', () => {});
   let usage = null, fork = null;
   for (let t = 0; t < 120 + Number(delay) && !usage; t++) {
@@ -674,7 +701,8 @@ async function warmPing(job, model) {
       if (done && done.message.stop_reason === 'end_turn') usage = done.message.usage;
     }
   }
-  try { process.kill(-child.pid, 'SIGTERM'); } catch {}
+  if (WIN) spawnSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], { windowsHide: true });
+  else try { process.kill(-child.pid, 'SIGTERM'); } catch {}
   await sleep(1500);
   if (fork) for (const f of fs.readdirSync(projDir)) {
     if (!before.has(f) && f.startsWith(fork.slice(0, -6))) fs.rmSync(path.join(projDir, f), { recursive: true, force: true });
