@@ -75,13 +75,15 @@ Each has an environment override: `GHOSTED_MAX_CONTEXT`, `GHOSTED_MIN_TOKENS`, `
 
 ## Platforms
 
-| | Judge, recall, terse | Auto-typing |
-|---|---|---|
-| macOS Terminal.app | yes | yes (AppleScript into your tab; asks once for permission) |
-| Windows console | yes | yes (`WriteConsoleInput`, tested in CI) |
-| iTerm, tmux, VS Code, Linux | yes | no: it tells you which command to run, then type `go` |
+| | Judge, recall, terse | Types the commands for you | Cache warming |
+|---|---|---|---|
+| macOS Terminal.app, iTerm2 | yes | yes (AppleScript; asks once for permission) | yes |
+| tmux, inside any terminal (VS Code, Linux, SSH) | yes | yes (`tmux send-keys`) | yes |
+| WezTerm, kitty (with remote control on) | yes | yes (their CLI) | yes |
+| Windows console, Windows Terminal | yes | yes (`WriteConsoleInput`, tested in CI) | yes (ConPTY, tested in CI) |
+| VS Code terminal, Ghostty, Alacritty, other Linux terminals | yes | no: it tells you which command to run, then you type `go`. Run `claude` inside tmux to get auto-typing. | yes |
 
-Needs Node.js and the `claude` CLI on your PATH. Cache warming also needs `python3` (its built-in `pty` module) and runs on macOS and Linux only. No other dependencies.
+Needs Node.js and the `claude` CLI on your PATH. Cache warming uses `python3` on macOS and Linux. No other dependencies.
 
 ## How it works
 

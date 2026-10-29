@@ -344,11 +344,21 @@ end run`;
 // Types keystrokes into this Claude Code session after the current hook returns.
 // steps: [[delaySeconds, text], ...]. Claude Code submits on a CR that arrives on its own
 // (a CR inside a burst of text counts as pasted), so callers send '\r' as a separate step.
-// Hooks have no controlling terminal, so this goes through the terminal app (macOS) or the console API (Windows).
-// shortcut: macOS Terminal.app and Windows consoles only; add tmux send-keys / iTerm "write text" when used.
+// Hooks have no controlling terminal, so this goes through the terminal itself: tmux, WezTerm and kitty have a CLI,
+// iTerm2 and Terminal.app take AppleScript, Windows consoles take WriteConsoleInput.
+// shortcut: VS Code, Ghostty, Alacritty and other Linux terminals have no way in; ghosted_ tells the user what to type.
 function typeLater(steps) {
   if (process.env.GHOSTED_DRY_TYPE) {
     fs.appendFileSync(process.env.GHOSTED_DRY_TYPE, JSON.stringify(steps) + '\n'); // one JSON line per call
+    return true;
+  }
+  const term = terminalTarget();
+  if (term) {
+    const child = spawn(process.execPath, [__filename, 'type'], {
+      detached: true, stdio: 'ignore', windowsHide: true, env: { ...process.env, GHOSTED_TYPE_JOB: JSON.stringify({ term, steps }) },
+    });
+    child.on('error', () => {});
+    child.unref();
     return true;
   }
   let child;
@@ -365,6 +375,72 @@ function typeLater(steps) {
   child.on('error', () => {});
   child.unref();
   return true;
+}
+
+// The terminal this session runs in, if ghosted_ can type into it. tmux first: it may run inside any other terminal.
+const ok = (cmd, args) => spawnSync(cmd, args, { encoding: 'utf8', timeout: 3000, windowsHide: true }).status === 0;
+function terminalTarget() {
+  const e = process.env;
+  if (e.TMUX && e.TMUX_PANE && ok('tmux', ['display-message', '-p', '-t', e.TMUX_PANE, '#{pane_id}'])) return { kind: 'tmux', pane: e.TMUX_PANE };
+  if (e.WEZTERM_PANE && ok('wezterm', ['cli', 'list'])) return { kind: 'wezterm', pane: e.WEZTERM_PANE };
+  if (e.KITTY_WINDOW_ID && e.KITTY_LISTEN_ON && ok('kitty', ['@', '--to', e.KITTY_LISTEN_ON, 'ls'])) return { kind: 'kitty', to: e.KITTY_LISTEN_ON, id: e.KITTY_WINDOW_ID };
+  if (e.TERM_PROGRAM === 'iTerm.app') {
+    const tty = findTty();
+    if (tty && spawnSync('osascript', ['-e', ITERM_FIND, tty], { encoding: 'utf8', timeout: 3000 }).stdout?.trim() === 'ok') return { kind: 'iterm', tty };
+  }
+  return null;
+}
+
+const ITERM_FIND = `on run argv
+  tell application "iTerm2"
+    repeat with w in windows
+      repeat with t in tabs of w
+        repeat with s in sessions of t
+          if tty of s is (item 1 of argv) then return "ok"
+        end repeat
+      end repeat
+    end repeat
+  end tell
+  return "none"
+end run`;
+const ITERM_WRITE = `on run argv
+  tell application "iTerm2"
+    repeat with w in windows
+      repeat with t in tabs of w
+        repeat with s in sessions of t
+          if tty of s is (item 1 of argv) then
+            if (item 2 of argv) is "CR" then
+              tell s to write text "" newline yes
+            else
+              tell s to write text (item 2 of argv) newline no
+            end if
+            return
+          end if
+        end repeat
+      end repeat
+    end repeat
+  end tell
+end run`;
+
+const nap = ms => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, Math.round(ms));
+
+// Runs detached after the hook returned: waits, then sends each step to the terminal.
+// Text and a CR go out as separate sends, so the CR is a key press, not part of a paste.
+function typeSteps({ term, steps }) {
+  const send = (chunk) => {
+    const cr = chunk === '\r', cc = chunk === '\x03';
+    if (term.kind === 'tmux') spawnSync('tmux', ['send-keys', '-t', term.pane, ...(cr ? ['Enter'] : cc ? ['C-c'] : ['-l', chunk])]);
+    else if (term.kind === 'wezterm') spawnSync('wezterm', ['cli', 'send-text', '--no-paste', '--pane-id', term.pane, chunk]);
+    else if (term.kind === 'kitty') spawnSync('kitty', ['@', '--to', term.to, 'send-text', '--match', `id:${term.id}`, '--', chunk]);
+    else if (term.kind === 'iterm') spawnSync('osascript', ['-e', ITERM_WRITE, term.tty, cr ? 'CR' : chunk]);
+  };
+  for (const [delay, text] of steps) {
+    nap(delay * 1000);
+    String(text).split(/(\r|\x03)/).filter(Boolean).forEach((chunk, i) => {
+      if (i) nap(300);
+      send(chunk);
+    });
+  }
 }
 
 // Windows: this hook's ancestors, nearest first (the shell, then Claude Code itself).
@@ -740,6 +816,7 @@ function main() {
     else if (process.argv[2] === 'resume') onResume(input);
     else if (process.argv[2] === 'start') onStart();
     else if (process.argv[2] === 'stop') onStop(input);
+    else if (process.argv[2] === 'type') typeSteps(JSON.parse(process.env.GHOSTED_TYPE_JOB));
     else if (process.argv[2] === 'warm') warmLoop(JSON.parse(process.env.GHOSTED_WARM_JOB)).catch(e => debug('warm error', e.message));
   } catch (e) {
     process.stderr.write(`ghosted: ${e.message}\n`); // never block the user on our own bug
