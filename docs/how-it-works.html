@@ -17,6 +17,8 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://giovanbelle.github.io/ghosted/og.png">
 <link rel="icon" href="favicon.png">
+<link rel="preload" href="fonts/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/instrument-serif-latin-400-italic.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -38,7 +40,7 @@
 
   <section aria-labelledby="flow-h" style="padding-top:56px">
     <div class="shead rv"><h2 id="flow-h">The decision path</h2><p>Every arrow down means your prompt goes through untouched.</p></div>
-    <figure class="fig rv" style="margin:0">
+    <figure class="fig lit rv" style="margin:0">
       <svg viewBox="0 0 1000 300" role="img" aria-label="Flowchart. Your prompt goes to quick checks. Small context, slash commands, obvious follow-ups and same: prompts pass through. Otherwise the Haiku judge decides. Same task, unsure or error passes through. New task: archive and clear, then the prompt is restored and the task starts.">
         <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#9a9a9a"/></marker></defs>
         <g font-family="-apple-system,sans-serif" font-size="15" text-anchor="middle">
@@ -74,49 +76,49 @@
         <button role="tab" id="t-ctl" aria-controls="p-ctl" data-key="ctl">Overrides</button>
       </div>
 
-      <div role="tabpanel" id="p-switch" aria-labelledby="t-switch" class="panel">
+      <div role="tabpanel" id="p-switch" aria-labelledby="t-switch" class="panel lit">
         <div class="tabbody">
           <div><h3>Task switch <code>on</code></h3><p>Above 20k tokens of context, a prompt that starts something new triggers a clean restart.</p>
             <ul><li>Old chat archived, readable only by you</li><li>Prompt restored and started automatically</li><li>Up to 5 facts from the old work carried over</li></ul></div>
-          <div class="term"><div class="tbar"><i></i><i></i><i></i><span>context 176k → 18k</span></div><div class="tlog">
+          <div class="term lit"><div class="tbar"><i></i><i></i><i></i><span>context 176k → 18k</span></div><div class="tlog">
             <div class="l u">now write the release notes</div><div class="l g">ghosted: new task detected, clearing first.</div><div class="l u">/clear</div><div class="l u">Start the pending task.</div><div class="l">● Reading CHANGELOG.md</div></div></div>
         </div>
       </div>
 
-      <div role="tabpanel" id="p-terse" aria-labelledby="t-terse" class="panel" hidden>
+      <div role="tabpanel" id="p-terse" aria-labelledby="t-terse" class="panel lit" hidden>
         <div class="tabbody">
           <div><h3>Terse answers <code>auto</code></h3><p>Short notes in the terminal instead of paragraphs. Code and files Claude writes stay normal.</p>
             <ul><li>20% less text, 19% lower cost in tests</li><li>Steps aside when caveman is installed</li><li><code>/ghosted full</code>, <code>lite</code> or <code>off</code></li></ul></div>
           <div class="grid2" style="gap:10px">
-            <div class="term"><div class="tbar"><span>off</span></div><div class="tlog" style="font-size:12px"><div class="l d">I've looked into the issue and it seems the problem is that the token expiry check uses a strict less-than comparison, which means…</div></div></div>
-            <div class="term"><div class="tbar"><span>full</span></div><div class="tlog" style="font-size:12px"><div class="l">Bug in auth middleware. Expiry check uses &lt; not &lt;=. Fix:</div></div></div>
+            <div class="term lit"><div class="tbar"><span>off</span></div><div class="tlog" style="font-size:12px"><div class="l d">I've looked into the issue and it seems the problem is that the token expiry check uses a strict less-than comparison, which means…</div></div></div>
+            <div class="term lit"><div class="tbar"><span>full</span></div><div class="tlog" style="font-size:12px"><div class="l">Bug in auth middleware. Expiry check uses &lt; not &lt;=. Fix:</div></div></div>
           </div>
         </div>
       </div>
 
-      <div role="tabpanel" id="p-recall" aria-labelledby="t-recall" class="panel" hidden>
+      <div role="tabpanel" id="p-recall" aria-labelledby="t-recall" class="panel lit" hidden>
         <div class="tabbody">
           <div><h3>Recall <code>on</code></h3><p>Every cleared conversation is indexed on your machine. Ask for it back in a few words.</p>
             <ul><li>Ranked search over past tasks</li><li>Returns a short digest, not the whole chat</li><li>Nothing leaves your machine</li></ul></div>
-          <div class="term"><div class="tbar"><i></i><i></i><i></i><span>recall</span></div><div class="tlog">
+          <div class="term lit"><div class="tbar"><i></i><i></i><i></i><span>recall</span></div><div class="tlog">
             <div class="l u">/ghosted:recall auth expiry</div><div class="l d">  1 match · 2026-10-28 · "fix the auth flow"</div><div class="l">  Expiry check changed to &lt;=, test added in auth.test.ts…</div></div></div>
         </div>
       </div>
 
-      <div role="tabpanel" id="p-long" aria-labelledby="t-long" class="panel" hidden>
+      <div role="tabpanel" id="p-long" aria-labelledby="t-long" class="panel lit" hidden>
         <div class="tabbody">
           <div><h3>Long runs <code>opt-in</code></h3><p>For runs that go on long after their early context went stale. Off by default, because in single runs it cost more than it saved.</p>
             <ul><li>Set a limit: <code>/ghosted max 250k</code></li><li>Past it: stop, <code>/compact</code>, continue</li><li><code>/ghosted max off</code> to turn it off</li></ul></div>
-          <div class="term"><div class="tbar"><i></i><i></i><i></i><span>limit 250k</span></div><div class="tlog">
+          <div class="term lit"><div class="tbar"><i></i><i></i><i></i><span>limit 250k</span></div><div class="tlog">
             <div class="l">● Editing src/api/routes.ts</div><div class="l g">ghosted: context at 251k (limit 250k), compacting.</div><div class="l u">/compact</div><div class="l u">Continue where you left off.</div><div class="l">● Editing src/api/handlers.ts</div></div></div>
         </div>
       </div>
 
-      <div role="tabpanel" id="p-ctl" aria-labelledby="t-ctl" class="panel" hidden>
+      <div role="tabpanel" id="p-ctl" aria-labelledby="t-ctl" class="panel lit" hidden>
         <div class="tabbody">
           <div><h3>Overrides</h3><p>One word at the start of a prompt decides for the judge.</p>
             <ul><li><code>same:</code> never switch on this prompt</li><li><code>new:</code> always switch, no judge</li><li><code>/ghosted pause</code> turns everything off</li></ul></div>
-          <div class="term"><div class="tbar"><i></i><i></i><i></i><span>overrides</span></div><div class="tlog">
+          <div class="term lit"><div class="tbar"><i></i><i></i><i></i><span>overrides</span></div><div class="tlog">
             <div class="l u">same: now do the same for the admin page</div><div class="l d">  passes through, no judge</div><div class="l u">new: plan next week's sprint</div><div class="l g">ghosted: new task detected, clearing first.</div></div></div>
         </div>
       </div>
@@ -125,7 +127,7 @@
 
   <section aria-labelledby="plat-h">
     <div class="shead rv"><h2 id="plat-h">Platforms</h2><p>The judge, recall and terse answers work everywhere. Typing the command for you depends on the terminal.</p></div>
-    <div class="tablewrap rv">
+    <div class="tablewrap lit rv">
       <table>
         <thead><tr><th scope="col">Terminal</th><th scope="col">Judge · recall · terse</th><th scope="col">Types /clear for you</th></tr></thead>
         <tbody>
@@ -152,6 +154,7 @@
       <a href="https://github.com/giovanbelle/ghosted/issues">Issues</a>
     </div>
   </div>
+  <div class="wordmark" aria-hidden="true">ghosted_</div>
 </footer>
 <script src="site.js"></script>
 </body>

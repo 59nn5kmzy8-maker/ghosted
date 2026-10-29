@@ -17,6 +17,8 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://giovanbelle.github.io/ghosted/og.png">
 <link rel="icon" href="favicon.png">
+<link rel="preload" href="fonts/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/instrument-serif-latin-400-italic.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -39,9 +41,9 @@
   <section aria-labelledby="inst-h" style="padding-top:56px">
     <div class="shead rv"><h2 id="inst-h">Install</h2></div>
     <div class="steps">
-      <div class="panel rv"><h3>Add the marketplace</h3><p><code>claude plugin marketplace add giovanbelle/ghosted</code></p></div>
-      <div class="panel rv"><h3>Install the plugin</h3><p><code>claude plugin install ghosted@ghosted</code></p></div>
-      <div class="panel rv"><h3>Restart Claude Code</h3><p>You'll be asked for three settings. The defaults are fine.</p></div>
+      <div class="panel lit rv"><h3>Add the marketplace</h3><p><code>claude plugin marketplace add giovanbelle/ghosted</code></p></div>
+      <div class="panel lit rv"><h3>Install the plugin</h3><p><code>claude plugin install ghosted@ghosted</code></p></div>
+      <div class="panel lit rv"><h3>Restart Claude Code</h3><p>You'll be asked for three settings. The defaults are fine.</p></div>
     </div>
   </section>
 
@@ -54,7 +56,7 @@
         <button role="tab" id="t-env" aria-controls="p-env" data-key="env">Environment</button>
         <button role="tab" id="t-un" aria-controls="p-un" data-key="un">Uninstall</button>
       </div>
-      <div role="tabpanel" id="p-cmd" aria-labelledby="t-cmd" class="tablewrap">
+      <div role="tabpanel" id="p-cmd" aria-labelledby="t-cmd" class="tablewrap lit">
         <table>
           <thead><tr><th scope="col">Command</th><th scope="col">What it does</th></tr></thead>
           <tbody>
@@ -68,7 +70,7 @@
           </tbody>
         </table>
       </div>
-      <div role="tabpanel" id="p-set" aria-labelledby="t-set" class="tablewrap" hidden>
+      <div role="tabpanel" id="p-set" aria-labelledby="t-set" class="tablewrap lit" hidden>
         <table>
           <thead><tr><th scope="col">Setting in /config</th><th scope="col">Default</th><th scope="col">Meaning</th></tr></thead>
           <tbody>
@@ -78,7 +80,7 @@
           </tbody>
         </table>
       </div>
-      <div role="tabpanel" id="p-env" aria-labelledby="t-env" class="tablewrap" hidden>
+      <div role="tabpanel" id="p-env" aria-labelledby="t-env" class="tablewrap lit" hidden>
         <table>
           <thead><tr><th scope="col">Variable</th><th scope="col">Effect</th></tr></thead>
           <tbody>
@@ -91,7 +93,7 @@
         </table>
         <p class="note" style="padding:0 18px 16px">Order of precedence: environment, then <code>/ghosted</code> commands, then <code>/config</code>.</p>
       </div>
-      <div role="tabpanel" id="p-un" aria-labelledby="t-un" class="panel" hidden>
+      <div role="tabpanel" id="p-un" aria-labelledby="t-un" class="panel lit" hidden>
         <p>Remove the plugin: <code>claude plugin uninstall ghosted@ghosted</code></p>
         <p style="margin-top:10px">Delete its archives and stats: remove <code>~/.claude/plugins/data/ghosted-ghosted</code>. Nothing is stored anywhere else.</p>
       </div>
@@ -125,6 +127,7 @@
       <a href="https://github.com/giovanbelle/ghosted/issues">Issues</a>
     </div>
   </div>
+  <div class="wordmark" aria-hidden="true">ghosted_</div>
 </footer>
 <script src="site.js"></script>
 </body>

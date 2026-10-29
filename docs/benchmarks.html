@@ -17,6 +17,8 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://giovanbelle.github.io/ghosted/og.png">
 <link rel="icon" href="favicon.png">
+<link rel="preload" href="fonts/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/instrument-serif-latin-400-italic.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -59,7 +61,7 @@
 
   <section aria-labelledby="scn-h" style="padding-top:64px">
     <div class="shead rv"><h2 id="scn-h">Every scenario got cheaper</h2><p>Six scenarios, three setups, two runs each, on Opus. Average cost per run.</p></div>
-    <div class="fig rv">
+    <div class="fig lit rv">
       <div class="legend"><span><i style="background:#3c3c3c"></i>No plugin</span><span><i style="background:#7a7a7a"></i>ghosted_ compact</span><span><i style="background:#f5f5f5"></i>ghosted_ clear (default)</span><span style="margin-left:auto">saved with clear</span></div>
       <div class="scn"><div class="lab"><b>Small session</b><span>57k context · 5 turns</span></div><div class="trio"><div class="tr"><div class="f a" data-w="42.8"></div></div><div class="tr"><div class="f b" data-w="38.4"></div></div><div class="tr"><div class="f c" data-w="23.6"></div></div></div><div class="pct">45%</div></div>
       <div class="scn"><div class="lab"><b>One quick task</b><span>176k · 1 turn</span></div><div class="trio"><div class="tr"><div class="f a" data-w="46.3"></div></div><div class="tr"><div class="f b" data-w="24.2"></div></div><div class="tr"><div class="f c" data-w="6.8"></div></div></div><div class="pct">85%</div></div>
@@ -79,13 +81,13 @@
         <p class="dim">32 labelled prompts (15 follow-ups, 17 new tasks) against a real 176k conversation, run repeatedly. A wrong switch is the one mistake that costs you context, so the judge answers “same” whenever it is unsure.</p>
         <div class="legend" style="margin-top:18px"><span><i style="background:#f5f5f5;border-radius:50%"></i>Judged correctly</span><span><i style="border:1.5px solid #555;border-radius:50%"></i>Obvious follow-up, judge skipped</span></div>
       </div>
-      <div class="fig rv"><div class="dots" role="img" aria-label="64 dots: 50 judged correctly, 14 skipped the judge as obvious follow-ups, 0 wrong."><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="s"></i><i class="s"></i><i class="s"></i><i class="s"></i><i class="s"></i><i class="s"></i><i class="s"></i><i class="s"></i><i class="s"></i><i class="s"></i><i class="s"></i><i class="s"></i><i class="s"></i><i class="s"></i></div></div>
+      <div class="fig lit rv"><div class="dots" role="img" aria-label="64 dots: 50 judged correctly, 14 skipped the judge as obvious follow-ups, 0 wrong."><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="s"></i><i class="s"></i><i class="s"></i><i class="s"></i><i class="s"></i><i class="s"></i><i class="s"></i><i class="s"></i><i class="s"></i><i class="s"></i><i class="s"></i><i class="s"></i><i class="s"></i><i class="s"></i></div></div>
     </div>
   </section>
 
   <section aria-labelledby="cav-h">
     <div class="grid2">
-      <div class="panel rv">
+      <div class="panel lit rv">
         <p class="kicker">Stacks with caveman</p>
         <h3 id="cav-h">Same coding task, per run</h3>
         <div class="bars" style="margin-top:18px">
@@ -94,7 +96,7 @@
         </div>
         <p class="note">Caveman shortens replies; ghosted_ drops the old conversation. The savings add up.</p>
       </div>
-      <div class="panel rv">
+      <div class="panel lit rv">
         <p class="kicker">Terse answers</p>
         <h3>Text shown in the terminal</h3>
         <div class="bars" style="margin-top:18px">
@@ -109,11 +111,11 @@
   <section aria-labelledby="calc-h">
     <div class="shead rv"><h2 id="calc-h">What would it save you?</h2><p>An estimate from the measured 70% on sessions with a task switch. Your mix will differ.</p></div>
     <div class="grid2">
-      <div class="panel rv">
+      <div class="panel lit rv">
         <div class="field"><label for="spend">Monthly Claude Code spend <output id="spendOut" for="spend">$200</output></label><input id="spend" type="range" min="20" max="2000" step="10" value="200"><small>On a Pro or Max plan, use what your usage would cost at API prices.</small></div>
         <div class="field"><label for="share">Sessions where you switch task <output id="shareOut" for="share">50%</output></label><input id="share" type="range" min="0" max="100" step="5" value="50"><small>A fresh session per task? Go low. One session all day? Go high.</small></div>
       </div>
-      <div class="panel rv" aria-live="polite" style="display:grid;gap:22px;align-content:center">
+      <div class="panel lit rv" aria-live="polite" style="display:grid;gap:22px;align-content:center">
         <div><div class="big" id="saved">$70</div><p>estimated saving per month</p></div>
         <div style="height:1px;background:var(--line)"></div>
         <div><div class="big" id="mult">1.5×</div><p>more work before you hit a plan limit</p></div>
@@ -124,9 +126,9 @@
   <section aria-labelledby="no-h">
     <div class="shead rv"><h2 id="no-h">Where it doesn't help</h2><p>Published so you can judge for yourself.</p></div>
     <div class="grid3">
-      <div class="panel rv"><h3>One long task, no switch</h3><p>Nothing to clear, so nothing saved. ghosted_ stays out of the way.</p></div>
-      <div class="panel rv"><h3>Mid-run compaction</h3><p>In single runs it cost more ($8.61 vs $9.73), because files get read again. That's why it's off by default.</p></div>
-      <div class="panel rv"><h3>A wrong switch</h3><p>Once, before the judge fix, a follow-up was judged new and the work was lost. Since then: 0 in 64, and <code>same:</code> blocks it.</p></div>
+      <div class="panel lit rv"><h3>One long task, no switch</h3><p>Nothing to clear, so nothing saved. ghosted_ stays out of the way.</p></div>
+      <div class="panel lit rv"><h3>Mid-run compaction</h3><p>In single runs it cost more ($8.61 vs $9.73), because files get read again. That's why it's off by default.</p></div>
+      <div class="panel lit rv"><h3>A wrong switch</h3><p>Once, before the judge fix, a follow-up was judged new and the work was lost. Since then: 0 in 64, and <code>same:</code> blocks it.</p></div>
     </div>
     <p class="note">Full method, raw numbers and older runs: <a href="https://github.com/giovanbelle/ghosted/blob/main/BENCHMARKS.md">BENCHMARKS.md</a></p>
   </section>
@@ -146,6 +148,7 @@
       <a href="https://github.com/giovanbelle/ghosted/issues">Issues</a>
     </div>
   </div>
+  <div class="wordmark" aria-hidden="true">ghosted_</div>
 </footer>
 <script src="site.js"></script>
 </body>
