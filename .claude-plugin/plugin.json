@@ -1,10 +1,23 @@
 {
-  "name": "smart-compact",
-  "version": "0.4.2",
-  "description": "Frees context when you switch task (/clear) and compacts long runs mid-run, then carries on automatically. Built-in terse mode and recall of old work.",
+  "name": "ghosted",
+  "displayName": "ghosted_",
+  "version": "0.5.0",
+  "description": "Cuts Claude Code costs: frees context when you switch task, can compact long runs mid-run and carry on, terse terminal answers, and recall of archived work.",
   "author": {
-    "name": "gio"
+    "name": "Gio van Belle",
+    "url": "https://github.com/59nn5kmzy8-maker"
   },
+  "homepage": "https://59nn5kmzy8-maker.github.io/ghosted/",
+  "repository": "https://github.com/59nn5kmzy8-maker/ghosted",
+  "license": "Apache-2.0",
+  "keywords": [
+    "context",
+    "compact",
+    "cost",
+    "tokens",
+    "terse"
+  ],
+  "icon": "./assets/icon.png",
   "userConfig": {
     "max_context": {
       "type": "number",

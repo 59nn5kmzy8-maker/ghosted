@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ghosted_ · stop paying for context you no longer need</title>
+<meta name="description" content="A Claude Code plugin that frees the context when you switch task, then starts your task for you. Measured 70% cheaper on task switches.">
+<meta property="og:title" content="ghosted_">
+<meta property="og:description" content="Stop paying for context you no longer need. A Claude Code plugin.">
+<meta property="og:image" content="https://59nn5kmzy8-maker.github.io/ghosted/logo.png">
+<link rel="icon" href="favicon.png">
+<style>
+  :root { --bg: #000; --fg: #fff; --dim: #8a8a8a; --line: #222; --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+  * { box-sizing: border-box; }
+  html { background: var(--bg); color: var(--fg); }
+  body { margin: 0; font: 17px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif; }
+  a { color: var(--fg); }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--fg); outline-offset: 3px; }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 0 24px; }
+  nav { display: flex; justify-content: space-between; align-items: center; padding: 22px 0; }
+  nav img { height: 34px; display: block; }
+  nav .links a { margin-left: 22px; text-decoration: none; color: var(--dim); font-size: 15px; }
+  nav .links a:hover { color: var(--fg); }
+  .hero { padding: 72px 0 56px; }
+  .hero img { width: min(420px, 100%); height: auto; display: block; margin: 0 0 40px; }
+  h1 { font-size: clamp(34px, 5vw, 54px); line-height: 1.08; letter-spacing: -0.02em; margin: 0 0 18px; }
+  .lede { color: var(--dim); font-size: 20px; max-width: 640px; margin: 0 0 34px; }
+  .install { position: relative; background: #0d0d0d; border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; font: 15px/1.7 var(--mono); overflow-x: auto; }
+  .install .p { color: var(--dim); user-select: none; }
+  .install button { position: absolute; top: 12px; right: 12px; background: var(--fg); color: var(--bg); border: 0; border-radius: 6px; padding: 6px 12px; font: 600 13px/1 inherit; font-family: inherit; cursor: pointer; }
+  section { padding: 56px 0; border-top: 1px solid var(--line); }
+  h2 { font-size: 26px; letter-spacing: -0.01em; margin: 0 0 22px; }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .stat { border: 1px solid var(--line); border-radius: 10px; padding: 22px; }
+  .stat b { display: block; font-size: 40px; letter-spacing: -0.02em; line-height: 1.1; }
+  .stat span { color: var(--dim); font-size: 15px; }
+  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .card { border: 1px solid var(--line); border-radius: 10px; padding: 22px; }
+  .card h3 { margin: 0 0 8px; font-size: 18px; }
+  .card p { margin: 0; color: var(--dim); }
+  code { font-family: var(--mono); font-size: 0.92em; background: #141414; padding: 2px 6px; border-radius: 5px; color: var(--fg); }
+  pre.flow { font: 14px/1.6 var(--mono); color: #cfcfcf; background: #0d0d0d; border: 1px solid var(--line); border-radius: 10px; padding: 20px; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 15px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+  th { color: var(--dim); font-weight: 500; }
+  .note { color: var(--dim); font-size: 15px; margin-top: 14px; }
+  footer { padding: 40px 0 60px; border-top: 1px solid var(--line); color: var(--dim); font-size: 14px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+  @media (max-width: 720px) { .stats, .grid { grid-template-columns: 1fr; } nav .links a { margin-left: 14px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <img src="favicon.png" alt="ghosted_ home" width="34" height="34">
+    <div class="links">
+      <a href="#how">How it works</a>
+      <a href="https://github.com/59nn5kmzy8-maker/ghosted/blob/main/BENCHMARKS.md">Benchmarks</a>
+      <a href="https://github.com/59nn5kmzy8-maker/ghosted">GitHub</a>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <img src="logo.png" alt="ghosted_" width="420" height="85">
+    <h1>Stop paying for context<br>you no longer need.</h1>
+    <p class="lede">A Claude Code plugin. When you start a new task, ghosted_ clears the old conversation and starts your task for you, so you stop paying for the old work on every turn.</p>
+    <div class="install" aria-label="Install commands">
+      <button type="button" id="copy">Copy</button>
+      <div><span class="p">$ </span>claude plugin marketplace add 59nn5kmzy8-maker/ghosted</div>
+      <div><span class="p">$ </span>claude plugin install ghosted@ghosted</div>
+    </div>
+  </header>
+
+  <section aria-labelledby="numbers">
+    <h2 id="numbers">Measured, not promised</h2>
+    <div class="stats">
+      <div class="stat"><b>−70%</b><span>cost across 36 runs, 6 scenarios ($15.88 to $4.78)</span></div>
+      <div class="stat"><b>±0s</b><span>wall time (666s vs 674s)</span></div>
+      <div class="stat"><b>0 / 64</b><span>wrong switches in the latest judge test</span></div>
+    </div>
+    <p class="note">Real Claude Code runs on Opus, with tests that passed in every run. Where it doesn't help is written down too: see the <a href="https://github.com/59nn5kmzy8-maker/ghosted/blob/main/BENCHMARKS.md">benchmarks</a>.</p>
+  </section>
+
+  <section aria-labelledby="what">
+    <h2 id="what">What it does</h2>
+    <div class="grid">
+      <div class="card"><h3>Task switch</h3><p>A Haiku judge spots a new task. ghosted_ archives the old chat, runs <code>/clear</code>, restores your prompt and starts it.</p></div>
+      <div class="card"><h3>Long runs</h3><p>Optional: past a limit you choose, it compacts mid-run and types <code>Continue where you left off.</code></p></div>
+      <div class="card"><h3>Terse answers</h3><p>Optional: shorter text in the terminal, with a reminder on every prompt so it doesn't fade. Files stay normal.</p></div>
+      <div class="card"><h3>Recall</h3><p>Every cleared conversation is archived. <code>/ghosted:recall &lt;words&gt;</code> brings back a short digest.</p></div>
+    </div>
+  </section>
+
+  <section id="how" aria-labelledby="how-h">
+    <h2 id="how-h">How it works</h2>
+<pre class="flow">your prompt ──► hook
+                 ├─ small context · slash command · "same:" · obvious follow-up ──► passes
+                 └─ Haiku judge: new task?
+                      ├─ no  ──► passes
+                      └─ yes ──► archive · save prompt · /clear
+                                   └─► restore prompt + carried facts ──► "Start the pending task."</pre>
+    <p class="note">The judge costs about $0.0013 per switch and loads none of your settings, plugins or MCP servers. Errors fail open: your prompt goes through as if ghosted_ weren't installed.</p>
+  </section>
+
+  <section aria-labelledby="platforms">
+    <h2 id="platforms">Platforms</h2>
+    <table>
+      <thead><tr><th scope="col">Terminal</th><th scope="col">Judge, recall, terse</th><th scope="col">Types the command for you</th></tr></thead>
+      <tbody>
+        <tr><td>macOS Terminal.app</td><td>Yes</td><td>Yes</td></tr>
+        <tr><td>Windows console</td><td>Yes</td><td>Yes (tested in CI)</td></tr>
+        <tr><td>iTerm, tmux, VS Code, Linux</td><td>Yes</td><td>No: it tells you which command to run</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <footer>
+    <span>ghosted_ · Apache-2.0 · © 2026 Gio van Belle</span>
+    <span><a href="https://github.com/59nn5kmzy8-maker/ghosted">github.com/59nn5kmzy8-maker/ghosted</a></span>
+  </footer>
+</div>
+<script>
+  document.getElementById('copy').addEventListener('click', async (e) => {
+    await navigator.clipboard.writeText('claude plugin marketplace add 59nn5kmzy8-maker/ghosted\nclaude plugin install ghosted@ghosted');
+    e.target.textContent = 'Copied';
+    setTimeout(() => { e.target.textContent = 'Copy'; }, 1500);
+  });
+</script>
+</body>
+</html>

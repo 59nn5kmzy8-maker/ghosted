@@ -5,10 +5,10 @@ const os = require('os');
 const path = require('path');
 const { spawnSync } = require('child_process');
 
-const SCRIPT = path.join(__dirname, '..', 'hooks', 'smart-compact.js');
+const SCRIPT = path.join(__dirname, '..', 'hooks', 'ghosted.js');
 
 function setup() {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'smart-compact-'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ghosted-'));
   const transcript = path.join(dir, 't.jsonl');
   const big = 'x'.repeat(100000);
   fs.writeFileSync(transcript, [
@@ -21,7 +21,7 @@ function setup() {
 function run(mode, input, env, args = []) {
   const r = spawnSync(process.execPath, [SCRIPT, mode, ...args], {
     input: JSON.stringify(input), encoding: 'utf8',
-    env: { ...process.env, SMART_COMPACT_CHILD: '', SMART_COMPACT_OFF: '', SMART_COMPACT_MODE: '', SMART_COMPACT_MAX_CONTEXT: '', SMART_COMPACT_TERSE: '', ...env },
+    env: { ...process.env, GHOSTED_CHILD: '', GHOSTED_OFF: '', GHOSTED_MODE: '', GHOSTED_MAX_CONTEXT: '', GHOSTED_TERSE: '', ...env },
   });
   return !r.stdout ? null : mode === 'recall' ? r.stdout : JSON.parse(r.stdout);
 }
@@ -32,7 +32,7 @@ function typedText(s) {
 }
 
 function envFor(s, judge) {
-  return { CLAUDE_PLUGIN_DATA: s.dir, SMART_COMPACT_DRY_TYPE: s.typed, SMART_COMPACT_FAKE_JUDGE: judge };
+  return { CLAUDE_PLUGIN_DATA: s.dir, GHOSTED_DRY_TYPE: s.typed, GHOSTED_FAKE_JUDGE: judge };
 }
 
 const pendingFiles = s => (fs.existsSync(path.join(s.dir, 'pending')) ? fs.readdirSync(path.join(s.dir, 'pending')) : []);
@@ -40,7 +40,7 @@ const pendingFiles = s => (fs.existsSync(path.join(s.dir, 'pending')) ? fs.readd
 test('new task: blocks, archives, types /compact; resume injects task and archive path, types go', () => {
   const s = setup();
   const input = { session_id: 'abc', cwd: s.cwd, transcript_path: s.transcript, prompt: 'build a new login page' };
-  const env = { ...envFor(s, 'new'), SMART_COMPACT_MODE: 'compact' };
+  const env = { ...envFor(s, 'new'), GHOSTED_MODE: 'compact' };
   const out = run('prompt', input, env);
   assert.equal(out.decision, 'block');
   assert.equal(pendingFiles(s).length, 1);
@@ -77,8 +77,8 @@ test('passes through: same task, judge error, slash, same:, small context, child
   assert.equal(run('prompt', input, envFor(s, 'error')), null);
   assert.equal(run('prompt', { ...input, prompt: '/compact' }, envFor(s, 'new')), null);
   assert.equal(run('prompt', { ...input, prompt: 'same: do x' }, envFor(s, 'new')), null);
-  assert.equal(run('prompt', input, { ...envFor(s, 'new'), SMART_COMPACT_MIN_TOKENS: '999999' }), null);
-  assert.equal(run('prompt', input, { ...envFor(s, 'new'), SMART_COMPACT_CHILD: '1' }), null);
+  assert.equal(run('prompt', input, { ...envFor(s, 'new'), GHOSTED_MIN_TOKENS: '999999' }), null);
+  assert.equal(run('prompt', input, { ...envFor(s, 'new'), GHOSTED_CHILD: '1' }), null);
   assert.ok(!fs.existsSync(s.typed));
   assert.equal(pendingFiles(s).length, 0);
 });
@@ -122,7 +122,7 @@ function withUsage(s, tokens) {
 
 test('mid-run: over the limit stops, types /compact, and resumes with "Continue where you left off."', () => {
   const s = setup();
-  const env = { ...envFor(s, 'new'), SMART_COMPACT_MAX_CONTEXT: '250000' };
+  const env = { ...envFor(s, 'new'), GHOSTED_MAX_CONTEXT: '250000' };
   const input = { session_id: 'abc', cwd: s.cwd, transcript_path: s.transcript };
   withUsage(s, 200000);
   assert.equal(run('tool', input, env), null);
@@ -139,15 +139,15 @@ test('mid-run: over the limit stops, types /compact, and resumes with "Continue 
   assert.equal(pendingFiles(s).length, 0);
   fs.appendFileSync(s.transcript, '\n' + JSON.stringify({ type: 'system', subtype: 'compact_boundary' }));
   assert.equal(run('tool', input, env), null); // old usage before the boundary no longer counts
-  assert.equal(run('tool', input, { ...env, SMART_COMPACT_MAX_CONTEXT: '0' }), null);
+  assert.equal(run('tool', input, { ...env, GHOSTED_MAX_CONTEXT: '0' }), null);
 });
 
 test('terse mode: off by default, lite and full add a style rule', () => {
   const s = setup();
   assert.equal(run('start', {}, envFor(s, 'new')), null);
-  assert.match(run('start', {}, { ...envFor(s, 'new'), SMART_COMPACT_TERSE: 'lite' }).hookSpecificOutput.additionalContext, /terse mode \(lite\)/);
-  assert.match(run('start', {}, { ...envFor(s, 'new'), SMART_COMPACT_TERSE: 'full' }).hookSpecificOutput.additionalContext, /drop articles/);
-  assert.equal(run('start', {}, { ...envFor(s, 'new'), SMART_COMPACT_TERSE: 'off' }), null);
+  assert.match(run('start', {}, { ...envFor(s, 'new'), GHOSTED_TERSE: 'lite' }).hookSpecificOutput.additionalContext, /terse mode \(lite\)/);
+  assert.match(run('start', {}, { ...envFor(s, 'new'), GHOSTED_TERSE: 'full' }).hookSpecificOutput.additionalContext, /drop articles/);
+  assert.equal(run('start', {}, { ...envFor(s, 'new'), GHOSTED_TERSE: 'off' }), null);
 });
 
 test('obvious follow-ups skip the judge', () => {
@@ -166,7 +166,7 @@ test('settings accept 250k, unreadable values fall back to the default', () => {
   assert.equal(run('tool', input, { ...envFor(s, 'new'), CLAUDE_PLUGIN_OPTION_max_context: '250k' }).continue, false);
   const t = setup();
   assert.equal(run('prompt', { session_id: 'a', cwd: t.cwd, transcript_path: t.transcript, prompt: 'build a small web server for static files' },
-    { ...envFor(t, 'new'), SMART_COMPACT_MIN_TOKENS: 'lots' }).decision, 'block'); // 'lots' -> default 20000, transcript is ~25k
+    { ...envFor(t, 'new'), GHOSTED_MIN_TOKENS: 'lots' }).decision, 'block'); // 'lots' -> default 20000, transcript is ~25k
 });
 
 test('resume consumes the pending task once and finds it from another folder', () => {
@@ -184,4 +184,12 @@ test('archives and pending files are private', { skip: process.platform === 'win
   const dir = path.join(s.dir, 'archive');
   assert.equal(fs.statSync(dir).mode & 0o777, 0o700);
   for (const f of fs.readdirSync(dir)) assert.equal(fs.statSync(path.join(dir, f)).mode & 0o777, 0o600, f);
+});
+
+test('terse mode adds a one-line reminder to prompts that pass, not to blocked ones', () => {
+  const s = setup();
+  const env = { ...envFor(s, 'same'), GHOSTED_TERSE: 'full' };
+  const input = { session_id: 'abc', cwd: s.cwd, transcript_path: s.transcript, prompt: 'tweak the parser a bit more please' };
+  assert.match(run('prompt', input, env).hookSpecificOutput.additionalContext, /compressed notes/);
+  assert.equal(run('prompt', { ...input, prompt: 'new: write docs' }, env).decision, 'block');
 });

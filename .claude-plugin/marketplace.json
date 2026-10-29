@@ -1,12 +1,18 @@
 {
-  "name": "smart-compact",
-  "owner": { "name": "gio" },
+  "name": "ghosted",
+  "owner": {
+    "name": "Gio van Belle"
+  },
   "plugins": [
     {
-      "name": "smart-compact",
-      "description": "Frees context (/clear) when you switch to a new task, then starts that task automatically.",
+      "name": "ghosted",
+      "description": "Cuts Claude Code costs: frees context when you switch task, can compact long runs mid-run and carry on, terse terminal answers, and recall of archived work.",
       "source": "./",
       "category": "productivity"
     }
-  ]
+  ],
+  "metadata": {
+    "description": "ghosted_: a Claude Code plugin that cuts context costs."
+  },
+  "description": "ghosted_: a Claude Code plugin that cuts context costs."
 }

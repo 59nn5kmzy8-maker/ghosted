@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/smart-compact.js\" prompt",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/ghosted.js\" prompt",
             "timeout": 40
           }
         ]
@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/smart-compact.js\" tool",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/ghosted.js\" tool",
             "timeout": 10
           }
         ]
@@ -27,7 +27,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/smart-compact.js\" start"
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/ghosted.js\" start"
           }
         ]
       },
@@ -36,7 +36,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/smart-compact.js\" resume"
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/ghosted.js\" resume"
           }
         ]
       }

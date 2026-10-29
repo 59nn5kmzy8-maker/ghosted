@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// smart-compact: when the user switches task, free the context (/compact or /clear), then start that task.
+// ghosted: when the user switches task, free the context (/compact or /clear), then start that task.
 // It also compacts mid-run when the context passes a limit, then lets the run continue.
 // `prompt` runs on UserPromptSubmit, `tool` on PostToolUse, `resume` on SessionStart(compact|clear),
 // `start` on every SessionStart (terse mode), `recall <data dir> [words]` from the recall skill.
@@ -17,19 +17,19 @@ function tokens(v, dflt) {
   const m = String(v).trim().match(/^(\d+(?:\.\d+)?)\s*([km]?)$/i);
   return m ? Math.round(m[1] * { '': 1, k: 1e3, m: 1e6 }[m[2].toLowerCase()]) : dflt;
 }
-const MIN_TOKENS = tokens(opt('SMART_COMPACT_MIN_TOKENS', 'SWITCH_MIN_TOKENS', 20000), 20000);
-const MAX_RAW = tokens(opt('SMART_COMPACT_MAX_CONTEXT', 'MAX_CONTEXT', 0), 0); // 0 = no mid-run compaction
+const MIN_TOKENS = tokens(opt('GHOSTED_MIN_TOKENS', 'SWITCH_MIN_TOKENS', 20000), 20000);
+const MAX_RAW = tokens(opt('GHOSTED_MAX_CONTEXT', 'MAX_CONTEXT', 0), 0); // 0 = no mid-run compaction
 // Below ~100k, Claude Code's fixed overhead plus the summary could keep it over the limit and compact on every tool call.
 const MAX_CONTEXT = MAX_RAW > 0 ? Math.max(MAX_RAW, 100000) : 0;
-const TERSE = opt('SMART_COMPACT_TERSE', 'TERSE', 'off'); // off by default: in tests it did not lower agentic-coding cost
-const MODE = process.env.SMART_COMPACT_MODE === 'compact' ? 'compact' : 'clear';
+const TERSE = opt('GHOSTED_TERSE', 'TERSE', 'off'); // off by default: in tests it did not lower agentic-coding cost
+const MODE = process.env.GHOSTED_MODE === 'compact' ? 'compact' : 'clear';
 const PENDING_TTL_MS = 10 * 60 * 1000;
 const RESUME_TEXT = 'Start the pending task.';
 const CONTINUE_TEXT = 'Continue where you left off.';
 const TERSE_SUMMARY = 'Write the summary as terse notes: no filler, keep paths, names, numbers and decisions exact.';
 // The recall skill runs through the Bash tool, which has no CLAUDE_PLUGIN_DATA, so it passes the dir as an argument.
 const DATA_DIR = (process.argv[2] === 'recall' && process.argv[3]) || process.env.CLAUDE_PLUGIN_DATA
-  || path.join(os.homedir(), '.claude', 'smart-compact');
+  || path.join(os.homedir(), '.claude', 'ghosted');
 const WIN = process.platform === 'win32';
 
 // Keyed by working directory, not session: /clear starts a new session id.
@@ -115,13 +115,13 @@ function contextTokens(transcriptPath) {
 // Runs the `claude` CLI with the prompt on stdin (no argv quoting or size limits, works the same on Windows).
 function claudeCli(args, input) {
   return spawnSync('claude', args, {
-    env: { ...process.env, SMART_COMPACT_CHILD: '1' }, encoding: 'utf8', timeout: 25000, input,
+    env: { ...process.env, GHOSTED_CHILD: '1' }, encoding: 'utf8', timeout: 25000, input,
     shell: WIN, windowsHide: true,
   });
 }
 
 function judge(head, recent, prompt, sessionId) {
-  const fake = process.env.SMART_COMPACT_FAKE_JUDGE;
+  const fake = process.env.GHOSTED_FAKE_JUDGE;
   if (fake) return fake === 'error' ? null : { new_task: fake === 'new', focus: 'fake focus', old_task: 'fake old task', carry: '' };
   const question = [
     'You decide if a coding-assistant user just switched to a NEW, unrelated task.',
@@ -159,11 +159,11 @@ function logCost(sessionId, usd) {
 // Compaction is lossy: keep the old conversation byte-exact on disk and list it in index.jsonl,
 // so `recall` finds it again from any later session.
 function archive(conversation, input, oldTask) {
-  if (process.env.SMART_COMPACT_ARCHIVE === '0') return null;
+  if (process.env.GHOSTED_ARCHIVE === '0') return null;
   const dir = privateDir(path.join(DATA_DIR, 'archive'));
   const ts = new Date().toISOString();
   const file = path.join(dir, `${ts.replace(/[:.]/g, '-')}-${String(input.session_id).slice(0, 8)}.md`);
-  fs.writeFileSync(file, `# smart-compact archive\ncwd: ${input.cwd}\nsession: ${input.session_id}\ntask: ${oldTask}\n\n${conversation}\n`, PRIVATE);
+  fs.writeFileSync(file, `# ghosted archive\ncwd: ${input.cwd}\nsession: ${input.session_id}\ntask: ${oldTask}\n\n${conversation}\n`, PRIVATE);
   fs.appendFileSync(path.join(dir, 'index.jsonl'), JSON.stringify({ ts, cwd: input.cwd, task: oldTask, file }) + '\n', PRIVATE);
   return file;
 }
@@ -197,7 +197,7 @@ function recall(words) {
     const hay = `${r.task} ${r.cwd} ${text}`.toLowerCase();
     return { ...r, text, score: terms.filter(t => hay.includes(t)).length + (terms.length ? 0 : 1) };
   }).filter(r => r && r.score > 0).sort((a, b) => b.score - a.score || b.ts.localeCompare(a.ts));
-  if (!scored.length) return 'smart-compact recall: no archived conversation matches.';
+  if (!scored.length) return 'ghosted recall: no archived conversation matches.';
   const top = scored[0];
   return [
     'Matches (best first):',
@@ -252,8 +252,8 @@ end run`;
 // Hooks have no controlling terminal, so this goes through the terminal app (macOS) or the console API (Windows).
 // shortcut: macOS Terminal.app and Windows consoles only; add tmux send-keys / iTerm "write text" when used.
 function typeLater(steps) {
-  if (process.env.SMART_COMPACT_DRY_TYPE) {
-    fs.appendFileSync(process.env.SMART_COMPACT_DRY_TYPE, JSON.stringify(steps) + '\n'); // one JSON line per call
+  if (process.env.GHOSTED_DRY_TYPE) {
+    fs.appendFileSync(process.env.GHOSTED_DRY_TYPE, JSON.stringify(steps) + '\n'); // one JSON line per call
     return true;
   }
   let child;
@@ -290,7 +290,7 @@ function obviousFollowUp(prompt) {
 
 function onPrompt(input) {
   const prompt = (input.prompt || '').trim();
-  if (process.env.SMART_COMPACT_OFF || process.env.SMART_COMPACT_CHILD) return;
+  if (process.env.GHOSTED_OFF || process.env.GHOSTED_CHILD) return;
   // `!` is Claude Code's shell mode, so the overrides are plain-word prefixes.
   if (prompt.startsWith('/') || /^same:/i.test(prompt) || prompt === RESUME_TEXT || prompt === CONTINUE_TEXT) return;
 
@@ -319,16 +319,17 @@ function onPrompt(input) {
   const typed = typeLater([[0.7, '\x03'], [0.4, command], [0.8, '\r'], [0.8, '\r']]);
   const word = MODE === 'clear' ? 'clearing' : 'compacting';
   const reason = !typed
-    ? `smart-compact: new task detected. Run ${MODE === 'clear' ? '/clear' : '/compact'}, then type "go". Your task is saved and will be restored.`
+    ? `ghosted: new task detected. Run ${MODE === 'clear' ? '/clear' : '/compact'}, then type "go". Your task is saved and will be restored.`
     : WIN
-      ? `smart-compact: new task detected, ${word} first. Your task will start automatically (if nothing happens, run ${command.split(' ')[0]} and type "go").`
-      : `smart-compact: new task detected, ${word} first. Your task will start automatically.`;
+      ? `ghosted: new task detected, ${word} first. Your task will start automatically (if nothing happens, run ${command.split(' ')[0]} and type "go").`
+      : `ghosted: new task detected, ${word} first. Your task will start automatically.`;
   process.stdout.write(JSON.stringify({ decision: 'block', reason }));
+  return 'blocked';
 }
 
 // After each tool call: past the context limit, stop the run, compact, and let it carry on.
 function onTool(input) {
-  if (process.env.SMART_COMPACT_OFF || process.env.SMART_COMPACT_CHILD || !(MAX_CONTEXT > 0)) return;
+  if (process.env.GHOSTED_OFF || process.env.GHOSTED_CHILD || !(MAX_CONTEXT > 0)) return;
   if (readPending(input.cwd)) return;
   const tokens = contextTokens(input.transcript_path);
   debug('tool context tokens', tokens);
@@ -344,8 +345,8 @@ function onTool(input) {
   process.stdout.write(JSON.stringify({
     continue: false,
     stopReason: typed
-      ? `smart-compact: context at ${k(tokens)} (limit ${k(MAX_CONTEXT)}), compacting. The run continues automatically.`
-      : `smart-compact: context at ${k(tokens)} (limit ${k(MAX_CONTEXT)}). Run /compact, then type "go" to continue.`,
+      ? `ghosted: context at ${k(tokens)} (limit ${k(MAX_CONTEXT)}), compacting. The run continues automatically.`
+      : `ghosted: context at ${k(tokens)} (limit ${k(MAX_CONTEXT)}). Run /compact, then type "go" to continue.`,
   }));
 }
 
@@ -358,7 +359,7 @@ function onResume(input) {
   fs.rmSync(pending.file, { force: true });
   if (pending.mode === 'continue') {
     process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: [
-      `smart-compact compacted mid-run because the context reached ${pending.tokens} tokens.`,
+      `ghosted compacted mid-run because the context reached ${pending.tokens} tokens.`,
       'On the next message, continue the task you were doing from where you left off. Do not redo finished steps.',
       pending.archive ? `The full conversation before compaction is saved at ${pending.archive}; read it only if the summary lacks something.` : '',
     ].filter(Boolean).join('\n') } }));
@@ -366,7 +367,7 @@ function onResume(input) {
     return;
   }
   const parts = [
-    `smart-compact freed the context (${pending.mode}) because the user started a new task.`,
+    `ghosted freed the context (${pending.mode}) because the user started a new task.`,
     pending.carry ? `Facts from the earlier work that may matter:\n${pending.carry}` : '',
     pending.archive ? `The earlier conversation is saved verbatim at ${pending.archive}; read it only if the new task needs something from it.` : '',
     `The user's next task (verbatim), to start on their next message:\n\n${pending.prompt}`,
@@ -378,20 +379,32 @@ function onResume(input) {
 }
 
 // Terse mode: a short style rule at every session start (also after /compact and /clear) to cut output tokens.
+// The rule applies to text shown in the terminal only; files Claude writes stay normal.
+const KEEP = 'Keep code, commands, paths, numbers, error text and not/never/only exact. Files you write (code, comments, docs, commits) '
+  + 'and messages to other people stay normal prose. Use plain, clear language for security warnings and irreversible actions.';
 const TERSE_RULES = {
-  lite: 'Answer tersely: no filler, pleasantries, hedging or recap. Full sentences are fine. Keep code, commands, paths, numbers and error text exact.',
-  full: 'Answer in compressed note style: drop articles, filler, pleasantries and hedging; fragments are fine; use short words. '
-    + 'Keep code, commands, paths, numbers, error text and words like not/never/only exact. '
-    + 'Write normal prose in code comments, commit messages, docs and messages to other people. Use plain language for security warnings.',
+  lite: 'In replies to the user: no filler, pleasantries, hedging, or recap of what you just did. Full sentences, as few as needed. '
+    + 'Not "I\'ve gone ahead and updated the function so that it now correctly handles the empty-list case." but "The function now handles an empty list." ' + KEEP,
+  full: 'In replies to the user, write compressed notes: drop articles, filler (just, really, basically), pleasantries, hedging and recaps; '
+    + 'fragments are fine; short words; one line per point; no headings or tables unless asked. '
+    + 'Not "I\'ve gone ahead and updated the function so that it now correctly handles the empty-list case." but "Fixed: empty list handled." ' + KEEP,
 };
+// A one-line reminder on every prompt: a rule given only at session start fades over a long session.
+const TERSE_REMINDER = { lite: 'reply without filler or recap', full: 'reply in compressed notes, no filler or recap' };
 function onStart() {
   const rule = TERSE_RULES[TERSE];
-  if (!rule || process.env.SMART_COMPACT_OFF || process.env.SMART_COMPACT_CHILD) return;
-  process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: `smart-compact terse mode (${TERSE}): ${rule}` } }));
+  if (!rule || process.env.GHOSTED_OFF || process.env.GHOSTED_CHILD) return;
+  process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: `ghosted_ terse mode (${TERSE}): ${rule}` } }));
+}
+
+function terseReminder() {
+  if (!TERSE_RULES[TERSE] || process.env.GHOSTED_OFF || process.env.GHOSTED_CHILD) return;
+  process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: 'UserPromptSubmit',
+    additionalContext: `ghosted_ terse mode (${TERSE}): ${TERSE_REMINDER[TERSE]}. Files you write stay normal.` } }));
 }
 
 function debug(...a) {
-  if (!process.env.SMART_COMPACT_DEBUG) return;
+  if (!process.env.GHOSTED_DEBUG) return;
   fs.mkdirSync(DATA_DIR, { recursive: true });
   fs.appendFileSync(path.join(DATA_DIR, 'debug.log'), `${new Date().toISOString()} ${a.join(' ')}\n`);
 }
@@ -408,12 +421,12 @@ function main() {
   try { input = JSON.parse(fs.readFileSync(0, 'utf8') || '{}'); } catch {}
   debug(process.argv[2], JSON.stringify({ ...input, prompt: (input.prompt || '').slice(0, 60) }));
   try {
-    if (process.argv[2] === 'prompt') onPrompt(input);
+    if (process.argv[2] === 'prompt') { if (onPrompt(input) !== 'blocked') terseReminder(); }
     else if (process.argv[2] === 'tool') onTool(input);
     else if (process.argv[2] === 'resume') onResume(input);
     else if (process.argv[2] === 'start') onStart();
   } catch (e) {
-    process.stderr.write(`smart-compact: ${e.message}\n`); // never block the user on our own bug
+    process.stderr.write(`ghosted: ${e.message}\n`); // never block the user on our own bug
   }
 }
 
