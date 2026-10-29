@@ -18,8 +18,7 @@
 <meta name="twitter:image" content="https://giovanbelle.github.io/ghosted/og.png">
 <link rel="icon" href="favicon.png">
 <link rel="preload" href="fonts/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="fonts/instrument-serif-latin-400-italic.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="style.css?v=36f0c57c">
+<link rel="stylesheet" href="style.css?v=0aa25c16">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -42,7 +41,7 @@
 
   <article class="doc">
     <p class="crumbs">ghosted_ / Docs / Overview</p>
-    <h1 id="overview">Set up once. Then forget it.</h1>
+    <h1 id="overview">Getting started</h1>
     <p class="lede">ghosted_ runs through Claude Code hooks on every prompt. You never call it; the commands below are only for tuning.</p>
     <div class="callout" style="margin:18px 0"><b>In plain words.</b> Everything in your Claude Code chat is the <i>context</i>, and Claude re-reads all of it on every message. You pay for that in <i>tokens</i>, or it counts toward your Pro/Max limit. When you finish one job and start another, the old chat keeps being re-read for nothing. ghosted_ notices the switch, saves the old chat and starts you fresh.</div>
     <p>It does three things on its own. When a prompt starts a new task, it archives the old conversation, clears the context and starts your prompt with up to five facts carried over. While you're away, it keeps the prompt cache warm so coming back doesn't rewrite it. And it keeps terminal answers short. Everything that goes wrong fails open: your prompt goes through as if ghosted_ weren't installed.</p>
@@ -150,6 +149,6 @@
   </div>
   <div class="wordmark" aria-hidden="true">ghosted_</div>
 </footer>
-<script src="site.js?v=36f0c57c"></script>
+<script src="site.js?v=0aa25c16"></script>
 </body>
 </html>

@@ -18,8 +18,7 @@
 <meta name="twitter:image" content="https://giovanbelle.github.io/ghosted/og.png">
 <link rel="icon" href="favicon.png">
 <link rel="preload" href="fonts/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="fonts/instrument-serif-latin-400-italic.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="style.css?v=36f0c57c">
+<link rel="stylesheet" href="style.css?v=0aa25c16">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -36,7 +35,7 @@
 <div class="wrap">
   <section class="phead">
     <p class="kicker">How it works</p>
-    <h1>Two hooks and one cheap question.</h1>
+    <h1>How ghosted_ decides when to clear</h1>
     <p class="lede">ghosted_ runs inside Claude Code on every prompt. Most prompts pass straight through in about 55ms. Only a likely task switch reaches the judge.</p>
   </section>
 
@@ -45,19 +44,19 @@
     <figure class="fig rv" style="margin:0">
       <svg viewBox="0 0 1000 300" role="img" aria-label="Flowchart. Your prompt goes to quick checks. Small context, slash commands, obvious follow-ups and same: prompts pass through. Otherwise the Haiku judge decides. Same task, unsure or error passes through. New task: archive and clear, then the prompt is restored and the task starts.">
         <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#9a9a9a"/></marker></defs>
-        <g font-family="-apple-system,sans-serif" font-size="15" text-anchor="middle">
+        <g font-family="Geist,sans-serif" font-size="15" text-anchor="middle">
           <rect x="10" y="40" width="160" height="64" rx="12" fill="#111" stroke="#2e2e2e"/><text x="90" y="77" fill="#f5f5f5">Your prompt</text>
-          <rect x="210" y="40" width="170" height="64" rx="12" fill="#111" stroke="#2e2e2e"/><text x="295" y="70" fill="#f5f5f5">Quick checks</text><text x="295" y="90" fill="#5e5e5e" font-size="12" font-family="ui-monospace,Menlo,monospace">~55ms, no model</text>
-          <rect x="420" y="40" width="170" height="64" rx="12" fill="#111" stroke="#2e2e2e"/><text x="505" y="70" fill="#f5f5f5">Haiku judge</text><text x="505" y="90" fill="#5e5e5e" font-size="12" font-family="ui-monospace,Menlo,monospace">~3.5s · $0.0013</text>
+          <rect x="210" y="40" width="170" height="64" rx="12" fill="#111" stroke="#2e2e2e"/><text x="295" y="70" fill="#f5f5f5">Quick checks</text><text x="295" y="90" fill="#5e5e5e" font-size="12" font-family="Geist,sans-serif">~55ms, no model</text>
+          <rect x="420" y="40" width="170" height="64" rx="12" fill="#111" stroke="#2e2e2e"/><text x="505" y="70" fill="#f5f5f5">Haiku judge</text><text x="505" y="90" fill="#5e5e5e" font-size="12" font-family="Geist,sans-serif">~3.5s · $0.0013</text>
           <rect x="630" y="40" width="160" height="64" rx="12" fill="#111" stroke="#2e2e2e"/><text x="710" y="70" fill="#f5f5f5">Archive</text><text x="710" y="90" fill="#f5f5f5">+ /clear</text>
-          <rect x="830" y="40" width="160" height="64" rx="12" fill="#f5f5f5"/><text x="910" y="70" fill="#000" font-weight="600">Task starts</text><text x="910" y="90" fill="#333" font-size="12" font-family="ui-monospace,Menlo,monospace">prompt + 5 facts</text>
+          <rect x="830" y="40" width="160" height="64" rx="12" fill="#f5f5f5"/><text x="910" y="70" fill="#000" font-weight="600">Task starts</text><text x="910" y="90" fill="#333" font-size="12" font-family="Geist,sans-serif">prompt + 5 facts</text>
           <rect x="210" y="226" width="380" height="54" rx="12" fill="none" stroke="#2e2e2e" stroke-dasharray="5 5"/><text x="400" y="259" fill="#9a9a9a">Passes through unchanged</text>
         </g>
         <g stroke="#9a9a9a" stroke-width="1.5" fill="none" marker-end="url(#ar)">
           <path d="M170,72 H206"/><path d="M380,72 H416"/><path d="M590,72 H626"/><path d="M790,72 H826"/>
           <path d="M295,104 V222"/><path d="M505,104 V222"/>
         </g>
-        <g font-family="ui-monospace,Menlo,monospace" font-size="11.5" fill="#9a9a9a">
+        <g font-family="Geist,sans-serif" font-size="11.5" fill="#9a9a9a">
           <text x="398" y="62" text-anchor="middle">else</text><text x="608" y="62" text-anchor="middle">new</text>
           <text x="287" y="140" text-anchor="end">small context</text><text x="287" y="156" text-anchor="end">slash command</text><text x="287" y="172" text-anchor="end">"fix it", "that file"</text><text x="287" y="188" text-anchor="end">same: prompt</text>
           <text x="515" y="148">same task</text><text x="515" y="164">unsure</text><text x="515" y="180">error or timeout</text>
@@ -69,7 +68,7 @@
 
 
   <section aria-labelledby="try-h" style="padding-top:72px">
-    <div class="shead rv"><p class="kicker">Try it</p><h2 id="try-h">Type a prompt. Watch what happens.</h2><p>You're 40 minutes into fixing an auth bug, with 176k tokens of context. What do you ask next?</p></div>
+    <div class="shead rv"><p class="kicker">Try it</p><h2 id="try-h">Try a prompt</h2><p>You're 40 minutes into fixing an auth bug, with 176k tokens of context. What do you ask next?</p></div>
     <div class="play rv">
       <form class="pin" id="tryform">
         <span aria-hidden="true">›</span>
@@ -191,6 +190,6 @@
   </div>
   <div class="wordmark" aria-hidden="true">ghosted_</div>
 </footer>
-<script src="site.js?v=36f0c57c"></script>
+<script src="site.js?v=0aa25c16"></script>
 </body>
 </html>

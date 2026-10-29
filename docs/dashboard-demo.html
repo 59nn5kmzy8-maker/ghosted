@@ -3,7 +3,9 @@
 <title>ghosted_ · dashboard (sample data)</title><meta name="robots" content="noindex">
 <style>
 :root { --bg:#050505; --s1:#0b0b0b; --line:#1b1b1b; --line2:#2a2a2a; --hi:#fff; --fg:#e8e8e8; --dim:#8f8f8f; --faint:#555;
-  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace; --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; }
+  --sans: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; --mono: var(--sans); }
+@font-face { font-family: "Geist"; src: url(fonts/Geist-Variable.woff2) format("woff2"); font-weight: 100 900; font-display: swap; }
+body { font-variant-numeric: tabular-nums; }
 * { box-sizing: border-box; } html { background: var(--bg); color: var(--fg); }
 body { margin: 0; font: 14px/1.55 var(--sans); -webkit-font-smoothing: antialiased; }
 .wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px 64px; }

@@ -126,29 +126,6 @@
     spend.addEventListener('input', calc); share.addEventListener('input', calc); calc();
   }
 
-  // Hero ghost: the logo drawn as a dot matrix, once.
-  const cv = $('#ghost');
-  if (cv) {
-    const img = new Image();
-    const draw = () => {
-      const ctx = cv.getContext('2d'), r = cv.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1);
-      cv.width = r.width * dpr; cv.height = r.height * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      const S = 96, off = document.createElement('canvas'); off.width = off.height = S;
-      const o = off.getContext('2d'); o.drawImage(img, 0, 0, S, S);
-      let data; try { data = o.getImageData(0, 0, S, S).data; } catch { return; }
-      const step = r.width / S * 1.05, ox = (r.width - S * step) / 2, oy = (r.height - S * step) / 2;
-      ctx.clearRect(0, 0, r.width, r.height);
-      for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
-        const i = (y * S + x) * 4, v = data[i] / 255;
-        if (v < .4) continue;
-        ctx.fillStyle = `rgba(255,255,255,${.25 + v * .75})`;
-        ctx.beginPath(); ctx.arc(ox + x * step, oy + y * step, step * .32, 0, 6.283); ctx.fill();
-      }
-    };
-    img.onload = draw; img.src = cv.dataset.src;
-    addEventListener('resize', draw);
-  }
-
   // Docs: mark the section being read in the sidebar and the on-this-page list.
   const heads = $$('.doc [id]');
   if (heads.length) {
