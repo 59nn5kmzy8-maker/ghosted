@@ -190,6 +190,7 @@ const HELP = `ghosted_ commands
   /ghosted full | lite | auto | off   terse answers (auto = full, off when caveman is active)
   /ghosted max <tokens> | max off     compact mid-run at this context size (e.g. 250k), then continue
   /ghosted warm <time> | warm off     keep the prompt cache warm this long after your last turn (e.g. 2h)
+  /ghosted setup | setup off          terminal bridge: auto-typing in any terminal (VS Code, Ghostty, ...)
   /ghosted pause | resume             turn ghosted_ off or on (all features)
   /ghosted stats                      what ghosted_ did and what the judge cost
   /ghosted reset                      drop these overrides, back to /config
@@ -222,6 +223,16 @@ function command(args) {
     save({ ...OVERRIDES, keep_warm: ms ? `${ms / 60e3}m` : 'off' });
     return ms ? `ghosted_ keeps the cache warm for up to ${ms / 60e3} minutes after your last turn (from the next turn on).`
       : 'ghosted_ cache warming off.';
+  }
+  if (verb === 'setup') {
+    if (WIN) return 'Windows consoles are typed into directly; no setup needed.';
+    if (value === 'off') {
+      const f = bridgeSetup(false);
+      return f.length ? `ghosted_ terminal bridge removed from ${f.join(', ')}. Open a new terminal.` : 'The ghosted_ terminal bridge was not set up.';
+    }
+    const f = bridgeSetup(true);
+    return f.length ? `ghosted_ added a \`claude\` shell function to ${f.join(', ')}. Open a new terminal: from then on, ghosted_ starts your tasks automatically in any terminal app. Undo: /ghosted setup off`
+      : 'No shell config found (zsh, bash or fish).';
   }
   if (verb === 'reset') { fs.rmSync(OVERRIDES_FILE, { force: true }); return 'ghosted_ overrides cleared; /config settings apply.'; }
   if (verb === 'stats') {
@@ -381,6 +392,7 @@ function typeLater(steps) {
 const ok = (cmd, args) => spawnSync(cmd, args, { encoding: 'utf8', timeout: 3000, windowsHide: true }).status === 0;
 function terminalTarget() {
   const e = process.env;
+  if (e.GHOSTED_PTY_INJECT && fs.existsSync(e.GHOSTED_PTY_INJECT)) return { kind: 'bridge', fifo: e.GHOSTED_PTY_INJECT };
   if (e.TMUX && e.TMUX_PANE && ok('tmux', ['display-message', '-p', '-t', e.TMUX_PANE, '#{pane_id}'])) return { kind: 'tmux', pane: e.TMUX_PANE };
   if (e.WEZTERM_PANE && ok('wezterm', ['cli', 'list'])) return { kind: 'wezterm', pane: e.WEZTERM_PANE };
   if (e.KITTY_WINDOW_ID && e.KITTY_LISTEN_ON && ok('kitty', ['@', '--to', e.KITTY_LISTEN_ON, 'ls'])) return { kind: 'kitty', to: e.KITTY_LISTEN_ON, id: e.KITTY_WINDOW_ID };
@@ -429,7 +441,10 @@ const nap = ms => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, M
 function typeSteps({ term, steps }) {
   const send = (chunk) => {
     const cr = chunk === '\r', cc = chunk === '\x03';
-    if (term.kind === 'tmux') spawnSync('tmux', ['send-keys', '-t', term.pane, ...(cr ? ['Enter'] : cc ? ['C-c'] : ['-l', chunk])]);
+    if (term.kind === 'bridge') {
+      const fd = fs.openSync(term.fifo, fs.constants.O_WRONLY | fs.constants.O_NONBLOCK);
+      fs.writeSync(fd, chunk); fs.closeSync(fd);
+    } else if (term.kind === 'tmux') spawnSync('tmux', ['send-keys', '-t', term.pane, ...(cr ? ['Enter'] : cc ? ['C-c'] : ['-l', chunk])]);
     else if (term.kind === 'wezterm') spawnSync('wezterm', ['cli', 'send-text', '--no-paste', '--pane-id', term.pane, chunk]);
     else if (term.kind === 'kitty') spawnSync('kitty', ['@', '--to', term.to, 'send-text', '--match', `id:${term.id}`, '--', chunk]);
     else if (term.kind === 'iterm') spawnSync('osascript', ['-e', ITERM_WRITE, term.tty, cr ? 'CR' : chunk]);
@@ -441,6 +456,68 @@ function typeSteps({ term, steps }) {
       send(chunk);
     });
   }
+}
+
+// ── Terminal bridge (opt-in: /ghosted setup) ─────────────────────────────────
+// VS Code's terminal, Ghostty, Alacritty and most Linux terminals can't be typed into from outside. For those,
+// a `claude` shell function runs Claude Code through hooks/ghosted-pty.py, a pass-through pseudo-terminal with a
+// private pipe for ghosted_'s keystrokes. The function falls back to plain claude whenever anything is missing.
+const MARK = '# >>> ghosted_ terminal bridge >>>', END = '# <<< ghosted_ terminal bridge <<<';
+function bridgeFiles() {
+  const home = os.homedir(), sh = path.basename(process.env.SHELL || '');
+  const out = [];
+  for (const [rc, name] of [['.zshrc', 'zsh'], ['.bashrc', 'bash']]) {
+    const f = path.join(home, rc);
+    if (fs.existsSync(f) || sh === name) out.push({ kind: 'posix', file: f });
+  }
+  const fish = path.join(home, '.config', 'fish');
+  if (fs.existsSync(fish) || sh === 'fish') out.push({ kind: 'fish', file: path.join(fish, 'functions', 'claude.fish') });
+  return out;
+}
+function bridgeInstalled() {
+  return bridgeFiles().some(({ file }) => { try { return fs.readFileSync(file, 'utf8').includes(MARK); } catch { return false; } });
+}
+// Adds (on) or removes the shell function; only ever called from /ghosted setup. Returns the files changed.
+function bridgeSetup(on) {
+  const bin = path.join(DATA_DIR, 'ghosted-pty.py'), q = JSON.stringify(bin);
+  const changed = [];
+  for (const { kind, file } of bridgeFiles()) {
+    let text = ''; try { text = fs.readFileSync(file, 'utf8'); } catch {}
+    const start = text.indexOf(MARK), end = text.indexOf(END);
+    const had = start >= 0 && end > start;
+    if (had) text = text.slice(0, start).replace(/\n$/, '') + text.slice(end + END.length).replace(/^\n/, '');
+    if (!on) {
+      if (!had) continue;
+      if (kind === 'fish') fs.rmSync(file, { force: true }); else fs.writeFileSync(file, text);
+      changed.push(file);
+      continue;
+    }
+    const block = kind === 'fish' ? `${MARK}
+function claude --description 'Claude Code through the ghosted_ terminal bridge'
+  if test -z "$GHOSTED_PTY_INJECT"; and isatty stdin; and isatty stdout; and command -q python3; and test -f ${q}
+    python3 ${q} claude $argv
+  else
+    command claude $argv
+  end
+end
+${END}
+` : `${MARK}
+# Added by /ghosted setup so ghosted_ can start your next task in any terminal. Remove: /ghosted setup off
+claude() {
+  if [ -z "$GHOSTED_PTY_INJECT" ] && [ -t 0 ] && [ -t 1 ] && command -v python3 >/dev/null 2>&1 && [ -f ${q} ]; then
+    python3 ${q} claude "$@"
+  else
+    command claude "$@"
+  fi
+}
+${END}
+`;
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, kind === 'fish' ? block : text.replace(/\n*$/, text ? '\n\n' : '') + block);
+    changed.push(file);
+  }
+  if (on) { privateDir(DATA_DIR); fs.copyFileSync(path.join(__dirname, 'ghosted-pty.py'), bin); }
+  return changed;
 }
 
 // Windows: this hook's ancestors, nearest first (the shell, then Claude Code itself).
@@ -492,6 +569,7 @@ function onPrompt(input) {
   const word = MODE === 'clear' ? 'clearing' : 'compacting';
   const reason = !typed
     ? `ghosted: new task detected. Run ${MODE === 'clear' ? '/clear' : '/compact'}, then type "go". Your task is saved and will be restored.`
+      + (WIN ? '' : ' To make this automatic in this terminal, run /ghosted setup once.')
     : WIN
       ? `ghosted: new task detected, ${word} first. Your task will start automatically (if nothing happens, run ${command.split(' ')[0]} and type "go").`
       : `ghosted: new task detected, ${word} first. Your task will start automatically.`;

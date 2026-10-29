@@ -33,3 +33,47 @@ test('warm driver types the message into a real terminal after the delay', { ski
     else try { process.kill(-child.pid, 'SIGTERM'); } catch {}
   }
 });
+
+test('terminal bridge passes keys from the hook pipe to the program', { skip: (WIN || noPython) && 'macOS and Linux with python3', timeout: 60000 }, async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ghosted-bridge-'));
+  const out = path.join(dir, 'got.json'), envFile = path.join(dir, 'env');
+  // the stand-in records GHOSTED_PTY_INJECT so the test can write into the bridge like the hook does
+  const wrapper = path.join(dir, 'tui.sh');
+  fs.writeFileSync(wrapper, `#!/bin/sh\necho "$GHOSTED_PTY_INJECT" > "${envFile}"\nexec "${process.execPath}" "${FAKE}" "${out}"\n`, { mode: 0o755 });
+  const child = spawn('python3', [path.join(HOOKS, 'ghosted-pty.py'), wrapper], { stdio: ['pipe', 'ignore', 'ignore'], detached: true });
+  try {
+    const t0 = Date.now();
+    while (!(fs.existsSync(envFile) && fs.readFileSync(envFile, 'utf8').trim()) && Date.now() - t0 < 20000) await new Promise(r => setTimeout(r, 100));
+    const fifo = fs.readFileSync(envFile, 'utf8').trim();
+    await new Promise(r => setTimeout(r, 500));
+    const r = spawnSync(process.execPath, [path.join(HOOKS, 'ghosted.js'), 'type'], {
+      env: { ...process.env, GHOSTED_PTY_INJECT: fifo, GHOSTED_TYPE_JOB: JSON.stringify({ term: { kind: 'bridge', fifo }, steps: [[0, 'Start the pending task.'], [0.3, '\r']] }) },
+      input: '', encoding: 'utf8',
+    });
+    assert.equal(r.status, 0, r.stderr);
+    while (!fs.existsSync(out) && Date.now() - t0 < 30000) await new Promise(r => setTimeout(r, 100));
+    const got = JSON.parse(fs.readFileSync(out, 'utf8'));
+    assert.equal(got.received, 'Start the pending task.');
+    assert.ok(got.isTTY, 'the program runs in a terminal');
+  } finally {
+    try { process.kill(-child.pid, 'SIGTERM'); } catch {}
+  }
+});
+
+test('/ghosted setup adds and removes the claude shell function', { skip: WIN && 'not needed on Windows' }, () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'ghosted-home-'));
+  fs.writeFileSync(path.join(home, '.zshrc'), 'export FOO=1\n');
+  const data = path.join(home, 'data');
+  const cmd = (...a) => spawnSync(process.execPath, [path.join(HOOKS, 'ghosted.js'), 'cmd', data, ...a], { encoding: 'utf8', env: { ...process.env, HOME: home, SHELL: '/bin/zsh' } }).stdout;
+  assert.match(cmd('setup'), /added a `claude` shell function/);
+  const rc = fs.readFileSync(path.join(home, '.zshrc'), 'utf8');
+  assert.match(rc, /^export FOO=1\n/);
+  assert.match(rc, /claude\(\) \{[\s\S]*ghosted-pty\.py[\s\S]*command claude "\$@"/);
+  assert.ok(fs.existsSync(path.join(data, 'ghosted-pty.py')));
+  cmd('setup'); // idempotent: one block
+  assert.equal(fs.readFileSync(path.join(home, '.zshrc'), 'utf8').split('>>> ghosted_').length, 2);
+  // the function must parse in a real shell
+  if (spawnSync('zsh', ['-c', 'true']).status === 0) assert.equal(spawnSync('zsh', ['-n', path.join(home, '.zshrc')]).status, 0);
+  assert.match(cmd('setup', 'off'), /removed/);
+  assert.equal(fs.readFileSync(path.join(home, '.zshrc'), 'utf8'), 'export FOO=1\n');
+});

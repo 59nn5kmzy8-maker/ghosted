@@ -1,7 +1,7 @@
 ---
 name: ghosted
 description: The /ghosted command for the ghosted_ plugin. Sets terse answers (full, lite, auto, off), mid-run compaction (max <tokens>), cache warming (warm <time>), pause or resume, and shows stats or help. Use when the user types /ghosted, asks to change ghosted_ settings, asks what ghosted_ saved, or asks how ghosted_ works (task switches, "new:", "same:", why a prompt was blocked).
-argument-hint: "[full|lite|auto|off|max <tokens>|warm <time>|pause|resume|stats|reset|help]"
+argument-hint: "[full|lite|auto|off|max <tokens>|warm <time>|setup [off]|pause|resume|stats|reset|help]"
 ---
 
 Run this with the user's arguments on the line between the markers, then show its output to the user as is. The quoted heredoc keeps the arguments away from the shell.
@@ -20,5 +20,5 @@ How ghosted_ works, for questions:
 - Mid-run compaction (off unless set): past the limit, the run stops, `/compact` runs, then "Continue where you left off." is typed.
 - Cache warming (`/ghosted warm 2h`, default 2h): while the session is idle, a hidden fork of it sends one short turn just before the prompt cache expires, so a break doesn't force a full cache rewrite. Stops when the user is back, when Claude Code exits, or before it costs half the rewrite. macOS, Linux (python3) and Windows (ConPTY).
 - Old conversations are archived; `/ghosted:recall <words>` finds them.
-- Auto-typing works in Terminal.app, iTerm2, tmux, WezTerm, kitty and Windows consoles; elsewhere (VS Code terminal, Ghostty, Alacritty) ghosted_ says which command to run, then the user types `go`.
+- Auto-typing works in Terminal.app, iTerm2, tmux, WezTerm, kitty and Windows consoles; elsewhere (VS Code terminal, Ghostty, Alacritty) `/ghosted setup` adds a `claude` shell function that runs Claude Code through ghosted_'s terminal bridge, so auto-typing works there too; without it ghosted_ says which command to run, then the user types `go`.
 - Environment variables override everything: `GHOSTED_TERSE`, `GHOSTED_MAX_CONTEXT`, `GHOSTED_MIN_TOKENS`, `GHOSTED_KEEP_WARM`, `GHOSTED_MODE=compact`, `GHOSTED_OFF=1`.

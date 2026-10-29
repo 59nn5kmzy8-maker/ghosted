@@ -65,6 +65,7 @@ Each has an environment override: `GHOSTED_MAX_CONTEXT`, `GHOSTED_MIN_TOKENS`, `
 | `/ghosted full` · `lite` · `auto` · `off` | terse answers (`auto` = full, off when caveman is active) |
 | `/ghosted max 250k` · `max off` | compact mid-run at this context size, then continue |
 | `/ghosted warm 2h` · `warm off` | keep the prompt cache warm this long after your last turn |
+| `/ghosted setup` · `setup off` | auto-typing in any terminal: adds a `claude` shell function that runs Claude Code through ghosted_'s terminal bridge |
 | `/ghosted pause` · `resume` | turn ghosted_ off or on |
 | `/ghosted stats` | task switches, mid-run compactions, judge calls and their cost |
 | `/ghosted reset` · `help` | back to your `/config` settings · list the commands |
@@ -81,9 +82,11 @@ Each has an environment override: `GHOSTED_MAX_CONTEXT`, `GHOSTED_MIN_TOKENS`, `
 | tmux, inside any terminal (VS Code, Linux, SSH) | yes | yes (`tmux send-keys`) | yes |
 | WezTerm, kitty (with remote control on) | yes | yes (their CLI) | yes |
 | Windows console, Windows Terminal | yes | yes (`WriteConsoleInput`, tested in CI) | yes (ConPTY, tested in CI) |
-| VS Code terminal, Ghostty, Alacritty, other Linux terminals | yes | no: it tells you which command to run, then you type `go`. Run `claude` inside tmux to get auto-typing. | yes |
+| VS Code terminal, Ghostty, Alacritty, any other terminal | yes | yes, after running `/ghosted setup` once (macOS, Linux) | yes |
 
-Needs Node.js and the `claude` CLI on your PATH. Cache warming uses `python3` on macOS and Linux. No other dependencies.
+Needs Node.js and the `claude` CLI on your PATH. Cache warming and the terminal bridge use `python3` on macOS and Linux. No other dependencies.
+
+**Terminal bridge.** VS Code's terminal, Ghostty and Alacritty give outside programs no way to type into them. `/ghosted setup` adds a small `claude` function to your shell config (zsh, bash or fish). It runs Claude Code through a pass-through pseudo-terminal with a private pipe for ghosted_'s keystrokes, the way tmux would. Everything you type and see is unchanged. It falls back to plain `claude` whenever python3 or the script is missing. `/ghosted setup off` removes it.
 
 ## How it works
 
