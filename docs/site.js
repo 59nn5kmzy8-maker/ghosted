@@ -8,6 +8,9 @@
     requestAnimationFrame(step);
   };
 
+  // When the page last scrolled, so the embedded dashboard knows to let scrolling pass over it.
+  addEventListener('wheel', () => { window.__ghostedWheel = Date.now(); }, { passive: true });
+
   $$('[data-copy]').forEach(b => b.addEventListener('click', async () => {
     try { await navigator.clipboard.writeText(b.dataset.copy.replace(/\\n/g, '\n')); b.textContent = 'Copied ✓'; }
     catch { b.textContent = 'Select to copy'; }

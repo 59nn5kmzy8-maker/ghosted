@@ -293,3 +293,5 @@ footer small { display: block; margin-top: 8px; max-width: 520px; }
 .play .caret::after { content: "▍"; animation: blink 1s steps(1) infinite; color: var(--hi); }
 @keyframes blink { 50% { opacity: 0; } }
 @media (max-width: 900px) { .pgrid { grid-template-columns: 1fr; } }
+.dashframe { transition: border-color .3s, box-shadow .3s; }
+.dashframe.live { border-color: #5a5a5a; box-shadow: 0 0 0 1px #5a5a5a, 0 40px 120px -40px rgba(0,0,0,.9); }
