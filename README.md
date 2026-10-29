@@ -42,6 +42,7 @@ Restart Claude Code. You'll be asked for the settings below; change them any tim
 - **Task switch:** when there's more than about 20k tokens of context and your prompt starts something new, ghosted_ runs `/clear` (or `/compact`), restores your prompt and types `Start the pending task.` Up to 5 facts from the old work and the archive path come along.
 - **Long runs (optional):** past a limit you choose (for example 250k), it stops the run, compacts, and types `Continue where you left off.`
 - **Terse answers (on by default):** compressed notes in the terminal, like caveman, with a one-line reminder on every prompt so it doesn't fade. In tests: 20% less text and 19% lower cost than no terse mode, and less text than caveman. Code and files Claude writes stay normal.
+- **Cache warming (on, 2 hours):** Claude's prompt cache expires after 5 minutes, or 1 hour on most subscriptions. After a longer break, your next message writes the whole context to the cache again, at 1.25× or 2× the input price. While you're away, ghosted_ re-sends the session just before the cache expires, through a hidden copy of the session that is deleted right after. A cache read costs 0.1× the input price. It stops once you're back, when Claude Code closes, and before the pings cost half of the rewrite they prevent. Measured: one ping read 191,089 tokens from the cache and wrote 372.
 - **Recall:** every cleared conversation is archived and indexed. `/ghosted:recall <words>` returns a short digest of the matching work.
 
 Anything that goes wrong fails open: your prompt goes through as if ghosted_ weren't there.
@@ -52,9 +53,10 @@ Anything that goes wrong fails open: your prompt goes through as if ghosted_ wer
 |---|---|---|
 | Compact mid-run at (tokens) | `0` (off) | e.g. `250000` or `250k`; values under 100k count as 100k |
 | Check for a new task above (tokens) | `20000` | below this, prompts are never judged |
+| Keep the cache warm for | `2h` | after your last turn; `off` to disable, e.g. `90m` |
 | Terse answers | `auto` | `auto` = `full` (compressed notes), or off when caveman is already active; also `full`, `lite`, `off` |
 
-Each has an environment override: `GHOSTED_MAX_CONTEXT`, `GHOSTED_MIN_TOKENS`, `GHOSTED_TERSE`. Also `GHOSTED_MODE=compact` (compact instead of clear on a switch) and `GHOSTED_OFF=1`.
+Each has an environment override: `GHOSTED_MAX_CONTEXT`, `GHOSTED_MIN_TOKENS`, `GHOSTED_KEEP_WARM`, `GHOSTED_TERSE`. Also `GHOSTED_MODE=compact` (compact instead of clear on a switch) and `GHOSTED_OFF=1`.
 
 ## Commands
 
@@ -62,6 +64,7 @@ Each has an environment override: `GHOSTED_MAX_CONTEXT`, `GHOSTED_MIN_TOKENS`, `
 |---|---|
 | `/ghosted full` · `lite` · `auto` · `off` | terse answers (`auto` = full, off when caveman is active) |
 | `/ghosted max 250k` · `max off` | compact mid-run at this context size, then continue |
+| `/ghosted warm 2h` · `warm off` | keep the prompt cache warm this long after your last turn |
 | `/ghosted pause` · `resume` | turn ghosted_ off or on |
 | `/ghosted stats` | task switches, mid-run compactions, judge calls and their cost |
 | `/ghosted reset` · `help` | back to your `/config` settings · list the commands |
@@ -78,7 +81,7 @@ Each has an environment override: `GHOSTED_MAX_CONTEXT`, `GHOSTED_MIN_TOKENS`, `
 | Windows console | yes | yes (`WriteConsoleInput`, tested in CI) |
 | iTerm, tmux, VS Code, Linux | yes | no: it tells you which command to run, then type `go` |
 
-Needs Node.js and the `claude` CLI on your PATH. No other dependencies.
+Needs Node.js and the `claude` CLI on your PATH. Cache warming also needs `python3` (its built-in `pty` module) and runs on macOS and Linux only. No other dependencies.
 
 ## How it works
 
@@ -99,6 +102,7 @@ The judge runs `claude -p --model haiku` with no settings, plugins, MCP servers 
 - A wrong "new task" verdict drops the context the prompt needed. It's rare (0 in the last 64 judged prompts), the old conversation is always archived, and `same:` prevents it.
 - Mid-run compaction cost more than it saved in single long runs, so it's off by default.
 - Terse mode shortens the text you read, not code or tool calls, so its saving depends on how much of a session is prose.
+- Cache warming spends a little to save more only if you come back to the session. Each ping costs about a tenth of the context, and it stops at half the cost of the rewrite it prevents. If a ping ever misses the cache, warming stops for that session. Turn it off with `/ghosted warm off`.
 - The transcript's `compact_boundary` marker isn't documented. If it changes, ghosted_ judges more often but stays safe.
 
 ## Develop

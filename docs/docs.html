@@ -35,7 +35,7 @@
   <section class="phead">
     <p class="kicker">Docs</p>
     <h1>Set up once. Then forget it.</h1>
-    <p class="lede">Needs Node.js and the <code>claude</code> CLI on your PATH. No other dependencies.</p>
+    <p class="lede">Needs Node.js and the <code>claude</code> CLI on your PATH. Cache warming also uses <code>python3</code>. No other dependencies.</p>
   </section>
 
   <section aria-labelledby="inst-h" style="padding-top:56px">
@@ -62,6 +62,7 @@
           <tbody>
             <tr><td><code>/ghosted full</code> · <code>lite</code> · <code>auto</code> · <code>off</code></td><td>Terse answer level. <code>auto</code> is full, or off while caveman is active.</td></tr>
             <tr><td><code>/ghosted max 250k</code> · <code>max off</code></td><td>Compact mid-run at this context size, then continue.</td></tr>
+            <tr><td><code>/ghosted warm 2h</code> · <code>warm off</code></td><td>Keep the prompt cache warm this long after your last turn.</td></tr>
             <tr><td><code>/ghosted pause</code> · <code>resume</code></td><td>Turn ghosted_ off or on.</td></tr>
             <tr><td><code>/ghosted stats</code></td><td>Task switches, mid-run compactions, judge calls and what they cost.</td></tr>
             <tr><td><code>/ghosted reset</code> · <code>help</code></td><td>Back to your <code>/config</code> settings · list the commands.</td></tr>
@@ -76,6 +77,7 @@
           <tbody>
             <tr><td>Check for a new task above</td><td><code>20000</code></td><td>Below this many tokens, prompts are never judged.</td></tr>
             <tr><td>Compact mid-run at</td><td><code>0</code> (off)</td><td>For example <code>250k</code>. Values under 100k count as 100k.</td></tr>
+            <tr><td>Keep the cache warm for</td><td><code>2h</code></td><td>After your last turn. <code>off</code> disables it; <code>90m</code> works too.</td></tr>
             <tr><td>Terse answers</td><td><code>auto</code></td><td><code>full</code>, <code>lite</code> or <code>off</code>. <code>auto</code> = full unless caveman is active.</td></tr>
           </tbody>
         </table>
@@ -89,6 +91,7 @@
             <tr><td><code>GHOSTED_MIN_TOKENS</code></td><td>Overrides the switch threshold.</td></tr>
             <tr><td><code>GHOSTED_MAX_CONTEXT</code></td><td>Overrides the mid-run limit.</td></tr>
             <tr><td><code>GHOSTED_TERSE</code></td><td>Overrides the terse level.</td></tr>
+            <tr><td><code>GHOSTED_KEEP_WARM</code></td><td>Overrides the cache-warming window.</td></tr>
           </tbody>
         </table>
         <p class="note" style="padding:0 18px 16px">Order of precedence: environment, then <code>/ghosted</code> commands, then <code>/config</code>.</p>
@@ -107,6 +110,7 @@
       <details><summary>Do I need to run anything after installing?</summary><p>No. It runs through Claude Code hooks on every prompt. The commands are only for tuning.</p></details>
       <details><summary>Why clear instead of compact?</summary><p>A compact summary still carries a lot of old text and costs a model call to write. Clearing with a few carried facts saved 70%; compacting saved 34%.</p></details>
       <details><summary>I already use caveman. Do I need both?</summary><p>They stack: $3.32 per run with caveman alone, $0.92 with ghosted_ added. ghosted_'s own terse mode steps aside while caveman is active.</p></details>
+      <details><summary>What does cache warming cost?</summary><p>Each ping reads the context from cache at a tenth of the input price, about once an hour on subscriptions. It stops before the pings cost half of the full cache rewrite you'd pay coming back cold, and immediately if one ever misses the cache. <code>/ghosted stats</code> shows every ping.</p></details>
       <details><summary>Nothing happened after “new task detected”.</summary><p>Your terminal doesn't support auto-typing, or macOS automation permission was declined. Run <code>/clear</code>, then type <code>go</code>. Your task is saved and comes back.</p></details>
     </div>
     <p class="note">Something else? <a href="https://github.com/giovanbelle/ghosted/issues">Open an issue on GitHub</a>.</p>

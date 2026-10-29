@@ -54,6 +54,7 @@
       <h3>What the plugin processes</h3>
       <ul>
         <li><b>Task-switch check.</b> When your context is above the threshold and a prompt isn't an obvious follow-up, ghosted_ sends Anthropic's Claude Haiku model the start of the conversation (up to 2,000 characters), its end (up to 6,000 characters) and your new prompt (up to 4,000 characters). It runs through the <code>claude</code> command-line tool you are already signed in to, so Anthropic processes this under your own agreement with Anthropic and <a href="https://www.anthropic.com/legal/privacy">Anthropic's privacy policy</a>.</li>
+        <li><b>Cache warming.</b> While your session is idle, ghosted_ re-sends it to Claude through a hidden copy of the session, so Anthropic's prompt cache stays warm. This sends the same conversation Claude Code already sent, under the same login. The copy's transcript is deleted right after. Turn it off with <code>/ghosted warm off</code>.</li>
         <li><b>Archive.</b> When the context is cleared, the old conversation is saved to <code>~/.claude/plugins/data/ghosted-ghosted</code> on your computer, with file permissions that let only your user account read it.</li>
         <li><b>Stats and settings.</b> Counts of task switches and judge costs, and the settings you choose with <code>/ghosted</code>, are stored in the same folder.</li>
       </ul>

@@ -72,6 +72,7 @@
         <button role="tab" id="t-switch" aria-controls="p-switch" data-key="switch">Task switch</button>
         <button role="tab" id="t-terse" aria-controls="p-terse" data-key="terse">Terse answers</button>
         <button role="tab" id="t-recall" aria-controls="p-recall" data-key="recall">Recall</button>
+        <button role="tab" id="t-warm" aria-controls="p-warm" data-key="warm">Cache warming</button>
         <button role="tab" id="t-long" aria-controls="p-long" data-key="long">Long runs</button>
         <button role="tab" id="t-ctl" aria-controls="p-ctl" data-key="ctl">Overrides</button>
       </div>
@@ -105,6 +106,15 @@
         </div>
       </div>
 
+ <div role="tabpanel" id="p-warm" aria-labelledby="t-warm" class="panel lit" hidden>
+        <div class="tabbody">
+          <div><h3>Cache warming <code>on · 2h</code></h3><p>Claude's prompt cache expires after a break. Coming back then means writing the whole context to the cache again, at up to 2× the input price. ghosted_ keeps it warm while you're away.</p>
+            <ul><li>A hidden copy of the session sends one short turn just before expiry</li><li>Measured: 191,089 tokens read from cache, 372 written</li><li>Stops when you're back, or before it costs half of what it saves</li></ul></div>
+          <div class="term lit"><div class="tbar"><i></i><i></i><i></i><span>you're on a break</span></div><div class="tlog">
+            <div class="l d">  12:00  your last turn · cache warm for 1h</div><div class="l">  12:55  ping · 191k read from cache</div><div class="l">  13:50  ping · 191k read from cache</div><div class="l u">14:20  you're back</div><div class="l g">cache hit · no full rewrite</div></div></div>
+        </div>
+      </div>
+
       <div role="tabpanel" id="p-long" aria-labelledby="t-long" class="panel lit" hidden>
         <div class="tabbody">
           <div><h3>Long runs <code>opt-in</code></h3><p>For runs that go on long after their early context went stale. Off by default, because in single runs it cost more than it saved.</p>
@@ -134,6 +144,7 @@
           <tr><td>macOS Terminal.app</td><td class="ok">Yes</td><td class="ok">Yes, asks once for automation permission</td></tr>
           <tr><td>Windows console</td><td class="ok">Yes</td><td class="ok">Yes, tested in CI</td></tr>
           <tr><td>iTerm, tmux, VS Code, Linux</td><td class="ok">Yes</td><td class="no">Shows the command; you run it, then type <code>go</code></td></tr>
+          <tr><td>Cache warming</td><td colspan="2">macOS and Linux, with <code>python3</code> installed. Not on Windows yet.</td></tr>
         </tbody>
       </table>
     </div>

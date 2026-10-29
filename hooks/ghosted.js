@@ -29,6 +29,13 @@ const MIN_TOKENS = tokens(opt('GHOSTED_MIN_TOKENS', 'SWITCH_MIN_TOKENS', 20000),
 const MAX_RAW = tokens(opt('GHOSTED_MAX_CONTEXT', 'MAX_CONTEXT', 0), 0); // 0 = no mid-run compaction
 // Below ~100k, Claude Code's fixed overhead plus the summary could keep it over the limit and compact on every tool call.
 const MAX_CONTEXT = MAX_RAW > 0 ? Math.max(MAX_RAW, 100000) : 0;
+// Keep the prompt cache warm for this long after the last turn (0 = off). 2h, 90m or plain minutes.
+function duration(v, dflt) {
+  if (/^(off|0)$/i.test(String(v).trim())) return 0;
+  const m = String(v).trim().match(/^(\d+(?:\.\d+)?)\s*(h|m|min)?$/i);
+  return m ? Math.round(m[1] * (/^h$/i.test(m[2] || '') ? 3600e3 : 60e3)) : dflt;
+}
+const WARM_MS = duration(opt('GHOSTED_KEEP_WARM', 'KEEP_WARM', '2h'), 2 * 3600e3);
 // auto (default): full, unless caveman is already shaping replies. Two style rules stacked cost more than either alone.
 const TERSE_SETTING = opt('GHOSTED_TERSE', 'TERSE', 'auto');
 const TERSE = TERSE_SETTING === 'auto' ? (cavemanActive() ? 'off' : 'full') : TERSE_SETTING;
@@ -182,6 +189,7 @@ function jsonl(file) {
 const HELP = `ghosted_ commands
   /ghosted full | lite | auto | off   terse answers (auto = full, off when caveman is active)
   /ghosted max <tokens> | max off     compact mid-run at this context size (e.g. 250k), then continue
+  /ghosted warm <time> | warm off     keep the prompt cache warm this long after your last turn (e.g. 2h)
   /ghosted pause | resume             turn ghosted_ off or on (all features)
   /ghosted stats                      what ghosted_ did and what the judge cost
   /ghosted reset                      drop these overrides, back to /config
@@ -208,20 +216,29 @@ function command(args) {
     save({ ...OVERRIDES, paused: verb === 'pause' });
     return verb === 'pause' ? 'ghosted_ paused: no judging, compaction or terse rules until /ghosted resume.' : 'ghosted_ resumed.';
   }
+  if (verb === 'warm') {
+    const ms = duration(value ?? '', NaN);
+    if (Number.isNaN(ms)) return 'Usage: /ghosted warm <time> (e.g. 2h, 90m) or /ghosted warm off';
+    save({ ...OVERRIDES, keep_warm: ms ? `${ms / 60e3}m` : 'off' });
+    return ms ? `ghosted_ keeps the cache warm for up to ${ms / 60e3} minutes after your last turn (from the next turn on).`
+      : 'ghosted_ cache warming off.';
+  }
   if (verb === 'reset') { fs.rmSync(OVERRIDES_FILE, { force: true }); return 'ghosted_ overrides cleared; /config settings apply.'; }
   if (verb === 'stats') {
     const ev = jsonl(path.join(DATA_DIR, 'events.jsonl')), costs = jsonl(path.join(DATA_DIR, 'judge-costs.jsonl'));
     const sum = (a, f) => a.reduce((t, x) => t + (Number(f(x)) || 0), 0);
     const idx = jsonl(path.join(DATA_DIR, 'archive', 'index.jsonl'));
     const midRuns = idx.filter(r => /mid-run/.test(r.task)).length; // the archive index predates events.jsonl, so count from it
-    const sw = ev.filter(e => e.kind === 'switch');
+    const sw = ev.filter(e => e.kind === 'switch'), warm = ev.filter(e => e.kind === 'warm');
+    const miss = ev.filter(e => e.kind === 'warm-miss').length;
     const k = n => `${Math.round(n / 1000).toLocaleString('en')}k`;
     return [
       'ghosted_ stats',
       `  task switches        ${idx.length - midRuns}${sw.length ? `  (last ${sw.length}: ${k(sum(sw, e => e.tokens))} tokens of old conversation no longer re-sent each turn)` : ''}`,
       `  mid-run compactions  ${midRuns}`,
+      `  cache warm pings     ${warm.length}${warm.length ? `  (${k(sum(warm, e => e.tokens))} tokens kept warm${miss ? `, ${miss} missed` : ''})` : ''}`,
       `  judge calls          ${costs.length}  ($${sum(costs, c => c.usd).toFixed(4)} total)`,
-      `  settings             terse ${TERSE_SETTING}${TERSE_SETTING === 'auto' ? ` (${TERSE})` : ''}, mid-run ${MAX_CONTEXT ? k(MAX_CONTEXT) : 'off'}, judge above ${k(MIN_TOKENS)}${OFF ? ', PAUSED' : ''}`,
+      `  settings             terse ${TERSE_SETTING}${TERSE_SETTING === 'auto' ? ` (${TERSE})` : ''}, mid-run ${MAX_CONTEXT ? k(MAX_CONTEXT) : 'off'}, warm ${WARM_MS ? `${WARM_MS / 60e3}m` : 'off'}, judge above ${k(MIN_TOKENS)}${OFF ? ', PAUSED' : ''}`,
     ].join('\n');
   }
   return HELP;
@@ -368,7 +385,7 @@ function obviousFollowUp(prompt) {
 
 function onPrompt(input) {
   const prompt = (input.prompt || '').trim();
-  if (OFF || process.env.GHOSTED_CHILD) return;
+  if (OFF || process.env.GHOSTED_CHILD || process.env.GHOSTED_WARMING) return;
   // `!` is Claude Code's shell mode, so the overrides are plain-word prefixes.
   if (prompt.startsWith('/') || /^same:/i.test(prompt) || prompt === RESUME_TEXT || prompt === CONTINUE_TEXT) return;
 
@@ -408,7 +425,7 @@ function onPrompt(input) {
 
 // After each tool call: past the context limit, stop the run, compact, and let it carry on.
 function onTool(input) {
-  if (OFF || process.env.GHOSTED_CHILD || !(MAX_CONTEXT > 0)) return;
+  if (OFF || process.env.GHOSTED_CHILD || process.env.GHOSTED_WARMING || !(MAX_CONTEXT > 0)) return;
   if (readPending(input.cwd)) return;
   const tokens = contextTokens(input.transcript_path);
   debug('tool context tokens', tokens);
@@ -490,9 +507,180 @@ function onStart() {
 }
 
 function terseReminder() {
-  if (!TERSE_RULES[TERSE] || OFF || process.env.GHOSTED_CHILD) return;
+  if (!TERSE_RULES[TERSE] || OFF || process.env.GHOSTED_CHILD || process.env.GHOSTED_WARMING) return;
   process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: 'UserPromptSubmit',
     additionalContext: `ghosted_ terse mode (${TERSE}): ${TERSE_REMINDER[TERSE]}. Files you write stay normal.` } }));
+}
+
+// ── Cache warming ────────────────────────────────────────────────────────────
+// The prompt cache expires after 5 minutes (1 hour on most Claude subscriptions). After a longer break,
+// the next turn writes the whole context to the cache again: 1.25x (5m) or 2x (1h) the input price,
+// against 0.1x for a cache read. So while the session sits idle, re-send it just before the cache expires.
+// `claude -p` builds a different request than the interactive app and misses its cache (measured: 0 tokens
+// read), so the ping runs the interactive app itself, forked from the session, in a hidden pseudo-terminal
+// (hooks/warm-pty.py; needs python3).
+const WARM_TEXT = 'ghosted_ keep-warm ping. Reply with only: ok';
+
+// Cache TTL of the session's last cache write, in seconds.
+function cacheTtl(transcriptPath) {
+  const lines = (() => { try { return fs.readFileSync(transcriptPath, 'utf8').split('\n'); } catch { return []; } })();
+  for (let i = lines.length - 1; i >= 0 && i > lines.length - 400; i--) {
+    if (!lines[i].includes('"cache_creation"')) continue;
+    try {
+      const c = JSON.parse(lines[i]).message.usage.cache_creation;
+      if (c.ephemeral_1h_input_tokens > 0) return 3600;
+      if (c.ephemeral_5m_input_tokens > 0) return 300;
+    } catch {}
+  }
+  return 300;
+}
+
+// Ping just before the cache expires, for as long as the window lasts.
+function warmPlan(ttl, windowMs) {
+  const every = (ttl === 3600 ? 3300 : 270) * 1000;
+  return { every: Number(process.env.GHOSTED_WARM_EVERY_S) * 1000 || every, pings: Math.floor(windowMs / every) };
+}
+
+// The Claude Code process this hook belongs to (the nearest ancestor named claude), so warming stops when it exits.
+function claudePid() {
+  if (Number(process.env.CLAUDE_PID) > 1) return Number(process.env.CLAUDE_PID);
+  let pid = process.ppid;
+  for (let i = 0; i < 8 && pid > 1; i++) {
+    const r = spawnSync('ps', ['-o', 'ppid=,comm=', '-p', String(pid)], { encoding: 'utf8' });
+    const m = (r.stdout || '').trim().match(/^(\d+)\s+(.*)$/);
+    if (!m) return null;
+    if (/claude/i.test(path.basename(m[2]))) return pid;
+    pid = Number(m[1]);
+  }
+  return null;
+}
+
+function onStop(input) {
+  // shortcut: the pseudo-terminal comes from python3's pty module, so macOS and Linux only; Windows would need ConPTY.
+  if (OFF || !WARM_MS || WIN || process.env.GHOSTED_CHILD || process.env.GHOSTED_WARMING || !input.transcript_path || !input.session_id) return;
+  const dir = privateDir(path.join(DATA_DIR, 'warm'));
+  const pidFile = path.join(dir, `${input.session_id.replace(/[^\w-]/g, '')}.pid`);
+  try { process.kill(Number(fs.readFileSync(pidFile, 'utf8')), 'SIGTERM'); } catch {} // one warmer per session
+  const ctx = contextTokens(input.transcript_path);
+  if (!ctx || ctx < MIN_TOKENS) return;
+  const pid = claudePid();
+  const job = { session: input.session_id, transcript: input.transcript_path, cwd: input.cwd, ctx, claude: pid, flags: startFlags(pid), envNames: envNames(pid), pidFile };
+  const child = spawn(process.execPath, [__filename, 'warm'], {
+    detached: true, stdio: 'ignore', env: { ...process.env, GHOSTED_WARM_JOB: JSON.stringify(job) },
+  });
+  child.on('error', () => {});
+  fs.writeFileSync(pidFile, String(child.pid), PRIVATE);
+  child.unref();
+}
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const alive = pid => { try { process.kill(pid, 0); return true; } catch { return false; } };
+
+async function warmLoop(job) {
+  const size = () => { try { return fs.statSync(job.transcript).size; } catch { return -1; } };
+  await sleep(10000); // Claude Code may still be finishing the transcript when Stop fires
+  const start = size(), model = lastModel(job.transcript);
+  const ttl = cacheTtl(job.transcript), { every, pings } = warmPlan(ttl, WARM_MS);
+  // Prices relative to plain input: cache read 0.1x, cache write 1.25x (5m) or 2x (1h). Stop before the pings
+  // cost half of the rewrite they save, since the user might not come back.
+  const w = ttl === 3600 ? 2 : 1.25, rewrite = job.ctx * w;
+  let spent = 0;
+  debug('warm plan', every, pings, model, 'claude pid', job.claude, 'flags', JSON.stringify(job.flags));
+  for (let i = 0; i < pings; i++) {
+    await sleep(every);
+    // stop once the user is back (the next turn starts a new warmer) or Claude Code has exited
+    if (size() !== start || (job.claude && !alive(job.claude))) { debug('warm stop', size(), start, job.claude && alive(job.claude)); break; }
+    const u = await warmPing(job, model);
+    const read = u ? u.cache_read_input_tokens || 0 : 0;
+    if (read < job.ctx * 0.8) { logEvent('warm-miss', read); break; } // pinging would only add cost
+    logEvent('warm', read);
+    const cost = read * 0.1 + (u.cache_creation_input_tokens || 0) * w + (u.input_tokens || 0);
+    spent += cost;
+    if (spent + cost > rewrite / 2) break;
+  }
+  try { if (fs.readFileSync(job.pidFile, 'utf8') === String(process.pid)) fs.rmSync(job.pidFile); } catch {}
+}
+
+function lastModel(transcriptPath) {
+  const lines = (() => { try { return fs.readFileSync(transcriptPath, 'utf8').split('\n'); } catch { return []; } })();
+  for (let i = lines.length - 1; i >= 0; i--) {
+    if (!lines[i].includes('"model"') || !lines[i].includes('"assistant"')) continue;
+    try { const m = JSON.parse(lines[i]).message.model; if (m && m !== '<synthetic>') return m; } catch {}
+  }
+  return null;
+}
+
+// Flags the session was started with that change the request (tools, plugins, settings, system prompt).
+// The ping must send the same request prefix, or it misses the cache.
+const PREFIX_FLAGS = new Set(['--plugin-dir', '--setting-sources', '--settings', '--mcp-config', '--strict-mcp-config', '--add-dir',
+  '--append-system-prompt', '--system-prompt', '--tools', '--allowedTools', '--allowed-tools', '--disallowedTools', '--disallowed-tools',
+  '--permission-mode', '--dangerously-skip-permissions', '--agents', '--agent']);
+function startFlags(pid) {
+  if (!pid) return [];
+  // shortcut: ps joins argv with spaces, so a flag value containing a space is cut short; the miss check then stops warming.
+  const argv = (spawnSync('ps', ['-o', 'args=', '-p', String(pid)], { encoding: 'utf8' }).stdout || '').trim().split(/\s+/);
+  const out = [];
+  for (let i = 1; i < argv.length; i++) {
+    const [flag] = argv[i].split('=');
+    if (!PREFIX_FLAGS.has(flag)) continue;
+    out.push(argv[i]);
+    if (!argv[i].includes('=') && argv[i + 1] && !argv[i + 1].startsWith('-')) out.push(argv[++i]);
+  }
+  return out;
+}
+
+// The ping must start exactly like the user's session. Claude Code adds variables to the environment of its
+// hooks (child-session marker that turns off transcripts, entrypoint, session ids, plugin paths), so drop every
+// variable the Claude Code process itself didn't have. GHOSTED_WARMING keeps ghosted_ itself out of the ping
+// without changing what it adds at session start.
+function pingEnv(claudeEnvNames) {
+  const env = { ...process.env, GHOSTED_WARMING: '1' };
+  delete env.GHOSTED_WARM_JOB;
+  for (const k of Object.keys(env)) {
+    if (k === 'GHOSTED_WARMING') continue;
+    if (claudeEnvNames ? !claudeEnvNames.includes(k) : /^(CLAUDECODE|CLAUDE_PID|CLAUDE_PROJECT_DIR|CLAUDE_ENV_FILE|CLAUDE_EFFORT|CLAUDE_CODE_|CLAUDE_PLUGIN_)/.test(k)) delete env[k];
+  }
+  return env;
+}
+
+// Names of the variables in a process's environment (macOS `ps -E`; Linux /proc).
+function envNames(pid) {
+  if (!pid) return null;
+  try { return fs.readFileSync(`/proc/${pid}/environ`, 'utf8').split('\0').map(x => x.split('=')[0]).filter(Boolean); } catch {}
+  const out = spawnSync('ps', ['-wwE', '-o', 'command=', '-p', String(pid)], { encoding: 'utf8' }).stdout || '';
+  const names = [...out.matchAll(/(?:^|\s)([A-Za-z_][A-Za-z0-9_]*)=/g)].map(m => m[1]);
+  return names.includes('HOME') ? names : null;
+}
+
+// One turn in a hidden fork of the session; returns its usage. The fork's transcript is deleted afterwards.
+async function warmPing(job, model) {
+  const projDir = path.dirname(job.transcript);
+  const before = new Set(fs.readdirSync(projDir));
+  const args = [...(job.flags || []), '--resume', job.session, '--fork-session', ...(model ? ['--model', model] : [])];
+  const delay = process.env.GHOSTED_WARM_DELAY_S || '20';
+  const child = spawn('python3', [path.join(__dirname, 'warm-pty.py'), delay, WARM_TEXT, ...args],
+    { cwd: job.cwd, detached: true, stdio: 'ignore', env: pingEnv(job.envNames) });
+  child.on('error', () => {});
+  let usage = null, fork = null;
+  for (let t = 0; t < 120 + Number(delay) && !usage; t++) {
+    await sleep(1000);
+    for (const f of fs.readdirSync(projDir)) {
+      if (before.has(f) || !f.endsWith('.jsonl')) continue;
+      const E = jsonl(path.join(projDir, f));
+      const at = E.findIndex(e => e.type === 'user' && JSON.stringify(e.message?.content || '').includes('keep-warm ping'));
+      if (at < 0) continue;
+      fork = f;
+      const done = E.slice(at).filter(e => e.type === 'assistant' && e.message?.usage).pop();
+      if (done && done.message.stop_reason === 'end_turn') usage = done.message.usage;
+    }
+  }
+  try { process.kill(-child.pid, 'SIGTERM'); } catch {}
+  await sleep(1500);
+  if (fork) for (const f of fs.readdirSync(projDir)) {
+    if (!before.has(f) && f.startsWith(fork.slice(0, -6))) fs.rmSync(path.join(projDir, f), { recursive: true, force: true });
+  }
+  debug('warm ping', JSON.stringify(usage));
+  return usage;
 }
 
 function debug(...a) {
@@ -523,6 +711,8 @@ function main() {
     else if (process.argv[2] === 'tool') onTool(input);
     else if (process.argv[2] === 'resume') onResume(input);
     else if (process.argv[2] === 'start') onStart();
+    else if (process.argv[2] === 'stop') onStop(input);
+    else if (process.argv[2] === 'warm') warmLoop(JSON.parse(process.env.GHOSTED_WARM_JOB)).catch(e => debug('warm error', e.message));
   } catch (e) {
     process.stderr.write(`ghosted: ${e.message}\n`); // never block the user on our own bug
   }

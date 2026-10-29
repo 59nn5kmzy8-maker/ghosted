@@ -1,7 +1,7 @@
 {
   "name": "ghosted",
   "displayName": "ghosted_",
-  "version": "0.5.3",
+  "version": "0.6.0",
   "description": "Cuts Claude Code costs: frees context when you switch task, can compact long runs mid-run and carry on, terse terminal answers, and recall of archived work.",
   "author": {
     "name": "Gio van Belle",
@@ -46,6 +46,12 @@
         "off"
       ],
       "default": "auto"
+    },
+    "keep_warm": {
+      "type": "string",
+      "title": "Keep the cache warm for",
+      "description": "After your last turn, keep Claude's prompt cache warm this long (for example 2h or 90m; off to disable), so coming back from a break doesn't re-write the whole context to the cache. macOS and Linux.",
+      "default": "2h"
     }
   }
 }

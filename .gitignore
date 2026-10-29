@@ -1,3 +1,4 @@
 .tmpdata/
 node_modules/
 __pycache__/
+launch/

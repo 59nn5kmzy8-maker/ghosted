@@ -40,6 +40,17 @@
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/ghosted.js\" stop",
+            "timeout": 10
+          }
+        ]
+      }
     ]
   }
 }

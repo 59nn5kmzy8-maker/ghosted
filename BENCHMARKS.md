@@ -62,6 +62,18 @@ Claude Code's own auto-compact window was set to 250k, so this tests the mid-run
 
 The task finished correctly every time, and each run continued after compacting. But in a single run that still needs what it just read, compacting costs more: the summary has to be written, then files get read again. That is why the setting is off by default. It pays off when a run goes on long after the early context has gone stale, and when a hard context limit matters more than cost.
 
+## Measured: cache warming (Haiku, hidden interactive sessions)
+
+The ping has to send exactly the same request as the session, or it misses the cache. Measured with every request logged through a local proxy:
+
+| Ping method | Cache read | Cache write | Why |
+|---|---|---|---|
+| `claude -p --resume` | 0 | 156,950 | print mode sends a different system prompt and tool list |
+| interactive fork, message passed at startup | 73,263 | 107,419 | claude.ai and MCP tools hadn't loaded yet, so the tool list differed |
+| interactive fork, message typed after 20s (shipped) | **191,089** | **372** | same tools, system prompt and messages; only cache markers move |
+
+Since a cache hit refreshes the cache's lifetime, one ping before each expiry keeps the session warm. On a 1-hour cache, a 176k-token session costs about 0.1× its context per ping, against 2× for rewriting it after the break.
+
 ## Judge accuracy
 
 32 labelled prompts (15 follow-ups, 17 new tasks), run three times against a real 176k-token conversation. In the last two rounds there were 0 wrong switches. The two misses were real new tasks where the judge call timed out, which fails safe (no switch). Obvious follow-ups skip the judge entirely; in the last round that was 14 of 64 prompts.

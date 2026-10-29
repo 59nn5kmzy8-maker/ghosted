@@ -218,3 +218,35 @@ test('/ghosted command: terse level, max, pause, stats, help', () => {
   // arguments on stdin, as the skill passes them
   assert.match(spawnSync(process.execPath, [SCRIPT, 'cmd', s.dir], { input: 'full\n', encoding: 'utf8' }).stdout, /terse: full/);
 });
+
+test('/ghosted warm sets the keep-warm window; stats shows it', () => {
+  const s = setup();
+  const cmd = (...a) => spawnSync(process.execPath, [SCRIPT, 'cmd', s.dir, ...a], { encoding: 'utf8', env: { ...process.env, GHOSTED_KEEP_WARM: '' } }).stdout;
+  assert.match(cmd('warm', '90m'), /up to 90 minutes/);
+  assert.match(cmd('stats'), /warm 90m/);
+  assert.match(cmd('warm', 'off'), /warming off/);
+  assert.match(cmd('stats'), /warm off/);
+  assert.match(cmd('warm', 'soon'), /Usage/);
+});
+
+test('stop: starts one warmer per session above the threshold, none when off or small', { skip: process.platform === 'win32' }, () => {
+  const s = setup();
+  const usage = n => JSON.stringify({ type: 'assistant', message: { role: 'assistant', model: 'claude-test', content: [], usage: { input_tokens: 0, cache_read_input_tokens: n, cache_creation_input_tokens: 0 } } });
+  const input = { session_id: 'warm1', cwd: s.cwd, transcript_path: s.transcript };
+  const pidFile = path.join(s.dir, 'warm', 'warm1.pid');
+  const env = { CLAUDE_PLUGIN_DATA: s.dir, GHOSTED_WARM_EVERY_S: '3600', GHOSTED_KEEP_WARM: '' };
+  fs.writeFileSync(s.transcript, usage(5000) + '\n');
+  run('stop', input, env);
+  assert.ok(!fs.existsSync(pidFile), 'small context: no warmer');
+  fs.writeFileSync(s.transcript, usage(150000) + '\n');
+  run('stop', input, { ...env, GHOSTED_KEEP_WARM: 'off' });
+  assert.ok(!fs.existsSync(pidFile), 'off: no warmer');
+  run('stop', input, env);
+  const first = Number(fs.readFileSync(pidFile, 'utf8'));
+  run('stop', input, env); // the next turn replaces the warmer
+  const second = Number(fs.readFileSync(pidFile, 'utf8'));
+  assert.notEqual(first, second);
+  spawnSync('sleep', ['0.3']);
+  assert.throws(() => process.kill(first, 0), 'old warmer stopped');
+  process.kill(second, 'SIGTERM');
+});
