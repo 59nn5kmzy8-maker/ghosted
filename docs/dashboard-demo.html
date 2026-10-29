@@ -116,4 +116,16 @@ async function load() {
 $('#price').oninput = $('#turns').oninput = () => D && render();
 $('#rf').onsubmit = e => { e.preventDefault(); $('#rout').textContent = 'In the plugin this searches your own archived conversations on your machine.'; };
 load();
+// Embedded on the site: slow scrolling moves the dashboard, a fast flick (or scrolling past its edge) moves the page.
+if (window.parent !== window) {
+  const se = document.scrollingElement;
+  addEventListener('wheel', e => {
+    const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
+    const atTop = se.scrollTop <= 0, atEnd = se.scrollTop + innerHeight >= se.scrollHeight - 1;
+    if (Math.abs(dy) > 50 || (dy < 0 && atTop) || (dy > 0 && atEnd)) {
+      e.preventDefault();
+      parent.scrollBy({ top: dy, left: 0, behavior: 'instant' });
+    }
+  }, { passive: false });
+}
 </script></body></html>
