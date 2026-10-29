@@ -119,10 +119,14 @@ load();
 // Embedded on the site: slow scrolling moves the dashboard, a fast flick (or scrolling past its edge) moves the page.
 if (window.parent !== window) {
   const se = document.scrollingElement;
+  let recent = [], passUntil = 0;
   addEventListener('wheel', e => {
-    const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
+    const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY, now = performance.now();
+    recent = recent.filter(r => now - r.t < 150); recent.push({ t: now, dy });
+    const speed = Math.abs(recent.reduce((t, r) => t + r.dy, 0)); // px scrolled in the last 150ms
+    if (speed > 350) passUntil = now + 300; // a flick: hand the page the rest of the gesture, momentum included
     const atTop = se.scrollTop <= 0, atEnd = se.scrollTop + innerHeight >= se.scrollHeight - 1;
-    if (Math.abs(dy) > 50 || (dy < 0 && atTop) || (dy > 0 && atEnd)) {
+    if (now < passUntil || (dy < 0 && atTop) || (dy > 0 && atEnd)) {
       e.preventDefault();
       parent.scrollBy({ top: dy, left: 0, behavior: 'instant' });
     }
