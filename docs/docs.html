@@ -19,7 +19,7 @@
 <link rel="icon" href="favicon.png">
 <link rel="preload" href="fonts/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/instrument-serif-latin-400-italic.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="style.css?v=048bcdc2">
+<link rel="stylesheet" href="style.css?v=132aff20">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -29,7 +29,7 @@
     <a class="brand" href="./"><img src="favicon.png" alt="ghosted_ home" width="24" height="24"><span>ghosted_</span></a>
     <nav class="tabs" aria-label="Pages"><a href="./">Overview</a><a href="how-it-works.html">How it works</a><a href="benchmarks.html">Benchmarks</a><a href="docs.html" aria-current="page">Docs</a><a href="legal.html">Legal</a></nav>
     <a class="ghbtn" href="https://github.com/giovanbelle/ghosted"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span>GitHub</span><b id="stars">★</b></a>
-    <a class="btn primary sm cta-sm" href="docs.html">Install</a>
+    <a class="btn primary sm cta-sm" href="index.html#install">Install</a>
   </div>
 </header>
 <main id="main">
@@ -44,16 +44,17 @@
     <p class="crumbs">ghosted_ / Docs / Overview</p>
     <h1 id="overview">Set up once. Then forget it.</h1>
     <p class="lede">ghosted_ runs through Claude Code hooks on every prompt. You never call it; the commands below are only for tuning.</p>
+    <div class="callout" style="margin:18px 0"><b>In plain words.</b> Everything in your Claude Code chat is the <i>context</i>, and Claude re-reads all of it on every message. You pay for that in <i>tokens</i>, or it counts toward your Pro/Max limit. When you finish one job and start another, the old chat keeps being re-read for nothing. ghosted_ notices the switch, saves the old chat and starts you fresh.</div>
     <p>It does three things on its own. When a prompt starts a new task, it archives the old conversation, clears the context and starts your prompt with up to five facts carried over. While you're away, it keeps the prompt cache warm so coming back doesn't rewrite it. And it keeps terminal answers short. Everything that goes wrong fails open: your prompt goes through as if ghosted_ weren't installed.</p>
 
     <h2 id="install">Install</h2>
-    <p>Needs Node.js and the <code>claude</code> CLI on your PATH. Cache warming uses <code>python3</code> on macOS and Linux.</p>
+    <p><b>First, check Node.js:</b> run <code>node -v</code>. If it says “command not found”, install Node from <a href="https://nodejs.org">nodejs.org</a>. ghosted_ runs on Node, and Claude Code's own installer doesn't include it. Cache warming and the terminal bridge also use <code>python3</code> on macOS and Linux, which most Macs and Linux machines already have.</p>
     <div class="install" style="margin:18px 0">
       <button type="button" class="btn sm" data-copy="claude plugin marketplace add giovanbelle/ghosted\nclaude plugin install ghosted@ghosted" aria-label="Copy install commands">Copy</button>
       <div><span class="p">$ </span>claude plugin marketplace add giovanbelle/ghosted</div>
       <div><span class="p">$ </span>claude plugin install ghosted@ghosted</div>
     </div>
-    <p>Restart Claude Code. You'll be asked for four settings; the defaults are fine.</p>
+    <p>Restart Claude Code. It asks four setup questions: press Enter on each to keep the defaults. Then work as usual. The first time you start a new task you'll see a line from ghosted_, and your task starts by itself. Run <code>/ghosted-stats</code> any time to see what it saved.</p>
 
     <h2 id="commands">Commands</h2>
     <p>One short command per action. Type <code>/ghosted</code> for the list.</p>
@@ -149,6 +150,6 @@
   </div>
   <div class="wordmark" aria-hidden="true">ghosted_</div>
 </footer>
-<script src="site.js?v=048bcdc2"></script>
+<script src="site.js?v=132aff20"></script>
 </body>
 </html>

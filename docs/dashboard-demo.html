@@ -116,22 +116,19 @@ async function load() {
 $('#price').oninput = $('#turns').oninput = () => D && render();
 $('#rf').onsubmit = e => { e.preventDefault(); $('#rout').textContent = 'In the plugin this searches your own archived conversations on your machine.'; };
 load();
-// Embedded on the site: scrolling passes over the dashboard while the page is being scrolled. Pause on it, then
-// scroll, and it scrolls inside (the frame lights up). A fast flick or scrolling past its edge goes back to the page.
-if (window.parent !== window) {
+// Embedded on the site: the page brings the dashboard up to a stop point first (site.js, __dashStop). Once it is
+// there, scrolling moves inside it; past its top or bottom the page takes over again. The frame lights up meanwhile.
+if (window.parent !== window && parent.__dashStop) {
   const se = document.scrollingElement, frame = parent.document.querySelector('.dashframe');
-  let recent = [], passUntil = 0, offTimer;
-  const live = on => { if (!frame) return; frame.classList.toggle('live', on); clearTimeout(offTimer); if (on) offTimer = setTimeout(() => frame.classList.remove('live'), 1200); };
+  let offTimer;
+  const live = on => { if (!frame) return; frame.classList.toggle('live', on); clearTimeout(offTimer); if (on) offTimer = setTimeout(() => frame.classList.remove('live'), 1500); };
   addEventListener('wheel', e => {
-    const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY, now = Date.now();
-    recent = recent.filter(r => now - r.t < 150); recent.push({ t: now, dy });
-    const flick = Math.abs(recent.reduce((t, r) => t + r.dy, 0)) > 350;
-    const pageScrolling = now - (parent.__ghostedWheel || 0) < 250; // the page was moving a moment ago
+    const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
+    if (parent.__dashStop(dy)) { e.preventDefault(); live(true); return; }
+    const below = parent.__dashTop() > 1; // not at the stop line yet
     const atTop = se.scrollTop <= 0, atEnd = se.scrollTop + innerHeight >= se.scrollHeight - 1;
-    if (now < passUntil || pageScrolling || flick || (dy < 0 && atTop) || (dy > 0 && atEnd)) {
+    if ((dy > 0 && (below || atEnd)) || (dy < 0 && atTop)) {
       e.preventDefault();
-      passUntil = now + 250; // the rest of this gesture, momentum included, stays with the page
-      parent.__ghostedWheel = now;
       parent.scrollBy({ top: dy, left: 0, behavior: 'instant' });
       live(false);
     } else live(true);

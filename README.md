@@ -30,12 +30,14 @@ Already using caveman? ghosted_ still cut a caveman setup's cost from $3.32 to $
 
 ## Install
 
+First check Node.js: `node -v`. If it says "command not found", install Node from [nodejs.org](https://nodejs.org); Claude Code's own installer doesn't include it.
+
 ```sh
 claude plugin marketplace add giovanbelle/ghosted
 claude plugin install ghosted@ghosted
 ```
 
-Restart Claude Code. You'll be asked for the settings below; change them any time in `/config`.
+Restart Claude Code and press Enter on the setup questions to keep the defaults (change them any time in `/config`). Then work as usual: the first time you start a new task you'll see a line from ghosted_, and your task starts by itself.
 
 ## What it does
 

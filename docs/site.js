@@ -8,8 +8,29 @@
     requestAnimationFrame(step);
   };
 
-  // When the page last scrolled, so the embedded dashboard knows to let scrolling pass over it.
-  addEventListener('wheel', () => { window.__ghostedWheel = Date.now(); }, { passive: true });
+  // Dashboard stop point: scrolling down, the page stops once with the dashboard exactly in view. The next scroll
+  // gesture moves inside it (dashboard-demo.html), and the page continues past its end.
+  const dash = $('.dashframe');
+  const STOP = () => ($('.top')?.getBoundingClientRect().bottom || 60) + 16;
+  let hold = false, holdTimer;
+  const release = () => { clearTimeout(holdTimer); holdTimer = setTimeout(() => { hold = false; }, 450); }; // gesture over
+  window.__dashTop = () => dash ? dash.getBoundingClientRect().top - STOP() : 0;
+  window.__dashStop = dy => {
+    if (!dash) return false;
+    if (hold) { release(); return true; }
+    const gap = window.__dashTop();
+    if (dy > 0 && gap > 1 && gap - dy <= 1) { // this step would carry the dashboard past the stop line
+      scrollBy({ top: gap, left: 0, behavior: 'instant' });
+      hold = true; release();
+      dash.classList.add('live');
+      return true;
+    }
+    return false;
+  };
+  if (dash) {
+    dash.style.setProperty("--fit", `calc(100vh - ${Math.round(STOP()) + 24 + 80}px)`); // 80: frame bar and footer
+    addEventListener('wheel', e => { if (window.__dashStop(e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY)) e.preventDefault(); }, { passive: false });
+  }
 
   $$('[data-copy]').forEach(b => b.addEventListener('click', async () => {
     try { await navigator.clipboard.writeText(b.dataset.copy.replace(/\\n/g, '\n')); b.textContent = 'Copied ✓'; }
