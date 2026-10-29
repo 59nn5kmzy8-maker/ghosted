@@ -1,11 +1,11 @@
 # smart-compact
 
-A Claude Code plugin that compacts context when you switch to a new task, not when you hit the context limit.
+A Claude Code plugin that frees context when you switch to a new task, not when you hit the context limit.
 
 ## How it works
 
 1. You send a prompt. A `UserPromptSubmit` hook checks whether there's enough context since the last compaction (default about 20k tokens). If so, Haiku decides whether the prompt is a new task or a continuation.
-2. For a new task, the hook saves your prompt and archives the old conversation, then blocks the prompt. It types `/compact Keep only what helps with the next task: <focus>` into your session (or `/clear` in clear mode).
+2. For a new task, the hook saves your prompt and archives the old conversation, then blocks the prompt. It types `/clear` into your session (or `/compact Keep only what helps with the next task: <focus>` in compact mode).
 3. After that, a `SessionStart` hook (matcher `compact|clear`) injects your saved prompt, any facts carried over and the archive path, then types `Start the pending task.` Claude then does your task with clean context.
 
 Any error fails open: your prompt goes through as normal.
@@ -23,11 +23,26 @@ To try it without installing, run `claude --plugin-dir ~/smart-compact`.
 
 - `new: <prompt>`: force a switch.
 - `same: <prompt>`: skip it.
-- `SMART_COMPACT_MODE=clear`: use `/clear` instead of `/compact`. It's cheaper and faster, but keeps no summary, only up to 5 lines of carried-over facts from the judge plus the archive.
+- `SMART_COMPACT_MODE=compact`: use `/compact` instead of the default `/clear`. It keeps a summary of the old conversation but costs about twice as much (see below). Clear mode keeps only up to 5 lines of carried-over facts from the judge, plus the archive.
 - `SMART_COMPACT_MIN_TOKENS`: the size threshold.
 - `SMART_COMPACT_ARCHIVE=0`: don't archive the old conversation.
 - `SMART_COMPACT_CAVEMAN=0`: don't index archives in caveman memory.
 - `SMART_COMPACT_OFF=1`: turn the plugin off.
+
+## Measured: clear vs compact vs off (0.2.0)
+
+Six scenarios, three arms each, two repetitions per arm (36 runs, Opus). Costs are averages per run, judge included. Each run started from its own clone of the seed, so no run reused another's prompt cache.
+
+| # | Context | Turns | Off | Compact | Clear | Clear saved |
+|---|---|---|---|---|---|---|
+| 2 | 57k | 5 | $1.96 | $1.76 | $1.08 | 45% |
+| 3 | 176k | 1 | $2.12 | $1.11 | $0.31 | 85% |
+| 4 | 176k | 5 | $2.96 | $2.06 | $0.99 | 67% |
+| 6 | 290k | 6 | $4.58 | $3.01 | $1.29 | 72% |
+| 8 | 176k | 2, half-related | $1.89 | $1.18 | $0.52 | 72% |
+| 10 | 176k | 3 different tasks | $2.38 | $1.35 | $0.58 | 76% |
+
+Total: off $15.88, compact $10.47 (34% saved), clear $4.78 (70% saved). Wall time was about the same: 666s off, 720s compact, 674s clear. Tests passed in every run that had tests. The judge cost $0.0013 per switch, $0.033 across all 24 plugin runs. Since then, clear has been the default.
 
 ## Caveman connection
 
@@ -45,7 +60,7 @@ Compaction loses information. Before each switch the plugin writes the old conve
 - The transcript's `compact_boundary` marker isn't documented. If it changes, the whole transcript counts toward the size check, so the judge just runs more often.
 - The pending task is keyed by working directory, because `/clear` starts a new session id. Two sessions in the same folder switching task at the same moment would collide.
 
-## Measured: 10 A/B scenarios
+## Measured: 10 A/B scenarios (0.1.8, compact mode, older judge)
 
 Each scenario ran twice, without and with the plugin, starting from the same seeded context. The two runs used separate seeds, so the second couldn't benefit from the first's prompt cache. The context in the seed was the real token count from the API.
 

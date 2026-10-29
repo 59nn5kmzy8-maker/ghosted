@@ -40,7 +40,8 @@ const pendingFiles = s => (fs.existsSync(path.join(s.dir, 'pending')) ? fs.readd
 test('new task: blocks, archives, types /compact; resume injects task and archive path, types go', () => {
   const s = setup();
   const input = { session_id: 'abc', cwd: s.cwd, transcript_path: s.transcript, prompt: 'build a new login page' };
-  const out = run('prompt', input, envFor(s, 'new'));
+  const env = { ...envFor(s, 'new'), SMART_COMPACT_MODE: 'compact' };
+  const out = run('prompt', input, env);
   assert.equal(out.decision, 'block');
   assert.equal(pendingFiles(s).length, 1);
   assert.equal(typedText(s)[0], '\x03/compact Keep only what helps with the next task: fake focus\r\r');
@@ -49,20 +50,20 @@ test('new task: blocks, archives, types /compact; resume injects task and archiv
   assert.match(fs.readFileSync(path.join(s.dir, 'archive', archives[0]), 'utf8'), /task: fake old task[\s\S]*user: old task x/);
 
   // /compact keeps the session id, /clear makes a new one: the pending task is found by cwd either way
-  const res = run('resume', { session_id: 'new-session-after-clear', cwd: s.cwd }, envFor(s, 'new'));
+  const res = run('resume', { session_id: 'new-session-after-clear', cwd: s.cwd }, env);
   const ctx = res.hookSpecificOutput.additionalContext;
   assert.match(ctx, /build a new login page/);
   assert.ok(ctx.includes(archives[0]));
   assert.equal(typedText(s)[1], 'Start the pending task.\r');
 
   // the typed resume message passes and clears the pending task
-  assert.equal(run('prompt', { ...input, prompt: 'Start the pending task.' }, envFor(s, 'new')), null);
+  assert.equal(run('prompt', { ...input, prompt: 'Start the pending task.' }, env), null);
   assert.equal(pendingFiles(s).length, 0);
 });
 
-test('clear mode types /clear and says so on resume', () => {
+test('clear is the default: types /clear and says so on resume', () => {
   const s = setup();
-  const env = { ...envFor(s, 'new'), SMART_COMPACT_MODE: 'clear' };
+  const env = envFor(s, 'new');
   const input = { session_id: 'abc', cwd: s.cwd, transcript_path: s.transcript, prompt: 'next thing' };
   assert.equal(run('prompt', input, env).decision, 'block');
   assert.equal(typedText(s)[0], '\x03/clear\r\r');

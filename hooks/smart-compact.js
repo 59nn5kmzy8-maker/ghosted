@@ -8,7 +8,7 @@ const crypto = require('crypto');
 const { spawn, spawnSync } = require('child_process');
 
 const MIN_TOKENS = Number(process.env.SMART_COMPACT_MIN_TOKENS || 20000);
-const MODE = process.env.SMART_COMPACT_MODE === 'clear' ? 'clear' : 'compact';
+const MODE = process.env.SMART_COMPACT_MODE === 'compact' ? 'compact' : 'clear';
 const PENDING_TTL_MS = 10 * 60 * 1000;
 const RESUME_TEXT = 'Start the pending task.';
 const DATA_DIR = process.env.CLAUDE_PLUGIN_DATA || path.join(os.homedir(), '.claude', 'smart-compact');

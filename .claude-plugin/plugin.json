@@ -1,6 +1,6 @@
 {
   "name": "smart-compact",
-  "version": "0.2.0",
-  "description": "Compacts context when you switch to a new task, then starts that task automatically.",
+  "version": "0.3.0",
+  "description": "Frees context (/clear) when you switch to a new task, then starts that task automatically.",
   "author": { "name": "gio" }
 }
