@@ -3,15 +3,41 @@
     "UserPromptSubmit": [
       {
         "hooks": [
-          { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/smart-compact.js\" prompt", "timeout": 40 }
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/smart-compact.js\" prompt",
+            "timeout": 40
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/smart-compact.js\" tool",
+            "timeout": 10
+          }
         ]
       }
     ],
     "SessionStart": [
       {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/smart-compact.js\" start"
+          }
+        ]
+      },
+      {
         "matcher": "compact|clear",
         "hooks": [
-          { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/smart-compact.js\" resume" }
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/smart-compact.js\" resume"
+          }
         ]
       }
     ]

@@ -1,12 +1,15 @@
 # smart-compact
 
-A Claude Code plugin that frees context when you switch to a new task, not when you hit the context limit.
+A Claude Code plugin that frees context when you switch to a new task, not when you hit the context limit. It can also compact a long run mid-run and let it carry on, and it ships its own terse-answer mode and recall of archived work.
 
 ## How it works
 
 1. You send a prompt. A `UserPromptSubmit` hook checks whether there's enough context since the last compaction (default about 20k tokens). If so, Haiku decides whether the prompt is a new task or a continuation.
 2. For a new task, the hook saves your prompt and archives the old conversation, then blocks the prompt. It types `/clear` into your session (or `/compact Keep only what helps with the next task: <focus>` in compact mode).
 3. After that, a `SessionStart` hook (matcher `compact|clear`) injects your saved prompt, any facts carried over and the archive path, then types `Start the pending task.` Claude then does your task with clean context.
+
+4. Mid-run (optional, off by default): a `PostToolUse` hook reads the real context size from the API usage in the transcript. When it passes your limit, the hook stops the run, archives the conversation and types `/compact` (always compact here: clear would drop the task). After that it types `Continue where you left off.` and Claude picks the task back up.
+5. Terse mode: a `SessionStart` hook adds a short style rule (lite or full) so answers use fewer output tokens. It is added again after every `/compact` and `/clear`.
 
 Any error fails open: your prompt goes through as normal.
 
@@ -19,14 +22,25 @@ claude plugin install smart-compact@smart-compact
 
 To try it without installing, run `claude --plugin-dir ~/smart-compact`.
 
-## Controls
+## Settings
+
+When you enable the plugin, Claude Code asks for these. Change them later in `/config`:
+
+| Setting | Default | What it does |
+|---|---|---|
+| Compact mid-run at (tokens) | 0 (off) | During a long run, compact at this context size (for example 250000), then continue |
+| Check for a new task above (tokens) | 20000 | Below this, prompts are never judged |
+| Terse answers | lite | `off`, `lite` (no filler) or `full` (compressed note style) |
+
+An environment variable overrides each one: `SMART_COMPACT_MAX_CONTEXT`, `SMART_COMPACT_MIN_TOKENS`, `SMART_COMPACT_TERSE`.
+
+## Commands and controls
 
 - `new: <prompt>`: force a switch.
 - `same: <prompt>`: skip it.
 - `SMART_COMPACT_MODE=compact`: use `/compact` instead of the default `/clear`. It keeps a summary of the old conversation but costs about twice as much (see below). Clear mode keeps only up to 5 lines of carried-over facts from the judge, plus the archive.
-- `SMART_COMPACT_MIN_TOKENS`: the size threshold.
+- `/smart-compact:recall <words>`: find archived work and show a digest of it (user and assistant messages only, tool output dropped, capped at about 6k characters). Claude also uses it on its own when you ask about earlier work.
 - `SMART_COMPACT_ARCHIVE=0`: don't archive the old conversation.
-- `SMART_COMPACT_CAVEMAN=0`: don't index archives in caveman memory.
 - `SMART_COMPACT_OFF=1`: turn the plugin off.
 
 ## Measured: clear vs compact vs off (0.2.0)
@@ -53,15 +67,27 @@ Two more scenarios, run the same way:
 
 In scenario 7 the right answer is not to switch, and the judge got it right in 3 of 4 runs. In the fourth it judged "From the files you already read: write notes.md…" a new task, cleared, and `notes.md` was never written. That is the risk clear mode carries: a wrong switch loses what the request points at. 0.3.1 tells the judge to treat back-references as the same task and to answer SAME when unsure. In a recheck the follow-up was judged same 8 of 8 times, and real new tasks were still judged new 6 of 6 times. In 4 more full runs of scenario 7 on 0.3.1, the plugin never switched, and `notes.md` was written every time. If a switch is wrong, `same: <prompt>` prevents it, and the archive keeps the old conversation.
 
-## Caveman connection
+## Memory and compression
 
-Compaction loses information. Before each switch the plugin writes the old conversation verbatim to `${CLAUDE_PLUGIN_DATA}/archive/`. If the caveman CLI is installed, it also stores a short entry in caveman memory (`caveman mem remember`) with the old task and the archive path. Any later session can then find the old work with `caveman mem recall <words>` and open the full log. After the switch, Claude is told where the archive is and reads it only if the new task needs it.
+Compaction loses information, so before each switch or mid-run compaction the plugin writes the old conversation verbatim to `${CLAUDE_PLUGIN_DATA}/archive/` and lists it in `archive/index.jsonl`. `recall` searches that index and the archive text and returns a digest, not the whole log. What is carried into the new task is kept small: the judge writes up to 5 note-style lines, and `/compact` is asked for a terse summary that keeps paths, names, numbers and decisions exact.
+
+## Measured: mid-run compaction (one long run, Opus)
+
+Claude Code's own auto-compact window was set to 250k, so this tests the mid-run idea itself:
+
+| Run | Off | 250k limit |
+|---|---|---|
+| 176k context, re-read 2 files, write report | $3.38, 60s, no compaction | $4.43–8.27, 107–143s, 2 compactions |
+| 290k context, re-read 7 files, write report | $8.61, 146s, no compaction | $9.73, 311s, 5 compactions |
+
+The task finished correctly every time, and each run continued after compacting. But in a single run that still needs what it just read, compacting costs more: the summary has to be written, then files get read again. That is why the setting is off by default. It pays off when a run goes on long after the early context has gone stale, and when a hard context limit matters more than cost.
 
 ## Platforms
 
 - **macOS:** auto-typing works in Terminal.app, through AppleScript `do script` aimed at your tab's tty. It doesn't focus or raise the window. macOS asks once for permission to let the hook control Terminal.
 - **Windows:** `type-keys.ps1` attaches to Claude Code's console and writes key events with `WriteConsoleInput`, so no focus is needed. CI checks this end to end on `windows-latest`. If typing fails, the block message tells you to run the command yourself.
-- **Elsewhere** (iTerm, tmux, Linux): the block message asks you to run `/compact` and then type `go`. The task is still restored.
+- **Elsewhere** (iTerm, tmux, VS Code's terminal, Linux): nothing is typed for you. The message tells you which command to run (`/clear` or `/compact`) and then to type `go`. Your task is still restored, or the run still continues. Judge, terse mode, recall and archive work the same everywhere.
+- **Requirements:** Node.js on PATH (the hooks are a single Node file with no dependencies) and the `claude` CLI for the Haiku judge.
 
 ## Known limits
 
@@ -98,3 +124,7 @@ Total: $35.08 without, $28.72 with, so the plugin saved 18%. Tests passed in eve
 ```sh
 node --test
 ```
+
+## License
+
+Copyright (c) 2026 gio. All rights reserved. See `LICENSE`.

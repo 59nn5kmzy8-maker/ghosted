@@ -1,16 +1,26 @@
 #!/usr/bin/env node
 // smart-compact: when the user switches task, free the context (/compact or /clear), then start that task.
-// `prompt` runs on UserPromptSubmit, `resume` on SessionStart(compact|clear).
+// It also compacts mid-run when the context passes a limit, then lets the run continue.
+// `prompt` runs on UserPromptSubmit, `tool` on PostToolUse, `resume` on SessionStart(compact|clear),
+// `start` on every SessionStart (terse mode), `recall <words>` from the recall skill.
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
 const { spawn, spawnSync } = require('child_process');
 
-const MIN_TOKENS = Number(process.env.SMART_COMPACT_MIN_TOKENS || 20000);
+// Settings: an env var wins, then the value the user picked in the plugin's config (/config), then the default.
+const opt = (env, key, dflt) => process.env[env] || process.env[`CLAUDE_PLUGIN_OPTION_${key}`] || dflt;
+const MIN_TOKENS = Number(opt('SMART_COMPACT_MIN_TOKENS', 'SWITCH_MIN_TOKENS', 20000));
+const MAX_RAW = Number(opt('SMART_COMPACT_MAX_CONTEXT', 'MAX_CONTEXT', 0)); // 0 = no mid-run compaction
+// Below ~100k, Claude Code's fixed overhead plus the summary could keep it over the limit and compact on every tool call.
+const MAX_CONTEXT = MAX_RAW > 0 ? Math.max(MAX_RAW, 100000) : 0;
+const TERSE = opt('SMART_COMPACT_TERSE', 'TERSE', 'lite');
 const MODE = process.env.SMART_COMPACT_MODE === 'compact' ? 'compact' : 'clear';
 const PENDING_TTL_MS = 10 * 60 * 1000;
 const RESUME_TEXT = 'Start the pending task.';
+const CONTINUE_TEXT = 'Continue where you left off.';
+const TERSE_SUMMARY = 'Write the summary as terse notes: no filler, keep paths, names, numbers and decisions exact.';
 const DATA_DIR = process.env.CLAUDE_PLUGIN_DATA || path.join(os.homedir(), '.claude', 'smart-compact');
 const WIN = process.platform === 'win32';
 
@@ -52,6 +62,29 @@ function conversationSinceCompact(transcriptPath) {
   return out.join('\n');
 }
 
+// Real context size in tokens, from the API usage of the last reply since the last compaction (null if none yet).
+// Reads only the end of the transcript: this runs after every tool call.
+function contextTokens(transcriptPath) {
+  let text;
+  try {
+    const fd = fs.openSync(transcriptPath, 'r');
+    const size = fs.fstatSync(fd).size, len = Math.min(size, 512 * 1024);
+    const buf = Buffer.alloc(len);
+    fs.readSync(fd, buf, 0, len, size - len);
+    fs.closeSync(fd);
+    text = buf.toString('utf8');
+  } catch { return null; }
+  const lines = text.split('\n');
+  for (let i = lines.length - 1; i >= 0; i--) {
+    if (lines[i].includes('"subtype":"compact_boundary"')) return null;
+    if (!lines[i].includes('"usage"')) continue;
+    let u;
+    try { u = JSON.parse(lines[i]).message.usage; } catch { continue; }
+    if (u) return (u.input_tokens || 0) + (u.cache_read_input_tokens || 0) + (u.cache_creation_input_tokens || 0);
+  }
+  return null;
+}
+
 // Runs the `claude` CLI with the prompt on stdin (no argv quoting or size limits, works the same on Windows).
 function claudeCli(args, input) {
   return spawnSync('claude', args, {
@@ -72,7 +105,7 @@ function judge(head, recent, prompt, sessionId) {
     'Reply with only JSON:',
     '{"new_task": true|false, "focus": "<5-15 word summary of the new request>",',
     ' "old_task": "<5-20 word summary of the earlier work>",',
-    ' "carry": "<only if new_task: up to 5 terse lines of facts from the earlier conversation the new request still needs (paths, names, decisions); empty string if none>"}',
+    ' "carry": "<only if new_task: up to 5 terse note-style lines (no filler words) of facts from the earlier conversation the new request still needs (paths, names, decisions); empty string if none>"}',
     '', '<conversation_start>', head, '</conversation_start>',
     '', '<recent_conversation>', recent, '</recent_conversation>',
     '', '<new_request>', prompt, '</new_request>',
@@ -96,21 +129,53 @@ function logCost(sessionId, usd) {
   fs.appendFileSync(path.join(DATA_DIR, 'judge-costs.jsonl'), JSON.stringify({ ts: new Date().toISOString(), session: sessionId, usd }) + '\n');
 }
 
-// Compaction is lossy: keep the old conversation byte-exact on disk, and index it in caveman memory
-// (cavemem) when the caveman CLI is installed, so `caveman mem recall` finds it from any later session.
+// Compaction is lossy: keep the old conversation byte-exact on disk and list it in index.jsonl,
+// so `recall` finds it again from any later session.
 function archive(conversation, input, oldTask) {
   if (process.env.SMART_COMPACT_ARCHIVE === '0') return null;
   const dir = path.join(DATA_DIR, 'archive');
   fs.mkdirSync(dir, { recursive: true });
-  const file = path.join(dir, `${new Date().toISOString().replace(/[:.]/g, '-')}-${String(input.session_id).slice(0, 8)}.md`);
+  const ts = new Date().toISOString();
+  const file = path.join(dir, `${ts.replace(/[:.]/g, '-')}-${String(input.session_id).slice(0, 8)}.md`);
   fs.writeFileSync(file, `# smart-compact archive\ncwd: ${input.cwd}\nsession: ${input.session_id}\ntask: ${oldTask}\n\n${conversation}\n`);
-  if (process.env.SMART_COMPACT_CAVEMAN !== '0') {
-    const note = `smart-compact archive ${new Date().toISOString().slice(0, 10)} in ${input.cwd}: ${oldTask}. Full log: ${file}`;
-    const child = spawn('caveman', ['mem', 'remember', note], { detached: true, stdio: 'ignore', shell: WIN, windowsHide: true });
-    child.on('error', () => {}); // caveman not installed: the file alone is enough
-    child.unref();
-  }
+  fs.appendFileSync(path.join(dir, 'index.jsonl'), JSON.stringify({ ts, cwd: input.cwd, task: oldTask, file }) + '\n');
   return file;
+}
+
+// The archive minus tool calls and tool output, each message cut short: the gist at a fraction of the tokens.
+function digest(text, max = 6000) {
+  const blocks = text.split(/\n(?=(?:user|assistant|tool_use|tool_result): )/);
+  const out = [];
+  for (const b of blocks) {
+    const m = b.match(/^(user|assistant): ([\s\S]*)/);
+    if (!m) continue;
+    const body = m[2].replace(/\s+/g, ' ').trim();
+    out.push(`${m[1]}: ${body.length > 400 ? body.slice(0, 400) + '…' : body}`);
+  }
+  const s = out.join('\n');
+  return s.length > max ? '…' + s.slice(-max) : s; // the end holds the latest state
+}
+
+// recall <words>: archives ranked by how many of the words appear in their task, folder and text.
+function recall(words) {
+  const terms = words.join(' ').toLowerCase().split(/\W+/).filter(w => w.length > 2);
+  let rows = [];
+  try {
+    rows = fs.readFileSync(path.join(DATA_DIR, 'archive', 'index.jsonl'), 'utf8').split('\n').filter(Boolean).map(l => JSON.parse(l));
+  } catch {}
+  const scored = rows.map(r => {
+    let text = '';
+    try { text = fs.readFileSync(r.file, 'utf8'); } catch { return null; }
+    const hay = `${r.task} ${r.cwd} ${text}`.toLowerCase();
+    return { ...r, text, score: terms.filter(t => hay.includes(t)).length + (terms.length ? 0 : 1) };
+  }).filter(r => r && r.score > 0).sort((a, b) => b.score - a.score || b.ts.localeCompare(a.ts));
+  if (!scored.length) return 'smart-compact recall: no archived conversation matches.';
+  const top = scored[0];
+  return [
+    'Matches (best first):',
+    ...scored.slice(0, 5).map(r => `- ${r.ts.slice(0, 16)} ${r.cwd}: ${r.task} (${r.file})`),
+    '', `Digest of the best match (user and assistant messages only; Read the file for full detail):`, digest(top.text),
+  ].join('\n');
 }
 
 // tty of the terminal running Claude Code, e.g. /dev/ttys003.
@@ -183,7 +248,7 @@ function onPrompt(input) {
 
   const pending = readPending(input.cwd);
   if (pending) {
-    if (prompt === RESUME_TEXT) fs.rmSync(pending.file, { force: true });
+    if (prompt === RESUME_TEXT || prompt === CONTINUE_TEXT) fs.rmSync(pending.file, { force: true });
     return; // mid-handoff: never judge
   }
 
@@ -206,7 +271,7 @@ function onPrompt(input) {
     prompt: input.prompt, mode: MODE, carry: String(verdict.carry || '').slice(0, 1500), archive: archived,
   }));
   const focus = oneLine(verdict.focus).slice(0, 200);
-  const command = MODE === 'clear' ? '/clear' : `/compact Keep only what helps with the next task: ${focus}`;
+  const command = MODE === 'clear' ? '/clear' : `/compact Keep only what helps with the next task: ${focus}. ${TERSE_SUMMARY}`;
   // Claude Code puts a blocked prompt back in the input; Ctrl-C clears it first.
   // The first CR can be taken by the slash-command menu; a second CR on an empty input does nothing.
   const typed = typeLater([[0.7, '\x03'], [0.4, command], [0.8, '\r'], [0.8, '\r']]);
@@ -219,9 +284,41 @@ function onPrompt(input) {
   process.stdout.write(JSON.stringify({ decision: 'block', reason }));
 }
 
+// After each tool call: past the context limit, stop the run, compact, and let it carry on.
+function onTool(input) {
+  if (process.env.SMART_COMPACT_OFF || process.env.SMART_COMPACT_CHILD || !(MAX_CONTEXT > 0)) return;
+  if (readPending(input.cwd)) return;
+  const tokens = contextTokens(input.transcript_path);
+  debug('tool context tokens', tokens);
+  if (!tokens || tokens < MAX_CONTEXT) return;
+  const archived = archive(conversationSinceCompact(input.transcript_path), input, 'run in progress (compacted mid-run)');
+  fs.mkdirSync(path.dirname(pendingPath(input.cwd)), { recursive: true });
+  fs.writeFileSync(pendingPath(input.cwd), JSON.stringify({ mode: 'continue', tokens, archive: archived }));
+  // Always /compact here: /clear would drop the task itself. The input is empty after a stop, so no Ctrl-C
+  // (Ctrl-C on an empty input arms "press again to exit").
+  const command = `/compact Context limit reached mid-task. Keep everything needed to finish the current task: the goal, files, decisions, what is done and what is left. ${TERSE_SUMMARY}`;
+  const typed = typeLater([[1.5, command], [0.8, '\r'], [0.8, '\r']]);
+  const k = n => `${Math.round(n / 1000)}k`;
+  process.stdout.write(JSON.stringify({
+    continue: false,
+    stopReason: typed
+      ? `smart-compact: context at ${k(tokens)} (limit ${k(MAX_CONTEXT)}), compacting. The run continues automatically.`
+      : `smart-compact: context at ${k(tokens)} (limit ${k(MAX_CONTEXT)}). Run /compact, then type "go" to continue.`,
+  }));
+}
+
 function onResume(input) {
   const pending = readPending(input.cwd);
   if (!pending) return;
+  if (pending.mode === 'continue') {
+    process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: [
+      `smart-compact compacted mid-run because the context reached ${pending.tokens} tokens.`,
+      'On the next message, continue the task you were doing from where you left off. Do not redo finished steps.',
+      pending.archive ? `The full conversation before compaction is saved at ${pending.archive}; read it only if the summary lacks something.` : '',
+    ].filter(Boolean).join('\n') } }));
+    typeLater([[1.0, CONTINUE_TEXT], [0.5, '\r']]);
+    return;
+  }
   const parts = [
     `smart-compact freed the context (${pending.mode}) because the user started a new task.`,
     pending.carry ? `Facts from the earlier work that may matter:\n${pending.carry}` : '',
@@ -234,6 +331,19 @@ function onResume(input) {
   typeLater([[1.0, RESUME_TEXT], [0.5, '\r']]);
 }
 
+// Terse mode: a short style rule at every session start (also after /compact and /clear) to cut output tokens.
+const TERSE_RULES = {
+  lite: 'Answer tersely: no filler, pleasantries, hedging or recap. Full sentences are fine. Keep code, commands, paths, numbers and error text exact.',
+  full: 'Answer in compressed note style: drop articles, filler, pleasantries and hedging; fragments are fine; use short words. '
+    + 'Keep code, commands, paths, numbers, error text and words like not/never/only exact. '
+    + 'Write normal prose in code comments, commit messages, docs and messages to other people. Use plain language for security warnings.',
+};
+function onStart() {
+  const rule = TERSE_RULES[TERSE];
+  if (!rule || process.env.SMART_COMPACT_OFF || process.env.SMART_COMPACT_CHILD) return;
+  process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: `smart-compact terse mode (${TERSE}): ${rule}` } }));
+}
+
 function debug(...a) {
   if (!process.env.SMART_COMPACT_DEBUG) return;
   fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -241,12 +351,15 @@ function debug(...a) {
 }
 
 function main() {
+  if (process.argv[2] === 'recall') { process.stdout.write(recall(process.argv.slice(3)) + '\n'); return; }
   let input = {};
   try { input = JSON.parse(fs.readFileSync(0, 'utf8') || '{}'); } catch {}
   debug(process.argv[2], JSON.stringify({ ...input, prompt: (input.prompt || '').slice(0, 60) }));
   try {
     if (process.argv[2] === 'prompt') onPrompt(input);
+    else if (process.argv[2] === 'tool') onTool(input);
     else if (process.argv[2] === 'resume') onResume(input);
+    else if (process.argv[2] === 'start') onStart();
   } catch (e) {
     process.stderr.write(`smart-compact: ${e.message}\n`); // never block the user on our own bug
   }

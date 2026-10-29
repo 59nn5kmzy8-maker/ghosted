@@ -1,6 +1,37 @@
 {
   "name": "smart-compact",
-  "version": "0.3.1",
-  "description": "Frees context (/clear) when you switch to a new task, then starts that task automatically.",
-  "author": { "name": "gio" }
+  "version": "0.4.0",
+  "description": "Frees context when you switch task (/clear) and compacts long runs mid-run, then carries on automatically. Built-in terse mode and recall of old work.",
+  "author": {
+    "name": "gio"
+  },
+  "userConfig": {
+    "max_context": {
+      "type": "number",
+      "title": "Compact mid-run at (tokens)",
+      "description": "During a long run, compact when the context reaches this many tokens (for example 250000), then continue where it left off. 0 = off (the default; in tests it cost more on single long runs). Values under 100000 count as 100000.",
+      "default": 0,
+      "min": 0,
+      "max": 1000000
+    },
+    "switch_min_tokens": {
+      "type": "number",
+      "title": "Check for a new task above (tokens)",
+      "description": "Only ask the judge whether a prompt starts a new task when the conversation since the last compaction is at least this big.",
+      "default": 20000,
+      "min": 0,
+      "max": 1000000
+    },
+    "terse": {
+      "type": "string",
+      "title": "Terse answers",
+      "description": "Make Claude answer with fewer words to cut output tokens: off, lite (no filler) or full (compressed note style).",
+      "options": [
+        "off",
+        "lite",
+        "full"
+      ],
+      "default": "lite"
+    }
+  }
 }

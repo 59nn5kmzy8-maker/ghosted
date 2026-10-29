@@ -12,6 +12,8 @@ When a prompt starts a new, unrelated task, smart-compact blocks it, runs `/clea
 - The judge (Haiku through `claude -p`) only runs when context since the last compaction is above `SMART_COMPACT_MIN_TOKENS` (default 20000, estimated as characters / 4).
 - `SMART_COMPACT_OFF=1` turns the plugin off. Set env vars in `~/.claude/settings.json` under `"env"`.
 - `SMART_COMPACT_MODE=compact` uses `/compact` instead of the default `/clear`: it keeps a summary but cost about twice as much in tests (clear saved 70%, compact 34%).
-- Every switch archives the old conversation to `${CLAUDE_PLUGIN_DATA}/archive/` and, when the caveman CLI is installed, indexes it with `caveman mem remember`. Find old work with `caveman mem recall <words>`, then read the archive file.
+- Every switch archives the old conversation to `${CLAUDE_PLUGIN_DATA}/archive/` and lists it in `archive/index.jsonl`. Find old work with `/smart-compact:recall <words>`.
+- Settings (asked when the plugin is enabled, changed later in `/config`): compact mid-run at N tokens (default 0, off), the minimum context before a new task is judged (20000), and terse answers (off/lite/full, default lite). Env vars `SMART_COMPACT_MAX_CONTEXT`, `SMART_COMPACT_MIN_TOKENS` and `SMART_COMPACT_TERSE` override them.
+- Mid-run: when the context passes the limit, the run stops, `/compact` runs, then `Continue where you left off.` is typed automatically.
 - Auto-typing works in macOS Terminal.app and in Windows consoles. Elsewhere the block message says to run the command yourself and then type `go`.
 - Saved tasks live in `${CLAUDE_PLUGIN_DATA}/pending/` and expire after 10 minutes.

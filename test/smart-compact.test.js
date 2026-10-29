@@ -18,12 +18,12 @@ function setup() {
   return { dir, transcript, typed: path.join(dir, 'typed.txt'), cwd: path.join(dir, 'project') };
 }
 
-function run(mode, input, env) {
-  const r = spawnSync(process.execPath, [SCRIPT, mode], {
+function run(mode, input, env, args = []) {
+  const r = spawnSync(process.execPath, [SCRIPT, mode, ...args], {
     input: JSON.stringify(input), encoding: 'utf8',
-    env: { ...process.env, SMART_COMPACT_CHILD: '', SMART_COMPACT_OFF: '', SMART_COMPACT_MODE: '', ...env },
+    env: { ...process.env, SMART_COMPACT_CHILD: '', SMART_COMPACT_OFF: '', SMART_COMPACT_MODE: '', SMART_COMPACT_MAX_CONTEXT: '', SMART_COMPACT_TERSE: '', ...env },
   });
-  return r.stdout ? JSON.parse(r.stdout) : null;
+  return !r.stdout ? null : mode === 'recall' ? r.stdout : JSON.parse(r.stdout);
 }
 
 // typed keystrokes per hook call, as plain text, one line per call
@@ -32,7 +32,7 @@ function typedText(s) {
 }
 
 function envFor(s, judge) {
-  return { CLAUDE_PLUGIN_DATA: s.dir, SMART_COMPACT_DRY_TYPE: s.typed, SMART_COMPACT_FAKE_JUDGE: judge, SMART_COMPACT_CAVEMAN: '0' };
+  return { CLAUDE_PLUGIN_DATA: s.dir, SMART_COMPACT_DRY_TYPE: s.typed, SMART_COMPACT_FAKE_JUDGE: judge };
 }
 
 const pendingFiles = s => (fs.existsSync(path.join(s.dir, 'pending')) ? fs.readdirSync(path.join(s.dir, 'pending')) : []);
@@ -44,8 +44,8 @@ test('new task: blocks, archives, types /compact; resume injects task and archiv
   const out = run('prompt', input, env);
   assert.equal(out.decision, 'block');
   assert.equal(pendingFiles(s).length, 1);
-  assert.equal(typedText(s)[0], '\x03/compact Keep only what helps with the next task: fake focus\r\r');
-  const archives = fs.readdirSync(path.join(s.dir, 'archive'));
+  assert.equal(typedText(s)[0], '\x03/compact Keep only what helps with the next task: fake focus. Write the summary as terse notes: no filler, keep paths, names, numbers and decisions exact.\r\r');
+  const archives = fs.readdirSync(path.join(s.dir, 'archive')).filter(f => f.endsWith('.md'));
   assert.equal(archives.length, 1);
   assert.match(fs.readFileSync(path.join(s.dir, 'archive', archives[0]), 'utf8'), /task: fake old task[\s\S]*user: old task x/);
 
@@ -98,4 +98,49 @@ test('new: forces the switch without the judge', () => {
 test('resume without pending task does nothing', () => {
   const s = setup();
   assert.equal(run('resume', { session_id: 'none', cwd: s.cwd }, envFor(s, 'new')), null);
+});
+
+test('recall finds an archived conversation and shows a digest without tool output', () => {
+  const s = setup();
+  fs.appendFileSync(s.transcript, '\n' + JSON.stringify({ type: 'user', message: { role: 'user', content: [{ type: 'tool_result', content: 'SECRET-TOOL-OUTPUT' }] } }));
+  run('prompt', { session_id: 'abc', cwd: s.cwd, transcript_path: s.transcript, prompt: 'new: other thing' }, envFor(s, 'error'));
+  const out = run('recall', {}, envFor(s, 'new'), ['old', 'task']);
+  assert.match(out, /Matches/);
+  assert.match(out, /user: old task x/);
+  assert.ok(!out.includes('SECRET-TOOL-OUTPUT'));
+  assert.match(run('recall', {}, envFor(s, 'new'), ['zzzqqq']), /no archived conversation matches/);
+});
+
+function withUsage(s, tokens) {
+  fs.appendFileSync(s.transcript, '\n' + JSON.stringify({ type: 'assistant', message: { role: 'assistant', content: [{ type: 'tool_use', input: {} }],
+    usage: { input_tokens: 10, cache_read_input_tokens: tokens - 10, cache_creation_input_tokens: 0 } } }));
+}
+
+test('mid-run: over the limit stops, types /compact, and resumes with "Continue where you left off."', () => {
+  const s = setup();
+  const env = { ...envFor(s, 'new'), SMART_COMPACT_MAX_CONTEXT: '250000' };
+  const input = { session_id: 'abc', cwd: s.cwd, transcript_path: s.transcript };
+  withUsage(s, 200000);
+  assert.equal(run('tool', input, env), null);
+  withUsage(s, 260000);
+  const out = run('tool', input, env);
+  assert.equal(out.continue, false);
+  assert.match(out.stopReason, /260k \(limit 250k\)/);
+  assert.match(typedText(s)[0], /^\/compact Context limit reached mid-task/);
+  assert.equal(run('tool', input, env), null); // pending: no second stop while compacting
+  const ctx = run('resume', { session_id: 'abc', cwd: s.cwd }, env).hookSpecificOutput.additionalContext;
+  assert.match(ctx, /continue the task you were doing/);
+  assert.equal(typedText(s)[1], 'Continue where you left off.\r');
+  assert.equal(run('prompt', { ...input, prompt: 'Continue where you left off.' }, env), null);
+  assert.equal(pendingFiles(s).length, 0);
+  fs.appendFileSync(s.transcript, '\n' + JSON.stringify({ type: 'system', subtype: 'compact_boundary' }));
+  assert.equal(run('tool', input, env), null); // old usage before the boundary no longer counts
+  assert.equal(run('tool', input, { ...env, SMART_COMPACT_MAX_CONTEXT: '0' }), null);
+});
+
+test('terse mode: lite by default, off adds nothing', () => {
+  const s = setup();
+  assert.match(run('start', {}, envFor(s, 'new')).hookSpecificOutput.additionalContext, /terse mode \(lite\)/);
+  assert.match(run('start', {}, { ...envFor(s, 'new'), SMART_COMPACT_TERSE: 'full' }).hookSpecificOutput.additionalContext, /drop articles/);
+  assert.equal(run('start', {}, { ...envFor(s, 'new'), SMART_COMPACT_TERSE: 'off' }), null);
 });
