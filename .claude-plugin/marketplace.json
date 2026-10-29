@@ -4,7 +4,7 @@
   "plugins": [
     {
       "name": "smart-compact",
-      "description": "Compacts context when you switch to a new task, then starts that task automatically.",
+      "description": "Frees context (/clear) when you switch to a new task, then starts that task automatically.",
       "source": "./",
       "category": "productivity"
     }
