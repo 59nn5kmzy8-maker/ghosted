@@ -1,7 +1,7 @@
 {
   "name": "ghosted",
   "displayName": "ghosted_",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "Cuts Claude Code costs: frees context when you switch task, can compact long runs mid-run and carry on, terse terminal answers, and recall of archived work.",
   "author": {
     "name": "Gio van Belle",
@@ -38,13 +38,14 @@
     "terse": {
       "type": "string",
       "title": "Terse answers",
-      "description": "Shorter text in the terminal: full (default, compressed notes, about 20% less text and cost in tests), lite (no filler) or off. Files Claude writes stay normal. Set off if you already use caveman.",
+      "description": "Shorter text in the terminal. auto (default): full, but off when caveman is already active, since stacked style rules cost more. full: compressed notes. lite: no filler. off.",
       "options": [
-        "off",
+        "auto",
+        "full",
         "lite",
-        "full"
+        "off"
       ],
-      "default": "full"
+      "default": "auto"
     }
   }
 }

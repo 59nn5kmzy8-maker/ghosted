@@ -142,9 +142,14 @@ test('mid-run: over the limit stops, types /compact, and resumes with "Continue 
   assert.equal(run('tool', input, { ...env, GHOSTED_MAX_CONTEXT: '0' }), null);
 });
 
-test('terse mode: full by default, off adds nothing', () => {
+test('terse mode: auto is full, but steps aside when caveman is active; off adds nothing', () => {
   const s = setup();
-  assert.match(run('start', {}, { ...envFor(s, 'new'), GHOSTED_TERSE: '' }).hookSpecificOutput.additionalContext, /terse mode \(full\)/);
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'ghosted-home-'));
+  const auto = { ...envFor(s, 'new'), GHOSTED_TERSE: '', HOME: home, USERPROFILE: home };
+  assert.match(run('start', {}, auto).hookSpecificOutput.additionalContext, /terse mode \(full\)/);
+  fs.mkdirSync(path.join(home, '.claude'));
+  fs.writeFileSync(path.join(home, '.claude', 'settings.json'), JSON.stringify({ hooks: { SessionStart: [{ hooks: [{ type: 'command', command: '/x/caveman-proxy native-hook' }] }] } }));
+  assert.equal(run('start', {}, auto), null);
   assert.equal(run('start', {}, { ...envFor(s, 'new'), GHOSTED_TERSE: 'off' }), null);
   assert.match(run('start', {}, { ...envFor(s, 'new'), GHOSTED_TERSE: 'lite' }).hookSpecificOutput.additionalContext, /terse mode \(lite\)/);
   assert.match(run('start', {}, { ...envFor(s, 'new'), GHOSTED_TERSE: 'full' }).hookSpecificOutput.additionalContext, /drop articles/i);

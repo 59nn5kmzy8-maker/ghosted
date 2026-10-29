@@ -21,7 +21,20 @@ const MIN_TOKENS = tokens(opt('GHOSTED_MIN_TOKENS', 'SWITCH_MIN_TOKENS', 20000),
 const MAX_RAW = tokens(opt('GHOSTED_MAX_CONTEXT', 'MAX_CONTEXT', 0), 0); // 0 = no mid-run compaction
 // Below ~100k, Claude Code's fixed overhead plus the summary could keep it over the limit and compact on every tool call.
 const MAX_CONTEXT = MAX_RAW > 0 ? Math.max(MAX_RAW, 100000) : 0;
-const TERSE = opt('GHOSTED_TERSE', 'TERSE', 'full');
+// auto (default): full, unless caveman is already shaping replies. Two style rules stacked cost more than either alone.
+const TERSE_SETTING = opt('GHOSTED_TERSE', 'TERSE', 'auto');
+const TERSE = TERSE_SETTING === 'auto' ? (cavemanActive() ? 'off' : 'full') : TERSE_SETTING;
+function cavemanActive() {
+  for (const f of [path.join(os.homedir(), '.claude', 'settings.json'), path.join(process.cwd(), '.claude', 'settings.json'),
+    path.join(process.cwd(), '.claude', 'settings.local.json')]) {
+    try {
+      const s = JSON.parse(fs.readFileSync(f, 'utf8'));
+      if (/caveman/i.test(JSON.stringify(s.hooks || {}))) return true;
+      if (Object.entries(s.enabledPlugins || {}).some(([k, v]) => v && /caveman/i.test(k))) return true;
+    } catch {}
+  }
+  return false;
+}
 const MODE = process.env.GHOSTED_MODE === 'compact' ? 'compact' : 'clear';
 const PENDING_TTL_MS = 10 * 60 * 1000;
 const RESUME_TEXT = 'Start the pending task.';

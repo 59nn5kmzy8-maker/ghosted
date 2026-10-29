@@ -52,7 +52,7 @@ Anything that goes wrong fails open: your prompt goes through as if ghosted_ wer
 |---|---|---|
 | Compact mid-run at (tokens) | `0` (off) | e.g. `250000` or `250k`; values under 100k count as 100k |
 | Check for a new task above (tokens) | `20000` | below this, prompts are never judged |
-| Terse answers | `full` | `full` (compressed notes), `lite` (no filler) or `off`; set `off` if you already run caveman |
+| Terse answers | `auto` | `auto` = `full` (compressed notes), or off when caveman is already active; also `full`, `lite`, `off` |
 
 Each has an environment override: `GHOSTED_MAX_CONTEXT`, `GHOSTED_MIN_TOKENS`, `GHOSTED_TERSE`. Also `GHOSTED_MODE=compact` (compact instead of clear on a switch) and `GHOSTED_OFF=1`.
 
