@@ -5,10 +5,10 @@
   "description": "Cuts Claude Code costs: frees context when you switch task, can compact long runs mid-run and carry on, terse terminal answers, and recall of archived work.",
   "author": {
     "name": "Gio van Belle",
-    "url": "https://github.com/59nn5kmzy8-maker"
+    "url": "https://github.com/giovanbelle"
   },
-  "homepage": "https://59nn5kmzy8-maker.github.io/ghosted/",
-  "repository": "https://github.com/59nn5kmzy8-maker/ghosted",
+  "homepage": "https://giovanbelle.github.io/ghosted/",
+  "repository": "https://github.com/giovanbelle/ghosted",
   "license": "Apache-2.0",
   "keywords": [
     "context",

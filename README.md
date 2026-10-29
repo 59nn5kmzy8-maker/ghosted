@@ -8,10 +8,10 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/59nn5kmzy8-maker/ghosted/actions/workflows/test.yml"><img src="https://github.com/59nn5kmzy8-maker/ghosted/actions/workflows/test.yml/badge.svg" alt="tests"></a>
+  <a href="https://github.com/giovanbelle/ghosted/actions/workflows/test.yml"><img src="https://github.com/giovanbelle/ghosted/actions/workflows/test.yml/badge.svg" alt="tests"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-white" alt="Apache-2.0"></a>
   <a href="BENCHMARKS.md"><img src="https://img.shields.io/badge/measured-70%25%20cheaper%20on%20task%20switches-black" alt="70% cheaper on task switches"></a>
-  <a href="https://59nn5kmzy8-maker.github.io/ghosted/"><img src="https://img.shields.io/badge/site-ghosted__-black" alt="site"></a>
+  <a href="https://giovanbelle.github.io/ghosted/"><img src="https://img.shields.io/badge/site-ghosted__-black" alt="site"></a>
 </p>
 
 ---
@@ -31,7 +31,7 @@ Already using caveman? ghosted_ still cut a caveman setup's cost from $3.32 to $
 ## Install
 
 ```sh
-claude plugin marketplace add 59nn5kmzy8-maker/ghosted
+claude plugin marketplace add giovanbelle/ghosted
 claude plugin install ghosted@ghosted
 ```
 
