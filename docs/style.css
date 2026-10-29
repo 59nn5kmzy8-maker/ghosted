@@ -268,3 +268,4 @@ footer small { display: block; margin-top: 8px; max-width: 520px; }
 @media (max-width: 1100px) { .docs { grid-template-columns: 200px minmax(0, 1fr); } .toc { display: none; } }
 @media (max-width: 800px) { .docs { grid-template-columns: 1fr; } .dnav { position: static; } }
 .doc td:first-child { white-space: nowrap; }
+.js .tlog pre.l { max-height: none; }

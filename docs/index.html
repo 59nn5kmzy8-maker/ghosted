@@ -47,29 +47,8 @@
   .frame .bar { display: flex; align-items: center; gap: 7px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
   .frame .bar i { width: 10px; height: 10px; border-radius: 50%; background: #1f1f1f; }
   .frame .bar span { margin-left: 10px; font: 12px var(--mono); color: var(--faint); }
-  .frame .body { display: grid; grid-template-columns: 210px 1fr; min-height: 470px; }
-  .side { border-right: 1px solid var(--line); padding: 16px 10px; font-size: 13px; }
-  .side .h { font: 500 10.5px var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--faint); padding: 14px 10px 8px; }
-  .side span { display: flex; justify-content: space-between; padding: 7px 10px; border-radius: 7px; color: var(--dim); }
-  .side span.on { background: #151515; color: var(--hi); }
-  .side small { font: 11px var(--mono); color: var(--faint); }
-  .main { padding: 20px 22px; min-width: 0; }
-  .crumb { font-size: 13px; color: var(--faint); margin-bottom: 16px; }
-  .crumb b { color: var(--hi); font-weight: 500; }
-  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--line); border-radius: 10px; margin-bottom: 18px; }
-  .kpis > div { padding: 14px 16px; border-left: 1px solid var(--line); }
-  .kpis > div:first-child { border-left: 0; }
-  .kpis span { display: block; font-size: 12px; color: var(--faint); margin-bottom: 6px; }
-  .kpis b { font: 600 22px/1 var(--sans); letter-spacing: -0.03em; color: var(--hi); }
-  .kpis small { display: block; margin-top: 6px; font-size: 11.5px; color: var(--faint); }
-  .ev { width: 100%; border-collapse: collapse; font-size: 13px; }
-  .ev th { font: 500 11px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--faint); text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); }
-  .ev td { padding: 11px 10px; border-bottom: 1px solid #141414; color: var(--hi); vertical-align: top; }
-  .ev td.n { font-family: var(--mono); font-size: 12.5px; text-align: right; white-space: nowrap; }
-  .ev td.t { color: var(--faint); white-space: nowrap; }
-  .ev td small { display: block; color: var(--faint); font-size: 12px; margin-top: 2px; }
-  .tag { display: inline-block; font: 500 11px var(--mono); padding: 3px 8px; border-radius: 999px; border: 1px solid var(--line2); color: var(--dim); white-space: nowrap; }
-  .tag.w { background: var(--hi); color: #000; border-color: var(--hi); }
+  .frame .tlog { padding: 22px 26px 26px; font-size: 13.5px; }
+  .frame pre.l { margin: 0; font: inherit; color: #c9c9c9; white-space: pre; overflow-x: auto; }
   .frame .foot { display: flex; justify-content: space-between; padding: 10px 16px; border-top: 1px solid var(--line); font: 11.5px var(--mono); color: var(--faint); }
 
   .statement { font: 500 clamp(26px, 3.4vw, 42px)/1.18 var(--sans); letter-spacing: -0.035em; color: var(--hi); max-width: 1000px; margin: 0; }
@@ -97,9 +76,7 @@
   .feat .k { font: 500 11px var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--faint); margin: 0 0 18px; }
   .feat p { color: var(--dim); margin: 0; font-size: 15px; }
   @media (max-width: 900px) {
-    .frame .body { grid-template-columns: 1fr; } .side { display: none; }
-    .kpis { grid-template-columns: repeat(2, 1fr); } .kpis > div:nth-child(3) { border-left: 0; } .kpis > div:nth-child(n+3) { border-top: 1px solid var(--line); }
-    .ev td.t, .ev th.t { display: none; }
+    .frame .tlog { font-size: 11.5px; padding: 16px; }
     .nums, .feat { grid-template-columns: 1fr; } .nums > div + div, .feat > div + div { padding-left: 0; border-left: 0; }
     .cmdpill { display: none; }
     .hero { padding-top: 64px; }
@@ -118,41 +95,30 @@
     <a class="stars" href="https://github.com/giovanbelle/ghosted">Open source on GitHub · Apache-2.0 →</a>
   </section>
 
-  <div class="frame rv" role="img" aria-label="Illustration of ghosted_ stats: context 18k after a task switch, task switches, warm pings and judge spend, with a list of recent events.">
-    <div class="bar"><i></i><i></i><i></i><span>/ghosted stats</span></div>
-    <div class="body">
-      <div class="side" aria-hidden="true">
-        <div class="h">Sessions</div>
-        <span class="on">dark-mode <small>active</small></span>
-        <span>auth-flow <small>archived</small></span>
-        <span>release-notes <small>archived</small></span>
-        <span>ci-docs <small>archived</small></span>
-        <div class="h">Settings</div>
-        <span>Terse <small>full</small></span>
-        <span>Keep warm <small>2h</small></span>
-        <span>Judge above <small>20k</small></span>
-      </div>
-      <div class="main">
-        <div class="crumb">ghosted_ / <b>my-app</b></div>
-        <div class="kpis">
-          <div><span>Context now</span><b>18k</b><small>was 176k</small></div>
-          <div><span>Task switches</span><b>12</b><small>this week</small></div>
-          <div><span>Warm pings</span><b>6</b><small>191k read each</small></div>
-          <div><span>Judge spend</span><b>$0.04</b><small>31 prompts judged</small></div>
-        </div>
-        <table class="ev">
-          <thead><tr><th>Event</th><th>Detail</th><th class="t">When</th><th style="text-align:right">Tokens</th></tr></thead>
-          <tbody>
-            <tr><td><span class="tag w">new task</span></td><td>add dark mode to the settings page<small>auth-flow archived · 5 facts carried</small></td><td class="t">2m ago</td><td class="n">−158k</td></tr>
-            <tr><td><span class="tag">kept</span></td><td>also cover the logout race<small>follow-up, judge skipped</small></td><td class="t">14m ago</td><td class="n">—</td></tr>
-            <tr><td><span class="tag">warm</span></td><td>cache kept warm during your break<small>hidden fork, deleted after</small></td><td class="t">1h ago</td><td class="n">191k read</td></tr>
-            <tr><td><span class="tag w">new task</span></td><td>write the release notes<small>ci-docs archived · 3 facts carried</small></td><td class="t">3h ago</td><td class="n">−121k</td></tr>
-            <tr><td><span class="tag">kept</span></td><td>use the same approach for admin<small>judge: same task</small></td><td class="t">3h ago</td><td class="n">—</td></tr>
-          </tbody>
-        </table>
+  <div class="frame rv" role="img" aria-label="Example Claude Code session in a terminal: a task switch at 176k tokens of context, the cleared session starting the new task at 18k, then the /ghosted stats output.">
+    <div class="bar"><i></i><i></i><i></i><span>claude · ~/my-app</span></div>
+    <div class="cols">
+      <div class="tlog" id="demo">
+        <div class="l d">… 40 minutes fixing the auth flow · context 176k</div>
+        <div class="l u">add dark mode to the settings page</div>
+        <div class="l g">ghosted: new task detected, clearing first. Your task will start automatically.</div>
+        <div class="l u">/clear</div>
+        <div class="l u">Start the pending task.</div>
+        <div class="l">⏺ Reading src/settings/SettingsPage.tsx · context 18k</div>
+        <div class="l">⏺ Added a theme toggle and dark tokens in src/theme.ts</div>
+        <div class="l">&nbsp;</div>
+        <div class="l u">/ghosted stats</div>
+<pre class="l">ghosted_ stats
+  task switches        12  (last 12: 1,458k tokens of old
+                           conversation no longer re-sent each turn)
+  mid-run compactions  0
+  cache warm pings     6  (1,146k tokens kept warm)
+  judge calls          31  ($0.0403 total)
+  settings             terse auto (full), mid-run off,
+                       warm 120m, judge above 20k</pre>
       </div>
     </div>
-    <div class="foot"><span>Illustration · not live data</span><span>Your numbers: /ghosted stats</span></div>
+    <div class="foot"><span>Example session · numbers illustrative</span><span>Your numbers: /ghosted stats</span></div>
   </div>
 
   <section>
