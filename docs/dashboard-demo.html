@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ghosted_ · dashboard (sample data)</title><meta name="robots" content="noindex">
+<style>
+:root { --bg:#050505; --s1:#0b0b0b; --line:#1b1b1b; --line2:#2a2a2a; --hi:#fff; --fg:#e8e8e8; --dim:#8f8f8f; --faint:#555;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace; --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; }
+* { box-sizing: border-box; } html { background: var(--bg); color: var(--fg); }
+body { margin: 0; font: 14px/1.55 var(--sans); -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px 64px; }
+header { display: flex; align-items: center; justify-content: space-between; height: 64px; border-bottom: 1px solid var(--line); margin-bottom: 28px; }
+header b { font: 600 15px var(--mono); } header span { font: 12px var(--mono); color: var(--faint); }
+h2 { font-size: 13px; font-weight: 500; color: var(--dim); margin: 0 0 14px; letter-spacing: .02em; }
+.kpis { display: grid; grid-template-columns: repeat(5, 1fr); border: 1px solid var(--line); border-radius: 14px; background: var(--s1); margin-bottom: 16px; }
+.kpis > div { padding: 18px 20px; border-left: 1px solid var(--line); } .kpis > div:first-child { border-left: 0; }
+.kpis span { display: block; font-size: 12px; color: var(--faint); } .kpis b { display: block; font-size: 28px; letter-spacing: -.04em; color: var(--hi); margin: 6px 0 2px; font-weight: 600; }
+.kpis small { color: var(--faint); font-size: 12px; }
+.grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 16px; align-items: start; }
+.card { border: 1px solid var(--line); border-radius: 14px; background: var(--s1); padding: 20px; min-width: 0; }
+svg { display: block; width: 100%; height: auto; }
+.legend { display: flex; gap: 16px; font: 11.5px var(--mono); color: var(--dim); margin-bottom: 10px; }
+.legend i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; font: 500 11px var(--mono); color: var(--faint); text-transform: uppercase; letter-spacing: .08em; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+td { padding: 10px; border-bottom: 1px solid #131313; color: var(--dim); vertical-align: top; } td:first-child { white-space: nowrap; }
+td.n { text-align: right; font-family: var(--mono); color: var(--hi); white-space: nowrap; }
+.tag { font: 500 11px var(--mono); padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line2); color: var(--dim); white-space: nowrap; }
+.tag.new { background: var(--hi); color: #000; border-color: var(--hi); }
+.est { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; font-size: 12.5px; color: var(--dim); margin-top: 12px; }
+.est input { width: 70px; background: #0f0f0f; border: 1px solid var(--line2); color: var(--hi); border-radius: 7px; padding: 5px 8px; font: 12.5px var(--mono); }
+.search { display: flex; gap: 8px; margin-bottom: 12px; }
+.search input { flex: 1; background: #0f0f0f; border: 1px solid var(--line2); color: var(--hi); border-radius: 9px; padding: 9px 12px; font: 13px var(--mono); outline: 0; }
+.search button { background: var(--hi); color: #000; border: 0; border-radius: 9px; padding: 0 14px; font-weight: 600; cursor: pointer; }
+pre { white-space: pre-wrap; font: 12px/1.6 var(--mono); color: var(--dim); margin: 0; max-height: 320px; overflow: auto; }
+.empty { color: var(--faint); padding: 18px 0; }
+@media (max-width: 900px) { .kpis { grid-template-columns: repeat(2, 1fr); } .grid { grid-template-columns: 1fr; } }
+</style></head><body><div class="wrap">
+<header><b>ghosted_</b><span id="upd">loading…</span></header>
+<div class="kpis" id="kpis"></div>
+<div class="grid">
+  <div class="card"><h2>Activity, last 14 days</h2><div class="legend"><span><i style="background:#fff"></i>task switches</span><span><i style="background:#666"></i>kept (same task)</span><span><i style="background:#2f2f2f"></i>warm pings</span></div><div id="days"></div></div>
+  <div class="card"><h2>How prompts were decided</h2><div id="donut"></div></div>
+</div>
+<div class="grid">
+  <div class="card"><h2>Context dropped at each task switch</h2><div id="drops"></div>
+    <div class="est">Estimated saving: <b id="saved" style="color:#fff">$0</b> at <input id="price" type="number" step="0.05" value="0.50"> $ per million cached tokens, <input id="turns" type="number" step="1" value="5"> turns per task</div></div>
+  <div class="card"><h2>Settings</h2><div id="settings"></div></div>
+</div>
+<div class="card" style="margin-bottom:16px"><h2>Recent</h2><div id="recent"></div></div>
+<div class="card"><h2>Archive</h2><form class="search" id="rf"><input id="rq" placeholder="search old conversations, e.g. auth expiry"><button>Recall</button></form><pre id="rout"></pre><div id="arch"></div></div>
+</div>
+<script>
+const T = new URLSearchParams(location.search).get('t');
+const $ = s => document.querySelector(s), esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const k = n => n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1e3 ? Math.round(n / 1e3) + 'k' : String(n || 0);
+const ago = ts => { const s = (Date.now() - new Date(ts)) / 1000; return s < 90 ? 'just now' : s < 5400 ? Math.round(s / 60) + 'm ago' : s < 129600 ? Math.round(s / 3600) + 'h ago' : Math.round(s / 86400) + 'd ago'; };
+let D;
+function render() {
+  const ev = D.events, sw = ev.filter(e => e.kind === 'switch'), kept = ev.filter(e => e.kind === 'kept'), warm = ev.filter(e => e.kind === 'warm');
+  const dropped = sw.reduce((t, e) => t + (e.tokens || 0), 0), judgeUsd = D.judge.reduce((t, c) => t + (c.usd || 0), 0);
+  const price = +$('#price').value || 0, turns = +$('#turns').value || 0, saved = dropped * turns * price / 1e6;
+  $('#saved').textContent = '$' + saved.toFixed(2);
+  $('#kpis').innerHTML = [
+    ['Task switches', sw.length, k(dropped) + ' tokens dropped'],
+    ['Kept', kept.length, 'prompts that stayed in context'],
+    ['Warm pings', warm.length, k(warm.reduce((t, e) => t + (e.tokens || 0), 0)) + ' read from cache'],
+    ['Judge spend', '$' + judgeUsd.toFixed(3), D.judge.length + ' calls'],
+    ['Est. saved', '$' + saved.toFixed(2), 'see the estimate below'],
+  ].map(([a, b, c]) => '<div><span>' + a + '</span><b>' + b + '</b><small>' + c + '</small></div>').join('');
+  // activity per day
+  const days = [...Array(14)].map((_, i) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - 13 + i); return d; });
+  const per = days.map(d => { const n = new Date(d); n.setDate(n.getDate() + 1); const inDay = e => new Date(e.ts) >= d && new Date(e.ts) < n;
+    return [sw.filter(inDay).length, kept.filter(inDay).length, warm.filter(inDay).length]; });
+  const max = Math.max(1, ...per.map(p => p[0] + p[1] + p[2])), W = 700, H = 180, bw = W / 14;
+  $('#days').innerHTML = '<svg viewBox="0 0 ' + W + ' ' + (H + 22) + '">' + per.map((p, i) => {
+    let y = H, out = '';
+    [['#fff', p[0]], ['#666', p[1]], ['#2f2f2f', p[2]]].forEach(([c, v]) => { const h = v / max * (H - 10); y -= h; if (v) out += '<rect x="' + (i * bw + 6) + '" y="' + y + '" width="' + (bw - 12) + '" height="' + h + '" rx="3" fill="' + c + '"><title>' + v + '</title></rect>'; });
+    return out + '<text x="' + (i * bw + bw / 2) + '" y="' + (H + 16) + '" text-anchor="middle" font-size="10" fill="#555" font-family="monospace">' + (days[i].getDate()) + '</text>';
+  }).join('') + '<line x1="0" x2="' + W + '" y1="' + H + '" y2="' + H + '" stroke="#222"/></svg>';
+  // decisions donut
+  const parts = [['new task', sw.length, '#fff'], ['judge: same', kept.filter(e => e.why === 'judge').length, '#888'], ['follow-up, no judge', kept.filter(e => e.why === 'follow-up').length, '#444'], ['judge error, kept', kept.filter(e => e.why === 'judge-error').length, '#2a2a2a']];
+  const total = parts.reduce((t, p) => t + p[1], 0);
+  let a0 = -Math.PI / 2, arcs = '';
+  if (total) parts.forEach(([, v, c]) => { if (!v) return; const a1 = a0 + v / total * Math.PI * 2 - 0.0001, big = a1 - a0 > Math.PI ? 1 : 0;
+    arcs += '<path d="M' + (100 + 80 * Math.cos(a0)) + ',' + (100 + 80 * Math.sin(a0)) + ' A80,80 0 ' + big + ' 1 ' + (100 + 80 * Math.cos(a1)) + ',' + (100 + 80 * Math.sin(a1)) + '" fill="none" stroke="' + c + '" stroke-width="22"/>'; a0 = a1 + 0.0001; });
+  $('#donut').innerHTML = total ? '<svg viewBox="0 0 200 200" style="max-width:200px;margin:0 auto 14px">' + arcs + '<text x="100" y="98" text-anchor="middle" fill="#fff" font-size="28" font-weight="600">' + total + '</text><text x="100" y="118" text-anchor="middle" fill="#666" font-size="11">prompts</text></svg>'
+    + parts.map(p => '<div style="display:flex;justify-content:space-between;padding:4px 0;color:#8f8f8f"><span><i style="display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:8px;background:' + p[2] + '"></i>' + p[0] + '</span><b style="color:#fff;font-weight:500">' + p[1] + '</b></div>').join('')
+    : '<p class="empty">No prompts judged yet. They show up once a session passes 20k tokens.</p>';
+  // drops
+  const last = sw.slice(-24), dm = Math.max(1, ...last.map(e => e.tokens || 0));
+  $('#drops').innerHTML = last.length ? '<svg viewBox="0 0 700 150">' + last.map((e, i) => { const h = (e.tokens || 0) / dm * 120, w = 700 / Math.max(last.length, 8);
+    return '<rect x="' + (i * w + 4) + '" y="' + (130 - h) + '" width="' + (w - 8) + '" height="' + h + '" rx="3" fill="#fff"><title>' + esc(e.old || 'earlier task') + ' → ' + esc(e.focus || '') + ': ' + k(e.tokens) + '</title></rect>'; }).join('') + '<line x1="0" x2="700" y1="130" y2="130" stroke="#222"/></svg>'
+    : '<p class="empty">No task switches yet.</p>';
+  // settings
+  const s = D.settings;
+  $('#settings').innerHTML = '<table>' + [['Terse', s.terse || 'auto'], ['Keep warm', s.keep_warm || '2h (default)'], ['Mid-run limit', s.max_context && s.max_context !== '0' ? k(+s.max_context) : 'off'], ['Paused', s.paused ? 'yes' : 'no']]
+    .map(([a, b]) => '<tr><td>' + a + '</td><td class="n">' + esc(b) + '</td></tr>').join('') + '</table><p style="color:#555;font-size:12px;margin:12px 0 0">Change with /ghosted-terse, /ghosted-warm, /ghosted-off</p>';
+  // recent
+  const rows = ev.slice(-30).reverse();
+  $('#recent').innerHTML = rows.length ? '<table><thead><tr><th>When</th><th>Event</th><th>Detail</th><th style="text-align:right">Tokens</th></tr></thead><tbody>' + rows.map(e => {
+    const tag = e.kind === 'switch' ? '<span class="tag new">new task</span>' : '<span class="tag">' + esc(e.kind) + '</span>';
+    const det = e.kind === 'switch' ? esc(e.old || 'earlier task') + ' → ' + esc(e.focus || '') + (e.carry ? ' · ' + e.carry + ' facts carried' : '')
+      : e.kind === 'kept' ? esc(e.prompt || '') + ' · ' + esc(e.why || '') : e.kind === 'warm' ? 'cache kept warm' + (e.write != null ? ' · ' + k(e.write) + ' written' : '')
+      : e.kind === 'warm-miss' ? 'ping missed the cache; warming stopped for that session' : e.kind === 'midrun' ? 'compacted mid-run' : '';
+    const n = e.kind === 'switch' ? '−' + k(e.tokens) : e.kind === 'warm' ? k(e.tokens) + ' read' : e.tokens ? k(e.tokens) : '';
+    return '<tr><td>' + ago(e.ts) + '</td><td>' + tag + '</td><td>' + det + '</td><td class="n">' + n + '</td></tr>'; }).join('') + '</tbody></table>'
+    : '<p class="empty">Nothing yet. Keep working; ghosted_ logs here as it acts.</p>';
+  $('#arch').innerHTML = D.archive.length ? '<table><tbody>' + D.archive.slice().reverse().slice(0, 12).map(a => '<tr><td>' + ago(a.ts) + '</td><td>' + esc(a.task) + '</td><td class="n">' + (a.tokens ? k(a.tokens) : '') + '</td></tr>').join('') + '</tbody></table>' : '';
+  $('#upd').textContent = 'live · updated ' + new Date().toLocaleTimeString();
+}
+const SAMPLE = {"events": [{"ts": "2026-10-16T13:28:25.406554+00:00", "kind": "switch", "tokens": 181000, "old": "billing", "focus": "audit dependencies", "carry": 5, "why": "judge", "ms": 3400}, {"ts": "2026-10-18T14:24:14.492369+00:00", "kind": "kept", "tokens": 90000, "why": "follow-up", "prompt": "also cover the logout race"}, {"ts": "2026-10-18T16:08:24.069167+00:00", "kind": "switch", "tokens": 198000, "old": "CI for docs", "focus": "refactor billing module", "carry": 5, "why": "judge", "ms": 3400}, {"ts": "2026-10-18T17:00:35.711768+00:00", "kind": "kept", "tokens": 90000, "why": "follow-up", "prompt": "also cover the logout race"}, {"ts": "2026-10-18T18:06:34.226623+00:00", "kind": "kept", "tokens": 90000, "why": "follow-up", "prompt": "also cover the logout race"}, {"ts": "2026-10-19T11:37:34.634056+00:00", "kind": "switch", "tokens": 159000, "old": "billing", "focus": "audit dependencies", "carry": 4, "why": "judge", "ms": 3400}, {"ts": "2026-10-19T15:03:18.518745+00:00", "kind": "kept", "tokens": 90000, "why": "follow-up", "prompt": "also cover the logout race"}, {"ts": "2026-10-19T15:05:43.287218+00:00", "kind": "switch", "tokens": 100000, "old": "fix the auth flow", "focus": "add dark mode to settings", "carry": 5, "why": "judge", "ms": 3400}, {"ts": "2026-10-19T17:52:21.140735+00:00", "kind": "kept", "tokens": 90000, "why": "follow-up", "prompt": "also cover the logout race"}, {"ts": "2026-10-20T10:30:07.564730+00:00", "kind": "switch", "tokens": 84000, "old": "release notes", "focus": "set up CI for docs", "carry": 1, "why": "judge", "ms": 3400}, {"ts": "2026-10-20T14:50:44.387618+00:00", "kind": "kept", "tokens": 90000, "why": "follow-up", "prompt": "also cover the logout race"}, {"ts": "2026-10-20T17:07:37.561606+00:00", "kind": "switch", "tokens": 220000, "old": "CI for docs", "focus": "refactor billing module", "carry": 3, "why": "judge", "ms": 3400}, {"ts": "2026-10-21T11:21:49.128468+00:00", "kind": "warm", "tokens": 191089, "write": 372}, {"ts": "2026-10-21T12:45:32.379245+00:00", "kind": "warm", "tokens": 191089, "write": 372}, {"ts": "2026-10-21T13:32:27.013142+00:00", "kind": "warm", "tokens": 191089, "write": 372}, {"ts": "2026-10-21T15:24:27.242703+00:00", "kind": "kept", "tokens": 90000, "why": "follow-up", "prompt": "also cover the logout race"}, {"ts": "2026-10-22T12:37:33.327714+00:00", "kind": "kept", "tokens": 90000, "why": "judge", "prompt": "use the same approach for admin", "ms": 3300}, {"ts": "2026-10-23T10:58:38.220426+00:00", "kind": "kept", "tokens": 90000, "why": "follow-up", "prompt": "also cover the logout race"}, {"ts": "2026-10-23T12:30:15.534599+00:00", "kind": "switch", "tokens": 128000, "old": "billing", "focus": "audit dependencies", "carry": 3, "why": "judge", "ms": 3400}, {"ts": "2026-10-23T13:06:17.221615+00:00", "kind": "kept", "tokens": 90000, "why": "judge", "prompt": "use the same approach for admin", "ms": 3300}, {"ts": "2026-10-23T17:13:09.741484+00:00", "kind": "kept", "tokens": 90000, "why": "judge", "prompt": "use the same approach for admin", "ms": 3300}, {"ts": "2026-10-24T11:48:36.319528+00:00", "kind": "kept", "tokens": 90000, "why": "judge", "prompt": "use the same approach for admin", "ms": 3300}, {"ts": "2026-10-24T17:00:31.421996+00:00", "kind": "switch", "tokens": 90000, "old": "CI for docs", "focus": "refactor billing module", "carry": 1, "why": "judge", "ms": 3400}, {"ts": "2026-10-25T11:10:03.391931+00:00", "kind": "warm", "tokens": 191089, "write": 372}, {"ts": "2026-10-25T13:17:54.927958+00:00", "kind": "switch", "tokens": 144000, "old": "billing", "focus": "audit dependencies", "carry": 5, "why": "judge", "ms": 3400}, {"ts": "2026-10-25T14:10:17.358019+00:00", "kind": "warm", "tokens": 191089, "write": 372}, {"ts": "2026-10-25T15:44:14.967240+00:00", "kind": "switch", "tokens": 197000, "old": "billing", "focus": "audit dependencies", "carry": 1, "why": "judge", "ms": 3400}, {"ts": "2026-10-26T10:26:36.319426+00:00", "kind": "switch", "tokens": 99000, "old": "release notes", "focus": "set up CI for docs", "carry": 1, "why": "judge", "ms": 3400}, {"ts": "2026-10-27T11:02:29.667107+00:00", "kind": "kept", "tokens": 90000, "why": "judge", "prompt": "use the same approach for admin", "ms": 3300}, {"ts": "2026-10-27T15:42:15.145806+00:00", "kind": "warm", "tokens": 191089, "write": 372}, {"ts": "2026-10-28T11:15:20.588983+00:00", "kind": "kept", "tokens": 90000, "why": "judge", "prompt": "use the same approach for admin", "ms": 3300}, {"ts": "2026-10-28T11:16:48.687731+00:00", "kind": "kept", "tokens": 90000, "why": "follow-up", "prompt": "also cover the logout race"}, {"ts": "2026-10-28T17:23:39.367400+00:00", "kind": "warm", "tokens": 191089, "write": 372}, {"ts": "2026-10-29T12:29:23.568927+00:00", "kind": "warm", "tokens": 191089, "write": 372}, {"ts": "2026-10-29T14:42:55.026903+00:00", "kind": "switch", "tokens": 200000, "old": "release notes", "focus": "set up CI for docs", "carry": 3, "why": "judge", "ms": 3400}, {"ts": "2026-10-29T16:02:40.006579+00:00", "kind": "kept", "tokens": 90000, "why": "follow-up", "prompt": "also cover the logout race"}, {"ts": "2026-10-29T18:07:23.489173+00:00", "kind": "kept", "tokens": 90000, "why": "judge", "prompt": "use the same approach for admin", "ms": 3300}], "judge": [{"ts": "2026-10-16T13:28:25.406554+00:00", "usd": 0.0013}, {"ts": "2026-10-18T16:08:24.069167+00:00", "usd": 0.0013}, {"ts": "2026-10-19T11:37:34.634056+00:00", "usd": 0.0013}, {"ts": "2026-10-19T15:05:43.287218+00:00", "usd": 0.0013}, {"ts": "2026-10-20T10:30:07.564730+00:00", "usd": 0.0013}, {"ts": "2026-10-20T17:07:37.561606+00:00", "usd": 0.0013}, {"ts": "2026-10-22T12:37:33.327714+00:00", "usd": 0.0013}, {"ts": "2026-10-23T12:30:15.534599+00:00", "usd": 0.0013}, {"ts": "2026-10-23T13:06:17.221615+00:00", "usd": 0.0013}, {"ts": "2026-10-23T17:13:09.741484+00:00", "usd": 0.0013}, {"ts": "2026-10-24T11:48:36.319528+00:00", "usd": 0.0013}, {"ts": "2026-10-24T17:00:31.421996+00:00", "usd": 0.0013}, {"ts": "2026-10-25T13:17:54.927958+00:00", "usd": 0.0013}, {"ts": "2026-10-25T15:44:14.967240+00:00", "usd": 0.0013}, {"ts": "2026-10-26T10:26:36.319426+00:00", "usd": 0.0013}, {"ts": "2026-10-27T11:02:29.667107+00:00", "usd": 0.0013}, {"ts": "2026-10-28T11:15:20.588983+00:00", "usd": 0.0013}, {"ts": "2026-10-29T14:42:55.026903+00:00", "usd": 0.0013}, {"ts": "2026-10-29T18:07:23.489173+00:00", "usd": 0.0013}], "archive": [{"ts": "2026-10-16T13:28:25.406554+00:00", "task": "billing"}, {"ts": "2026-10-18T16:08:24.069167+00:00", "task": "CI for docs"}, {"ts": "2026-10-19T11:37:34.634056+00:00", "task": "billing"}, {"ts": "2026-10-19T15:05:43.287218+00:00", "task": "fix the auth flow"}, {"ts": "2026-10-20T10:30:07.564730+00:00", "task": "release notes"}, {"ts": "2026-10-20T17:07:37.561606+00:00", "task": "CI for docs"}, {"ts": "2026-10-23T12:30:15.534599+00:00", "task": "billing"}, {"ts": "2026-10-24T17:00:31.421996+00:00", "task": "CI for docs"}, {"ts": "2026-10-25T13:17:54.927958+00:00", "task": "billing"}, {"ts": "2026-10-25T15:44:14.967240+00:00", "task": "billing"}, {"ts": "2026-10-26T10:26:36.319426+00:00", "task": "release notes"}, {"ts": "2026-10-29T14:42:55.026903+00:00", "task": "release notes"}], "settings": {}};
+async function load() {
+  // keep the sample recent: shift its timestamps so the newest event is a few minutes ago
+  const off = Date.now() - 6 * 60e3 - Math.max(...SAMPLE.events.map(e => +new Date(e.ts)));
+  const sh = e => ({ ...e, ts: new Date(+new Date(e.ts) + off).toISOString() });
+  D = { ...SAMPLE, events: SAMPLE.events.map(sh), judge: SAMPLE.judge.map(sh), archive: SAMPLE.archive.map(sh) }; render(); $('#upd').textContent = 'sample data · yours runs on localhost'; }
+$('#price').oninput = $('#turns').oninput = () => D && render();
+$('#rf').onsubmit = e => { e.preventDefault(); $('#rout').textContent = 'In the plugin this searches your own archived conversations on your machine.'; };
+load();
+</script></body></html>

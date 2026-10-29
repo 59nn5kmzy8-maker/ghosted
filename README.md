@@ -43,7 +43,8 @@ Restart Claude Code. You'll be asked for the settings below; change them any tim
 - **Long runs (optional):** past a limit you choose (for example 250k), it stops the run, compacts, and types `Continue where you left off.`
 - **Terse answers (on by default):** compressed notes in the terminal, like caveman, with a one-line reminder on every prompt so it doesn't fade. In tests: 20% less text and 19% lower cost than no terse mode, and less text than caveman. Code and files Claude writes stay normal.
 - **Cache warming (on, 2 hours):** Claude's prompt cache expires after 5 minutes, or 1 hour on most subscriptions. After a longer break, your next message writes the whole context to the cache again, at 1.25× or 2× the input price. While you're away, ghosted_ re-sends the session just before the cache expires, through a hidden copy of the session that is deleted right after. A cache read costs 0.1× the input price. It stops once you're back, when Claude Code closes, and before the pings cost half of the rewrite they prevent. Measured: one ping read 191,089 tokens from the cache and wrote 372.
-- **Recall:** every cleared conversation is archived and indexed. `/ghosted:recall <words>` returns a short digest of the matching work.
+- **Dashboard:** `/ghosted-stats` opens a local page (127.0.0.1, only you can open it) with task switches, tokens dropped, an estimated saving at your own price, warm pings, judge spend and archive search. It stops itself after 30 idle minutes.
+- **Recall:** every cleared conversation is archived and indexed. `/ghosted-recall <words>` returns a short digest of the matching work.
 
 Anything that goes wrong fails open: your prompt goes through as if ghosted_ weren't there.
 
@@ -62,17 +63,16 @@ Each has an environment override: `GHOSTED_MAX_CONTEXT`, `GHOSTED_MIN_TOKENS`, `
 
 | | |
 |---|---|
-| `/ghosted full` · `lite` · `auto` · `off` | terse answers (`auto` = full, off when caveman is active) |
-| `/ghosted max 250k` · `max off` | compact mid-run at this context size, then continue |
-| `/ghosted warm 2h` · `warm off` | keep the prompt cache warm this long after your last turn |
-| `/ghosted setup` · `setup off` | auto-typing in any terminal: adds a `claude` shell function that runs Claude Code through ghosted_'s terminal bridge |
-| `/ghosted pause` · `resume` | turn ghosted_ off or on |
-| `/ghosted stats` | task switches, mid-run compactions, judge calls and their cost |
-| `/ghosted reset` · `help` | back to your `/config` settings · list the commands |
-| `/ghosted:recall <words>` | find archived work |
-| `new: <prompt>` · `same: <prompt>` | force or block a task switch |
+| `/ghosted` | status and the list below |
+| `/ghosted-stats` | opens the local dashboard: switches, tokens dropped, estimated savings, warm pings, judge spend, archive search |
+| `/ghosted-terse` · `lite` · `off` | terse answers on, lighter, or off |
+| `/ghosted-warm` · `90m` · `off` | keep the prompt cache warm for 2h (or the time you give) after your last turn |
+| `/ghosted-off` · `/ghosted-on` | pause or resume everything |
+| `/ghosted-setup` · `off` | auto-typing in any terminal (VS Code, Ghostty, Alacritty) |
+| `/ghosted-recall <words>` | find archived work |
+| `new:` · `same:` before a prompt | force or block a task switch |
 
-`/ghosted` settings stick across sessions. Environment variables still win over them.
+Less common settings still work through `/ghosted <setting>`, for example `/ghosted max 250k` for mid-run compaction. Settings stick across sessions; environment variables still win over them.
 
 ## Platforms
 

@@ -175,9 +175,9 @@ function judge(head, recent, prompt, sessionId) {
 }
 
 // What ghosted_ did, for /ghosted stats.
-function logEvent(kind, tokens) {
+function logEvent(kind, tokens, extra = {}) {
   privateDir(DATA_DIR);
-  fs.appendFileSync(path.join(DATA_DIR, 'events.jsonl'), JSON.stringify({ ts: new Date().toISOString(), kind, tokens }) + '\n', PRIVATE);
+  fs.appendFileSync(path.join(DATA_DIR, 'events.jsonl'), JSON.stringify({ ts: new Date().toISOString(), kind, tokens, ...extra }) + '\n', PRIVATE);
 }
 
 function jsonl(file) {
@@ -194,12 +194,37 @@ const HELP = `ghosted_ commands
   /ghosted pause | resume             turn ghosted_ off or on (all features)
   /ghosted stats                      what ghosted_ did and what the judge cost
   /ghosted reset                      drop these overrides, back to /config
-  /ghosted:recall <words>             find archived work
+  /ghosted-recall <words>             find archived work
   new: <prompt> / same: <prompt>      force or block a task switch`;
+
+// The local dashboard (hooks/dashboard.js): reuse a running one, else start it detached and wait for its port.
+function ensureDashboard() {
+  const info = () => { try { return JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'dashboard.json'), 'utf8')); } catch { return null; } };
+  let d = info();
+  if (!d || !alive(d.pid)) {
+    privateDir(DATA_DIR);
+    fs.rmSync(path.join(DATA_DIR, 'dashboard.json'), { force: true });
+    const child = spawn(process.execPath, [path.join(__dirname, 'dashboard.js'), DATA_DIR], { detached: true, stdio: 'ignore', windowsHide: true });
+    child.on('error', () => {});
+    child.unref();
+    for (let i = 0; i < 40 && !(d = info()); i++) nap(100);
+  }
+  return d ? `http://127.0.0.1:${d.port}/?t=${d.token}` : null;
+}
+function openUrl(url) {
+  const [cmd, args] = WIN ? ['cmd', ['/c', 'start', '', url]] : process.platform === 'darwin' ? ['open', [url]] : ['xdg-open', [url]];
+  const c = spawn(cmd, args, { detached: true, stdio: 'ignore', windowsHide: true });
+  c.on('error', () => {});
+  c.unref();
+}
 
 // /ghosted <args>: change overrides or report. Returns the text to show.
 function command(args) {
-  const [verb = 'help', value] = args.join(' ').trim().toLowerCase().split(/\s+/);
+  let [verb = 'status', value] = args.join(' ').trim().toLowerCase().split(/\s+/);
+  if (!verb) verb = 'status';
+  if (verb === 'on') verb = 'resume';
+  if (verb === 'terse') [verb, value] = [value || 'full', undefined]; // /ghosted-terse [lite|off|auto]
+  if (verb === 'warm' && !value) value = '2h';
   const save = o => { privateDir(DATA_DIR); fs.writeFileSync(OVERRIDES_FILE, JSON.stringify(o), PRIVATE); };
   if (['full', 'lite', 'auto', 'off'].includes(verb)) {
     save({ ...OVERRIDES, terse: verb });
@@ -215,7 +240,7 @@ function command(args) {
   }
   if (verb === 'pause' || verb === 'resume') {
     save({ ...OVERRIDES, paused: verb === 'pause' });
-    return verb === 'pause' ? 'ghosted_ paused: no judging, compaction or terse rules until /ghosted resume.' : 'ghosted_ resumed.';
+    return verb === 'pause' ? 'ghosted_ paused: no judging, compaction or terse rules until /ghosted-on.' : 'ghosted_ resumed.';
   }
   if (verb === 'warm') {
     const ms = duration(value ?? '', NaN);
@@ -235,7 +260,7 @@ function command(args) {
       : 'No shell config found (zsh, bash or fish).';
   }
   if (verb === 'reset') { fs.rmSync(OVERRIDES_FILE, { force: true }); return 'ghosted_ overrides cleared; /config settings apply.'; }
-  if (verb === 'stats') {
+  if (verb === 'stats' || verb === 'dashboard') {
     const ev = jsonl(path.join(DATA_DIR, 'events.jsonl')), costs = jsonl(path.join(DATA_DIR, 'judge-costs.jsonl'));
     const sum = (a, f) => a.reduce((t, x) => t + (Number(f(x)) || 0), 0);
     const idx = jsonl(path.join(DATA_DIR, 'archive', 'index.jsonl'));
@@ -243,6 +268,8 @@ function command(args) {
     const sw = ev.filter(e => e.kind === 'switch'), warm = ev.filter(e => e.kind === 'warm');
     const miss = ev.filter(e => e.kind === 'warm-miss').length;
     const k = n => `${Math.round(n / 1000).toLocaleString('en')}k`;
+    const url = verb === 'dashboard' ? ensureDashboard() : null;
+    if (url && !process.env.GHOSTED_NO_OPEN) openUrl(url);
     return [
       'ghosted_ stats',
       `  task switches        ${idx.length - midRuns}${sw.length ? `  (last ${sw.length}: ${k(sum(sw, e => e.tokens))} tokens of old conversation no longer re-sent each turn)` : ''}`,
@@ -250,6 +277,21 @@ function command(args) {
       `  cache warm pings     ${warm.length}${warm.length ? `  (${k(sum(warm, e => e.tokens))} tokens kept warm${miss ? `, ${miss} missed` : ''})` : ''}`,
       `  judge calls          ${costs.length}  ($${sum(costs, c => c.usd).toFixed(4)} total)`,
       `  settings             terse ${TERSE_SETTING}${TERSE_SETTING === 'auto' ? ` (${TERSE})` : ''}, mid-run ${MAX_CONTEXT ? k(MAX_CONTEXT) : 'off'}, warm ${WARM_MS ? `${WARM_MS / 60e3}m` : 'off'}, judge above ${k(MIN_TOKENS)}${OFF ? ', PAUSED' : ''}`,
+      verb !== 'dashboard' ? '  dashboard            /ghosted-stats' : url ? `  dashboard            ${url}  (opened in your browser)` : '  dashboard            could not start',
+    ].join('\n');
+  }
+  if (verb === 'status') {
+    const k = n => `${Math.round(n / 1000)}k`;
+    return [
+      `ghosted_ ${OFF ? 'PAUSED' : 'on'} · terse ${TERSE_SETTING}${TERSE_SETTING === 'auto' ? ` (${TERSE})` : ''} · keep warm ${WARM_MS ? `${WARM_MS / 60e3}m` : 'off'} · mid-run ${MAX_CONTEXT ? k(MAX_CONTEXT) : 'off'}`,
+      '',
+      '/ghosted-stats    dashboard: switches, savings, warm pings, archive',
+      '/ghosted-terse    terse answers on (lite: /ghosted-terse lite, off: /ghosted-terse off)',
+      '/ghosted-warm     keep the cache warm (/ghosted-warm 90m, /ghosted-warm off)',
+      '/ghosted-off      pause everything   (/ghosted-on to resume)',
+      '/ghosted-setup    auto-typing in any terminal (VS Code, Ghostty, ...)',
+      '/ghosted-recall   find old work',
+      'new: / same:      before a prompt: force or block a task switch',
     ].join('\n');
   }
   return HELP;
@@ -551,16 +593,22 @@ function onPrompt(input) {
   } else {
     debug('context tokens est', Math.round(conversation.length / 4));
     if (conversation.length / 4 < MIN_TOKENS) return;
-    if (obviousFollowUp(prompt)) return; // saves the ~3.5s judge call
+    const ctx = Math.round(conversation.length / 4), short = prompt.slice(0, 80);
+    if (obviousFollowUp(prompt)) { logEvent('kept', ctx, { why: 'follow-up', prompt: short }); return; } // saves the ~3.5s judge call
+    const t0 = Date.now();
     verdict = judge(conversation.slice(0, 2000), conversation.slice(-6000), prompt.slice(0, 4000), input.session_id);
     debug('verdict', JSON.stringify(verdict));
-    if (!verdict || verdict.new_task !== true) return; // fail open
+    if (!verdict || verdict.new_task !== true) { logEvent('kept', ctx, { why: verdict ? 'judge' : 'judge-error', ms: Date.now() - t0, prompt: short }); return; } // fail open
+    verdict.ms = Date.now() - t0;
   }
 
   const oneLine = s => String(s || '').replace(/\s+/g, ' ').trim();
   const archived = archive(conversation, input, oneLine(verdict.old_task).slice(0, 200) || 'earlier task');
   if (!writePending(input.cwd, { prompt: input.prompt, mode: MODE, carry: String(verdict.carry || '').slice(0, 1500), archive: archived })) return;
-  logEvent('switch', Math.round(conversation.length / 4));
+  logEvent('switch', Math.round(conversation.length / 4), {
+    old: oneLine(verdict.old_task).slice(0, 120), focus: oneLine(verdict.focus).slice(0, 120),
+    carry: String(verdict.carry || '').split('\n').filter(l => l.trim()).length, why: verdict.ms ? 'judge' : 'new:', ms: verdict.ms,
+  });
   const focus = oneLine(verdict.focus).slice(0, 200);
   const command = MODE === 'clear' ? '/clear' : `/compact Keep only what helps with the next task: ${focus}. ${TERSE_SUMMARY}`;
   // Claude Code puts a blocked prompt back in the input; Ctrl-C clears it first.
@@ -746,7 +794,7 @@ async function warmLoop(job) {
     const u = await warmPing(job, model);
     const read = u ? u.cache_read_input_tokens || 0 : 0;
     if (read < job.ctx * 0.8) { logEvent('warm-miss', read); break; } // pinging would only add cost
-    logEvent('warm', read);
+    logEvent('warm', read, { write: u.cache_creation_input_tokens || 0 });
     const cost = read * 0.1 + (u.cache_creation_input_tokens || 0) * w + (u.input_tokens || 0);
     spent += cost;
     if (spent + cost > rewrite / 2) break;

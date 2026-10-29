@@ -19,7 +19,7 @@
 <link rel="icon" href="favicon.png">
 <link rel="preload" href="fonts/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/instrument-serif-latin-400-italic.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=4a650334">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -56,18 +56,18 @@
     <p>Restart Claude Code. You'll be asked for four settings; the defaults are fine.</p>
 
     <h2 id="commands">Commands</h2>
+    <p>One short command per action. Type <code>/ghosted</code> for the list.</p>
     <div class="tablewrap"><table>
       <thead><tr><th scope="col">Command</th><th scope="col">What it does</th></tr></thead>
       <tbody>
-        <tr><td><code>/ghosted stats</code></td><td>Task switches, warm pings, mid-run compactions, judge calls and what they cost.</td></tr>
-        <tr><td><code>/ghosted warm 2h</code> · <code>warm off</code></td><td>Keep the prompt cache warm this long after your last turn.</td></tr>
-        <tr><td><code>/ghosted full</code> · <code>lite</code> · <code>auto</code> · <code>off</code></td><td>Terse answer level. <code>auto</code> is full, or off while caveman is active.</td></tr>
-        <tr><td><code>/ghosted max 250k</code> · <code>max off</code></td><td>Compact mid-run at this context size, then continue.</td></tr>
-        <tr><td><code>/ghosted setup</code> · <code>setup off</code></td><td>Auto-typing in any terminal (VS Code, Ghostty, Alacritty). Run once, then open a new terminal.</td></tr>
-        <tr><td><code>/ghosted pause</code> · <code>resume</code></td><td>Turn ghosted_ off or on.</td></tr>
-        <tr><td><code>/ghosted reset</code> · <code>help</code></td><td>Back to your <code>/config</code> settings · list the commands.</td></tr>
-        <tr><td><code>/ghosted:recall &lt;words&gt;</code></td><td>Find archived work.</td></tr>
-        <tr><td><code>new:</code> · <code>same:</code> before a prompt</td><td>Force or block a task switch for that prompt.</td></tr>
+        <tr><td><code>/ghosted-stats</code></td><td>Opens your local dashboard: switches, tokens dropped, estimated savings, warm pings, judge spend and archive search.</td></tr>
+        <tr><td><code>/ghosted-terse</code> · <code>lite</code> · <code>off</code></td><td>Terse answers on, lighter, or off.</td></tr>
+        <tr><td><code>/ghosted-warm</code> · <code>90m</code> · <code>off</code></td><td>Keep the cache warm for 2h, or the time you give, after your last turn.</td></tr>
+        <tr><td><code>/ghosted-off</code> · <code>/ghosted-on</code></td><td>Pause or resume everything.</td></tr>
+        <tr><td><code>/ghosted-setup</code> · <code>off</code></td><td>Auto-typing in any terminal (VS Code, Ghostty, Alacritty).</td></tr>
+        <tr><td><code>/ghosted-recall &lt;words&gt;</code></td><td>Find archived work.</td></tr>
+        <tr><td><code>new:</code> · <code>same:</code> before a prompt</td><td>Force or block a task switch.</td></tr>
+        <tr><td><code>/ghosted max 250k</code></td><td>Compact mid-run past this context size, then continue.</td></tr>
       </tbody>
     </table></div>
 
@@ -120,7 +120,7 @@
     <p>To delete its archives and stats, remove <code>~/.claude/plugins/data/ghosted-ghosted</code>. Nothing is stored anywhere else.</p>
 
     <h2 id="faq">FAQ</h2>
-    <details><summary>Will it clear something I still needed?</summary><p>Rarely: 0 wrong switches in the latest 64 test prompts, and the judge answers “same” when unsure. If it happens, the old chat is archived and <code>/ghosted:recall</code> finds it. Start a prompt with <code>same:</code> to block a switch.</p></details>
+    <details><summary>Will it clear something I still needed?</summary><p>Rarely: 0 wrong switches in the latest 64 test prompts, and the judge answers “same” when unsure. If it happens, the old chat is archived and <code>/ghosted-recall</code> finds it. Start a prompt with <code>same:</code> to block a switch.</p></details>
     <details><summary>Why clear instead of compact?</summary><p>A compact summary still carries a lot of old text and costs a model call to write. Clearing with a few carried facts saved 70%; compacting saved 34%.</p></details>
     <details><summary>I already use caveman. Do I need both?</summary><p>They stack: $3.32 per run with caveman alone, $0.92 with ghosted_ added. ghosted_'s own terse mode steps aside while caveman is active.</p></details>
     <details><summary>Nothing happened after “new task detected”.</summary><p>Your terminal can't be typed into from outside, or macOS automation permission was declined. Run <code>/clear</code>, then type <code>go</code>; your task comes back. To make it automatic, run <code>/ghosted setup</code> once.</p></details>
@@ -149,6 +149,6 @@
   </div>
   <div class="wordmark" aria-hidden="true">ghosted_</div>
 </footer>
-<script src="site.js"></script>
+<script src="site.js?v=4a650334"></script>
 </body>
 </html>

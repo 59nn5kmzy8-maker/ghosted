@@ -19,7 +19,7 @@
 <link rel="icon" href="favicon.png">
 <link rel="preload" href="fonts/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/instrument-serif-latin-400-italic.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=4a650334">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -34,11 +34,10 @@
 </header>
 <main id="main">
 <style>
-  .hero { text-align: center; padding: 112px 0 64px; }
-  .hero .mark { width: 44px; height: 44px; margin: 0 auto 34px; display: block; }
-  .hero h1 { font-size: clamp(44px, 7.2vw, 96px); max-width: 980px; margin: 0 auto 22px; }
-  .hero .lede { margin: 0 auto 34px; text-align: center; }
-  .hero .row-cta { justify-content: center; }
+  .hero { display: grid; grid-template-columns: 1.35fr .65fr; gap: 40px; align-items: center; padding: 104px 0 72px; }
+  .hero h1 { font-size: clamp(44px, 6.6vw, 88px); margin: 0 0 22px; }
+  .hero .lede { margin: 0 0 32px; }
+  #ghost { width: 100%; aspect-ratio: 1; display: block; opacity: .9; }
   .cmdpill { display: inline-flex; align-items: center; gap: 14px; height: 44px; padding: 0 6px 0 18px; border: 1px solid var(--line2); border-radius: 999px; background: var(--s1); font: 13px var(--mono); color: var(--dim); }
   .cmdpill b { color: var(--hi); font-weight: 400; }
   .stars { display: inline-flex; gap: 8px; align-items: center; margin-top: 26px; font-size: 13.5px; color: var(--dim); text-decoration: none; }
@@ -79,23 +78,37 @@
     .frame .tlog { font-size: 11.5px; padding: 16px; }
     .nums, .feat { grid-template-columns: 1fr; } .nums > div + div, .feat > div + div { padding-left: 0; border-left: 0; }
     .cmdpill { display: none; }
-    .hero { padding-top: 64px; }
+    .hero { grid-template-columns: 1fr; padding-top: 56px; } #ghost { max-width: 220px; order: -1; }
   }
+  .dashframe iframe { display: block; width: 100%; height: 860px; border: 0; background: #050505; }
+  @media (max-width: 900px) { .dashframe iframe { height: 720px; } }
 </style>
 
 <div class="wrap">
   <section class="hero">
-    <img class="mark" src="favicon.png" alt="" width="44" height="44">
-    <h1>Stop paying for context you no longer <em>need.</em></h1>
-    <p class="lede">ghosted_ clears finished work when you start something new, starts your task for you, and keeps your cache warm while you're away.</p>
-    <div class="row-cta">
-      <span class="cmdpill">$ <b>claude plugin install ghosted@ghosted</b><button type="button" class="btn sm" data-copy="claude plugin marketplace add giovanbelle/ghosted\nclaude plugin install ghosted@ghosted" aria-label="Copy both install commands">Copy</button></span>
-      <a class="btn primary" href="docs.html">Get started</a>
+    <div>
+      <p class="kicker">Claude Code plugin · free and open source</p>
+      <h1>Stop paying for context you no longer <em>need.</em></h1>
+      <p class="lede">ghosted_ clears finished work when you start something new, starts your task for you, and keeps your cache warm while you're away.</p>
+      <div class="row-cta">
+        <span class="cmdpill">$ <b>claude plugin install ghosted@ghosted</b><button type="button" class="btn sm" data-copy="claude plugin marketplace add giovanbelle/ghosted\nclaude plugin install ghosted@ghosted" aria-label="Copy both install commands">Copy</button></span>
+        <a class="btn primary" href="docs.html">Get started</a>
+      </div>
+      <a class="stars" href="https://github.com/giovanbelle/ghosted">Open source on GitHub · Apache-2.0 →</a>
     </div>
-    <a class="stars" href="https://github.com/giovanbelle/ghosted">Open source on GitHub · Apache-2.0 →</a>
+    <canvas id="ghost" data-src="ghost.png" aria-hidden="true"></canvas>
   </section>
 
-  <div class="frame rv" role="img" aria-label="Example Claude Code session in a terminal: a task switch at 176k tokens of context, the cleared session starting the new task at 18k, then the /ghosted stats output.">
+  <div class="rv">
+    <div class="frame dashframe">
+      <div class="bar"><i></i><i></i><i></i><span>127.0.0.1:4747 · opened by /ghosted-stats</span></div>
+      <iframe src="dashboard-demo.html" title="The ghosted_ dashboard with sample data" loading="lazy"></iframe>
+      <div class="foot"><span>Your dashboard · sample data · scroll inside</span><span>Runs on your machine, only you can open it</span></div>
+    </div>
+  </div>
+
+  <section style="padding-top:72px"><div class="shead rv"><p class="kicker">In your terminal</p><h2>Nothing new to learn.</h2><p>You type as usual. When a prompt starts something new, this is all you see.</p></div>
+  <div class="frame rv" role="img" aria-label="Example Claude Code session in a terminal: a task switch at 176k tokens of context, the cleared session starting the new task at 18k, then the /ghosted-stats output.">
     <div class="bar"><i></i><i></i><i></i><span>claude · ~/my-app</span></div>
     <div class="cols">
       <div class="tlog" id="demo">
@@ -107,7 +120,7 @@
         <div class="l">⏺ Reading src/settings/SettingsPage.tsx · context 18k</div>
         <div class="l">⏺ Added a theme toggle and dark tokens in src/theme.ts</div>
         <div class="l">&nbsp;</div>
-        <div class="l u">/ghosted stats</div>
+        <div class="l u">/ghosted-stats</div>
 <pre class="l">ghosted_ stats
   task switches        12  (last 12: 1,458k tokens of old
                            conversation no longer re-sent each turn)
@@ -118,8 +131,9 @@
                        warm 120m, judge above 20k</pre>
       </div>
     </div>
-    <div class="foot"><span>Example session · numbers illustrative</span><span>Your numbers: /ghosted stats</span></div>
+    <div class="foot"><span>Example session · numbers illustrative</span><span>Your numbers: /ghosted-stats</span></div>
   </div>
+  </section>
 
   <section>
     <p class="kicker rv">What it does</p>
@@ -159,7 +173,7 @@
     <div class="feat rv">
       <div><p class="k">Task switch</p><h3>Clean context, same flow</h3><p>A Haiku judge spots a new task for $0.0013. The old chat is archived, <code>/clear</code> is typed for you, and your prompt starts.</p></div>
       <div><p class="k">Cache warming</p><h3>Breaks don't reset the cache</h3><p>While you're away, a hidden copy of the session keeps the prompt cache alive for a tenth of the input price, so coming back doesn't rewrite it at up to 2×.</p></div>
-      <div><p class="k">Terse and recall</p><h3>Less to read, nothing lost</h3><p>Compressed answers in the terminal, 19% cheaper. <code>/ghosted:recall</code> brings back any cleared conversation.</p></div>
+      <div><p class="k">Terse and recall</p><h3>Less to read, nothing lost</h3><p>Compressed answers in the terminal, 19% cheaper. <code>/ghosted-recall</code> brings back any cleared conversation.</p></div>
     </div>
   </section>
 
@@ -193,6 +207,6 @@
   </div>
   <div class="wordmark" aria-hidden="true">ghosted_</div>
 </footer>
-<script src="site.js"></script>
+<script src="site.js?v=4a650334"></script>
 </body>
 </html>

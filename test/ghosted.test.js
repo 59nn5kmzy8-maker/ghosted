@@ -214,7 +214,8 @@ test('/ghosted command: terse level, max, pause, stats, help', () => {
   assert.equal(run('start', {}, env), null);
   assert.match(cmd('stats'), /mid-run compactions  1[\s\S]*PAUSED/);
   assert.match(cmd('reset'), /cleared/);
-  assert.match(cmd(), /\/ghosted full \| lite/);
+  assert.match(cmd(), /\/ghosted-stats[\s\S]*\/ghosted-off/);
+  assert.match(cmd("help"), /\/ghosted full \| lite/);
   // arguments on stdin, as the skill passes them
   assert.match(spawnSync(process.execPath, [SCRIPT, 'cmd', s.dir], { input: 'full\n', encoding: 'utf8' }).stdout, /terse: full/);
 });
@@ -249,4 +250,24 @@ test('stop: starts one warmer per session above the threshold, none when off or 
   await new Promise(r => setTimeout(r, 500));
   assert.throws(() => process.kill(first, 0), 'old warmer stopped');
   process.kill(second, 'SIGTERM');
+});
+
+test('/ghosted-stats starts a local dashboard that needs its token', async () => {
+  const s = setup();
+  fs.writeFileSync(path.join(s.dir, 'events.jsonl'), JSON.stringify({ ts: new Date().toISOString(), kind: 'switch', tokens: 150000, old: 'auth', focus: 'dark mode' }) + '\n');
+  const env = { ...process.env, GHOSTED_NO_OPEN: '1' };
+  const out = spawnSync(process.execPath, [SCRIPT, 'cmd', s.dir, 'dashboard'], { encoding: 'utf8', input: '', env }).stdout;
+  const url = (out.match(/http:\/\/127\.0\.0\.1:\d+\/\?t=\w+/) || [])[0];
+  assert.ok(url, out);
+  const info = JSON.parse(fs.readFileSync(path.join(s.dir, 'dashboard.json'), 'utf8'));
+  try {
+    const api = await (await fetch(url.replace('/?', '/api/stats?'))).json();
+    assert.equal(api.events[0].tokens, 150000);
+    assert.equal((await fetch(url.replace(/t=\w+/, 't=wrong'))).status, 403);
+    // a second call reuses the running dashboard
+    const again = spawnSync(process.execPath, [SCRIPT, 'cmd', s.dir, 'dashboard'], { encoding: 'utf8', input: '', env }).stdout;
+    assert.ok(again.includes(url));
+  } finally {
+    process.kill(info.pid);
+  }
 });
