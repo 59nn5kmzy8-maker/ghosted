@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Legal · ghosted_</title>
+<meta name="description" content="Privacy notice, terms of use, license and trademark notice for ghosted_, an open-source Claude Code plugin.">
+<link rel="canonical" href="https://giovanbelle.github.io/ghosted/legal.html">
+<meta name="theme-color" content="#000000">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://giovanbelle.github.io/ghosted/legal.html">
+<meta property="og:title" content="Legal · ghosted_">
+<meta property="og:description" content="Privacy notice, terms of use, license and trademark notice for ghosted_, an open-source Claude Code plugin.">
+<meta property="og:image" content="https://giovanbelle.github.io/ghosted/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://giovanbelle.github.io/ghosted/og.png">
+<link rel="icon" href="favicon.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="./"><img src="favicon.png" alt="ghosted_ home" width="24" height="24"><span>ghosted_</span></a>
+    <nav class="tabs" aria-label="Pages"><a href="./">Overview</a><a href="how-it-works.html">How it works</a><a href="benchmarks.html">Benchmarks</a><a href="docs.html">Docs</a><a href="legal.html" aria-current="page">Legal</a></nav>
+    <a class="ghbtn" href="https://github.com/giovanbelle/ghosted"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span>GitHub</span><b id="stars">★</b></a>
+  </div>
+</header>
+<main id="main">
+<div class="wrap">
+  <section class="phead">
+    <p class="kicker">Legal</p>
+    <h1>Plain-language legal.</h1>
+    <p class="lede">ghosted_ is free, open-source software that runs on your own computer. There is no account, no server and no data collection.</p>
+  </section>
+
+  <section style="padding-top:48px">
+    <div class="tablist" role="tablist" aria-label="Legal documents" data-hash="1">
+      <button role="tab" id="t-privacy" aria-controls="privacy-p" data-key="privacy">Privacy</button>
+      <button role="tab" id="t-terms" aria-controls="terms-p" data-key="terms">Terms</button>
+      <button role="tab" id="t-license" aria-controls="license-p" data-key="license">License</button>
+      <button role="tab" id="t-tm" aria-controls="tm-p" data-key="trademarks">Trademarks</button>
+    </div>
+
+    <article role="tabpanel" id="privacy-p" aria-labelledby="t-privacy" class="legal">
+      <p class="upd">Last updated 29 October 2026</p>
+      <h2>Privacy notice</h2>
+      <div class="callout">In short: the author of ghosted_ receives none of your data. The plugin stores its files on your computer, and the only thing it sends anywhere is a short excerpt to Claude, through your own Claude Code login, when it needs to decide whether you started a new task.</div>
+
+      <h3>What the plugin processes</h3>
+      <ul>
+        <li><b>Task-switch check.</b> When your context is above the threshold and a prompt isn't an obvious follow-up, ghosted_ sends Anthropic's Claude Haiku model the start of the conversation (up to 2,000 characters), its end (up to 6,000 characters) and your new prompt (up to 4,000 characters). It runs through the <code>claude</code> command-line tool you are already signed in to, so Anthropic processes this under your own agreement with Anthropic and <a href="https://www.anthropic.com/legal/privacy">Anthropic's privacy policy</a>.</li>
+        <li><b>Archive.</b> When the context is cleared, the old conversation is saved to <code>~/.claude/plugins/data/ghosted-ghosted</code> on your computer, with file permissions that let only your user account read it.</li>
+        <li><b>Stats and settings.</b> Counts of task switches and judge costs, and the settings you choose with <code>/ghosted</code>, are stored in the same folder.</li>
+      </ul>
+
+      <h3>What the plugin does not do</h3>
+      <ul>
+        <li>No telemetry, analytics, tracking or crash reporting.</li>
+        <li>No connection to any server run by the author.</li>
+        <li>No selling or sharing of data, because the author has none.</li>
+      </ul>
+
+      <h3>Your control</h3>
+      <p>Pause the plugin with <code>/ghosted pause</code>, or set <code>GHOSTED_OFF=1</code>. Delete everything it stored by removing the folder above. Uninstall with <code>claude plugin uninstall ghosted@ghosted</code>. Because the author holds no personal data about you, there is nothing to request, correct or delete from the author.</p>
+
+      <h3>This website</h3>
+      <p>The site is hosted on GitHub Pages. GitHub may log technical data such as your IP address when you visit; see <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub's privacy statement</a>. The page asks the public GitHub API for the repository's star count from your browser. The site sets no cookies and runs no analytics.</p>
+
+      <h3>Contact</h3>
+      <p>Questions about privacy: <a href="https://github.com/giovanbelle/ghosted/issues">open an issue on GitHub</a>.</p>
+    </article>
+
+    <article role="tabpanel" id="terms-p" aria-labelledby="t-terms" class="legal" hidden>
+      <p class="upd">Last updated 29 October 2026</p>
+      <h2>Terms of use</h2>
+      <div class="callout">The license below is the binding text. These terms explain in plain words what it means for you.</div>
+      <h3>1. The software</h3>
+      <p>ghosted_ is provided free of charge under the Apache License 2.0. You may use, copy, modify and distribute it under that license.</p>
+      <h3>2. No warranty</h3>
+      <p>The software is provided “as is”, without warranties or conditions of any kind. It may contain bugs. You use it at your own risk.</p>
+      <h3>3. Your usage costs</h3>
+      <p>Your use of Claude and Claude Code, including the small model calls the plugin makes, is billed or counted against your plan by Anthropic under your agreement with Anthropic. The savings on this website are measurements from specific test runs, not a promise of what you will save.</p>
+      <h3>4. What the plugin does on your computer</h3>
+      <p>On a detected task switch, ghosted_ clears or compacts your Claude Code conversation and, in supported terminals, types commands into the terminal window running Claude Code. A wrong decision can remove context you still needed; the old conversation stays in the local archive. Review its behavior before using it on work where that matters, and use <code>same:</code> or <code>/ghosted pause</code> when needed.</p>
+      <h3>5. Third-party terms</h3>
+      <p>You remain bound by Anthropic's terms for Claude and Claude Code. ghosted_ does not change them.</p>
+      <h3>6. Limitation of liability</h3>
+      <p>To the extent permitted by law, the author is not liable for any damages arising from the use of, or inability to use, the software, as set out in sections 7 and 8 of the Apache License 2.0.</p>
+      <h3>7. Changes</h3>
+      <p>These terms may be updated. The date at the top shows the latest version, and the history is public in the <a href="https://github.com/giovanbelle/ghosted">GitHub repository</a>.</p>
+    </article>
+
+    <article role="tabpanel" id="license-p" aria-labelledby="t-license" class="legal" hidden>
+      <h2>License</h2>
+      <p>Copyright 2026 Gio van Belle. Licensed under the Apache License, Version 2.0.</p>
+      <div class="grid3" style="margin:22px 0">
+        <div class="panel"><h3>You may</h3><p>Use it commercially, modify it, distribute it, and use it privately.</p></div>
+        <div class="panel"><h3>You must</h3><p>Keep the license and NOTICE file, and state changes you made to the files.</p></div>
+        <div class="panel"><h3>You get no</h3><p>Warranty, liability from the author, or right to use the ghosted_ name and logo as your own.</p></div>
+      </div>
+      <p>Full text: <a href="https://github.com/giovanbelle/ghosted/blob/main/LICENSE">LICENSE</a> · <a href="https://github.com/giovanbelle/ghosted/blob/main/NOTICE">NOTICE</a> · <a href="https://www.apache.org/licenses/LICENSE-2.0">apache.org</a></p>
+    </article>
+
+    <article role="tabpanel" id="tm-p" aria-labelledby="t-tm" class="legal" hidden>
+      <h2>Trademarks</h2>
+      <p>ghosted_ is an independent open-source project. It is not affiliated with, endorsed by or sponsored by Anthropic, PBC.</p>
+      <p>Claude, Claude Code and Anthropic are trademarks of Anthropic, PBC. caveman and other product names mentioned on this site belong to their respective owners and are used only to describe compatibility and comparisons.</p>
+      <p>The ghosted_ name and ghost logo identify this project. Forks are welcome under the license, but please use your own name and logo for them, as section 6 of the Apache License 2.0 provides.</p>
+    </article>
+  </section>
+</div>
+</main>
+<footer>
+  <div class="wrap">
+    <div>ghosted_ · Apache-2.0 · © 2026 Gio van Belle
+      <small>Independent project. Not affiliated with, endorsed by or sponsored by Anthropic. Claude and Claude Code are trademarks of Anthropic, PBC.</small>
+    </div>
+    <div class="fl">
+      <a href="docs.html">Docs</a>
+      <a href="legal.html#privacy">Privacy</a>
+      <a href="legal.html#terms">Terms</a>
+      <a href="legal.html#license">License</a>
+      <a href="https://github.com/giovanbelle/ghosted">GitHub</a>
+      <a href="https://github.com/giovanbelle/ghosted/issues">Issues</a>
+    </div>
+  </div>
+</footer>
+<script src="site.js"></script>
+</body>
+</html>

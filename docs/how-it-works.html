@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How it works · ghosted_</title>
+<meta name="description" content="How ghosted_ decides a prompt is a new task, clears Claude Code's context and starts the task, with diagrams of every step.">
+<link rel="canonical" href="https://giovanbelle.github.io/ghosted/how-it-works.html">
+<meta name="theme-color" content="#000000">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://giovanbelle.github.io/ghosted/how-it-works.html">
+<meta property="og:title" content="How it works · ghosted_">
+<meta property="og:description" content="How ghosted_ decides a prompt is a new task, clears Claude Code's context and starts the task, with diagrams of every step.">
+<meta property="og:image" content="https://giovanbelle.github.io/ghosted/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://giovanbelle.github.io/ghosted/og.png">
+<link rel="icon" href="favicon.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="./"><img src="favicon.png" alt="ghosted_ home" width="24" height="24"><span>ghosted_</span></a>
+    <nav class="tabs" aria-label="Pages"><a href="./">Overview</a><a href="how-it-works.html" aria-current="page">How it works</a><a href="benchmarks.html">Benchmarks</a><a href="docs.html">Docs</a><a href="legal.html">Legal</a></nav>
+    <a class="ghbtn" href="https://github.com/giovanbelle/ghosted"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span>GitHub</span><b id="stars">★</b></a>
+  </div>
+</header>
+<main id="main">
+<div class="wrap">
+  <section class="phead">
+    <p class="kicker">How it works</p>
+    <h1>Two hooks and one cheap question.</h1>
+    <p class="lede">ghosted_ runs inside Claude Code on every prompt. Most prompts pass straight through in about 55ms. Only a likely task switch reaches the judge.</p>
+  </section>
+
+  <section aria-labelledby="flow-h" style="padding-top:56px">
+    <div class="shead rv"><h2 id="flow-h">The decision path</h2><p>Every arrow down means your prompt goes through untouched.</p></div>
+    <figure class="fig rv" style="margin:0">
+      <svg viewBox="0 0 1000 300" role="img" aria-label="Flowchart. Your prompt goes to quick checks. Small context, slash commands, obvious follow-ups and same: prompts pass through. Otherwise the Haiku judge decides. Same task, unsure or error passes through. New task: archive and clear, then the prompt is restored and the task starts.">
+        <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#9a9a9a"/></marker></defs>
+        <g font-family="-apple-system,sans-serif" font-size="15" text-anchor="middle">
+          <rect x="10" y="40" width="160" height="64" rx="12" fill="#111" stroke="#2e2e2e"/><text x="90" y="77" fill="#f5f5f5">Your prompt</text>
+          <rect x="210" y="40" width="170" height="64" rx="12" fill="#111" stroke="#2e2e2e"/><text x="295" y="70" fill="#f5f5f5">Quick checks</text><text x="295" y="90" fill="#5e5e5e" font-size="12" font-family="ui-monospace,Menlo,monospace">~55ms, no model</text>
+          <rect x="420" y="40" width="170" height="64" rx="12" fill="#111" stroke="#2e2e2e"/><text x="505" y="70" fill="#f5f5f5">Haiku judge</text><text x="505" y="90" fill="#5e5e5e" font-size="12" font-family="ui-monospace,Menlo,monospace">~3.5s · $0.0013</text>
+          <rect x="630" y="40" width="160" height="64" rx="12" fill="#111" stroke="#2e2e2e"/><text x="710" y="70" fill="#f5f5f5">Archive</text><text x="710" y="90" fill="#f5f5f5">+ /clear</text>
+          <rect x="830" y="40" width="160" height="64" rx="12" fill="#f5f5f5"/><text x="910" y="70" fill="#000" font-weight="600">Task starts</text><text x="910" y="90" fill="#333" font-size="12" font-family="ui-monospace,Menlo,monospace">prompt + 5 facts</text>
+          <rect x="210" y="226" width="380" height="54" rx="12" fill="none" stroke="#2e2e2e" stroke-dasharray="5 5"/><text x="400" y="259" fill="#9a9a9a">Passes through unchanged</text>
+        </g>
+        <g stroke="#9a9a9a" stroke-width="1.5" fill="none" marker-end="url(#ar)">
+          <path d="M170,72 H206"/><path d="M380,72 H416"/><path d="M590,72 H626"/><path d="M790,72 H826"/>
+          <path d="M295,104 V222"/><path d="M505,104 V222"/>
+        </g>
+        <g font-family="ui-monospace,Menlo,monospace" font-size="11.5" fill="#9a9a9a">
+          <text x="398" y="62" text-anchor="middle">else</text><text x="608" y="62" text-anchor="middle">new</text>
+          <text x="287" y="140" text-anchor="end">small context</text><text x="287" y="156" text-anchor="end">slash command</text><text x="287" y="172" text-anchor="end">"fix it", "that file"</text><text x="287" y="188" text-anchor="end">same: prompt</text>
+          <text x="515" y="148">same task</text><text x="515" y="164">unsure</text><text x="515" y="180">error or timeout</text>
+        </g>
+      </svg>
+      <figcaption>Anything that fails, fails open: the prompt goes through as if ghosted_ weren't installed.</figcaption>
+    </figure>
+  </section>
+
+  <section aria-labelledby="feat-h">
+    <div class="shead rv"><h2 id="feat-h">Features</h2><p>Pick a tab to see what you'd see in your terminal.</p></div>
+    <div class="rv">
+      <div class="tablist" role="tablist" aria-label="Features">
+        <button role="tab" id="t-switch" aria-controls="p-switch" data-key="switch">Task switch</button>
+        <button role="tab" id="t-terse" aria-controls="p-terse" data-key="terse">Terse answers</button>
+        <button role="tab" id="t-recall" aria-controls="p-recall" data-key="recall">Recall</button>
+        <button role="tab" id="t-long" aria-controls="p-long" data-key="long">Long runs</button>
+        <button role="tab" id="t-ctl" aria-controls="p-ctl" data-key="ctl">Overrides</button>
+      </div>
+
+      <div role="tabpanel" id="p-switch" aria-labelledby="t-switch" class="panel">
+        <div class="tabbody">
+          <div><h3>Task switch <code>on</code></h3><p>Above 20k tokens of context, a prompt that starts something new triggers a clean restart.</p>
+            <ul><li>Old chat archived, readable only by you</li><li>Prompt restored and started automatically</li><li>Up to 5 facts from the old work carried over</li></ul></div>
+          <div class="term"><div class="tbar"><i></i><i></i><i></i><span>context 176k → 18k</span></div><div class="tlog">
+            <div class="l u">now write the release notes</div><div class="l g">ghosted: new task detected, clearing first.</div><div class="l u">/clear</div><div class="l u">Start the pending task.</div><div class="l">● Reading CHANGELOG.md</div></div></div>
+        </div>
+      </div>
+
+      <div role="tabpanel" id="p-terse" aria-labelledby="t-terse" class="panel" hidden>
+        <div class="tabbody">
+          <div><h3>Terse answers <code>auto</code></h3><p>Short notes in the terminal instead of paragraphs. Code and files Claude writes stay normal.</p>
+            <ul><li>20% less text, 19% lower cost in tests</li><li>Steps aside when caveman is installed</li><li><code>/ghosted full</code>, <code>lite</code> or <code>off</code></li></ul></div>
+          <div class="grid2" style="gap:10px">
+            <div class="term"><div class="tbar"><span>off</span></div><div class="tlog" style="font-size:12px"><div class="l d">I've looked into the issue and it seems the problem is that the token expiry check uses a strict less-than comparison, which means…</div></div></div>
+            <div class="term"><div class="tbar"><span>full</span></div><div class="tlog" style="font-size:12px"><div class="l">Bug in auth middleware. Expiry check uses &lt; not &lt;=. Fix:</div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div role="tabpanel" id="p-recall" aria-labelledby="t-recall" class="panel" hidden>
+        <div class="tabbody">
+          <div><h3>Recall <code>on</code></h3><p>Every cleared conversation is indexed on your machine. Ask for it back in a few words.</p>
+            <ul><li>Ranked search over past tasks</li><li>Returns a short digest, not the whole chat</li><li>Nothing leaves your machine</li></ul></div>
+          <div class="term"><div class="tbar"><i></i><i></i><i></i><span>recall</span></div><div class="tlog">
+            <div class="l u">/ghosted:recall auth expiry</div><div class="l d">  1 match · 2026-10-28 · "fix the auth flow"</div><div class="l">  Expiry check changed to &lt;=, test added in auth.test.ts…</div></div></div>
+        </div>
+      </div>
+
+      <div role="tabpanel" id="p-long" aria-labelledby="t-long" class="panel" hidden>
+        <div class="tabbody">
+          <div><h3>Long runs <code>opt-in</code></h3><p>For runs that go on long after their early context went stale. Off by default, because in single runs it cost more than it saved.</p>
+            <ul><li>Set a limit: <code>/ghosted max 250k</code></li><li>Past it: stop, <code>/compact</code>, continue</li><li><code>/ghosted max off</code> to turn it off</li></ul></div>
+          <div class="term"><div class="tbar"><i></i><i></i><i></i><span>limit 250k</span></div><div class="tlog">
+            <div class="l">● Editing src/api/routes.ts</div><div class="l g">ghosted: context at 251k (limit 250k), compacting.</div><div class="l u">/compact</div><div class="l u">Continue where you left off.</div><div class="l">● Editing src/api/handlers.ts</div></div></div>
+        </div>
+      </div>
+
+      <div role="tabpanel" id="p-ctl" aria-labelledby="t-ctl" class="panel" hidden>
+        <div class="tabbody">
+          <div><h3>Overrides</h3><p>One word at the start of a prompt decides for the judge.</p>
+            <ul><li><code>same:</code> never switch on this prompt</li><li><code>new:</code> always switch, no judge</li><li><code>/ghosted pause</code> turns everything off</li></ul></div>
+          <div class="term"><div class="tbar"><i></i><i></i><i></i><span>overrides</span></div><div class="tlog">
+            <div class="l u">same: now do the same for the admin page</div><div class="l d">  passes through, no judge</div><div class="l u">new: plan next week's sprint</div><div class="l g">ghosted: new task detected, clearing first.</div></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="plat-h">
+    <div class="shead rv"><h2 id="plat-h">Platforms</h2><p>The judge, recall and terse answers work everywhere. Typing the command for you depends on the terminal.</p></div>
+    <div class="tablewrap rv">
+      <table>
+        <thead><tr><th scope="col">Terminal</th><th scope="col">Judge · recall · terse</th><th scope="col">Types /clear for you</th></tr></thead>
+        <tbody>
+          <tr><td>macOS Terminal.app</td><td class="ok">Yes</td><td class="ok">Yes, asks once for automation permission</td></tr>
+          <tr><td>Windows console</td><td class="ok">Yes</td><td class="ok">Yes, tested in CI</td></tr>
+          <tr><td>iTerm, tmux, VS Code, Linux</td><td class="ok">Yes</td><td class="no">Shows the command; you run it, then type <code>go</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+</main>
+<footer>
+  <div class="wrap">
+    <div>ghosted_ · Apache-2.0 · © 2026 Gio van Belle
+      <small>Independent project. Not affiliated with, endorsed by or sponsored by Anthropic. Claude and Claude Code are trademarks of Anthropic, PBC.</small>
+    </div>
+    <div class="fl">
+      <a href="docs.html">Docs</a>
+      <a href="legal.html#privacy">Privacy</a>
+      <a href="legal.html#terms">Terms</a>
+      <a href="legal.html#license">License</a>
+      <a href="https://github.com/giovanbelle/ghosted">GitHub</a>
+      <a href="https://github.com/giovanbelle/ghosted/issues">Issues</a>
+    </div>
+  </div>
+</footer>
+<script src="site.js"></script>
+</body>
+</html>

@@ -10,500 +10,137 @@
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://giovanbelle.github.io/ghosted/">
 <meta property="og:title" content="ghosted_ · stop paying for context you no longer need">
-<meta property="og:description" content="Open-source Claude Code plugin. Clears the old conversation when you switch task, then starts your task. 70% cheaper in 36 measured runs.">
+<meta property="og:description" content="Open-source Claude Code plugin. When you switch task, ghosted_ clears the old conversation and starts your new task for you. Measured 70% cheaper across 36 real runs.">
 <meta property="og:image" content="https://giovanbelle.github.io/ghosted/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://giovanbelle.github.io/ghosted/og.png">
 <link rel="icon" href="favicon.png">
-<script type="application/ld+json">
-{"@context":"https://schema.org","@type":"SoftwareApplication","name":"ghosted_","applicationCategory":"DeveloperApplication","operatingSystem":"macOS, Windows, Linux","license":"https://www.apache.org/licenses/LICENSE-2.0","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"url":"https://giovanbelle.github.io/ghosted/","codeRepository":"https://github.com/giovanbelle/ghosted"}
-</script>
-<style>
-  :root {
-    --bg: #000; --fg: #fafafa; --dim: #8b8b8b; --faint: #5a5a5a; --line: rgba(255,255,255,.09); --line2: rgba(255,255,255,.16);
-    --card: rgba(255,255,255,.025); --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
-    --ease: cubic-bezier(.2,.8,.2,1);
-  }
-  * { box-sizing: border-box; }
-  html { background: var(--bg); color: var(--fg); scroll-behavior: smooth; }
-  body { margin: 0; font: 16.5px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
-  a { color: inherit; }
-  :focus-visible { outline: 2px solid var(--fg); outline-offset: 3px; border-radius: 6px; }
-  .skip { position: absolute; left: -999px; }
-  .skip:focus { left: 16px; top: 16px; background: var(--fg); color: var(--bg); padding: 8px 12px; z-index: 20; }
-  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; position: relative; }
-  code { font-family: var(--mono); font-size: .88em; background: rgba(255,255,255,.07); padding: 2px 6px; border-radius: 5px; }
-
-  /* Background: masked grid, cursor spotlight */
-  .bg { position: fixed; inset: 0; z-index: -1; pointer-events: none; }
-  .bg::before { content: ""; position: absolute; inset: 0; background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px); background-size: 64px 64px; mask-image: radial-gradient(ellipse 70% 55% at 50% 0%, #000 30%, transparent 75%); -webkit-mask-image: radial-gradient(ellipse 70% 55% at 50% 0%, #000 30%, transparent 75%); opacity: .55; }
-  .bg::after { content: ""; position: absolute; inset: 0; background: radial-gradient(600px circle at var(--mx, 50%) var(--my, 0%), rgba(255,255,255,.07), transparent 60%); }
-  .glow { position: absolute; top: -260px; left: 50%; width: 900px; max-width: 100vw; height: 520px; transform: translateX(-50%); background: radial-gradient(closest-side, rgba(255,255,255,.13), transparent); filter: blur(20px); pointer-events: none; }
-
-  /* Nav */
-  #nav { position: sticky; top: 0; z-index: 10; backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); background: rgba(0,0,0,.6); border-bottom: 1px solid transparent; transition: border-color .3s; }
-  #nav.scrolled { border-bottom-color: var(--line); }
-  #nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 62px; }
-  .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; font: 600 16px/1 var(--mono); }
-  .brand img { width: 26px; height: 26px; }
-  .links { display: flex; align-items: center; gap: 26px; font-size: 14.5px; }
-  .links a { color: var(--dim); text-decoration: none; transition: color .2s; }
-  .links a:hover { color: var(--fg); }
-  .links .gh { color: var(--fg); display: inline-flex; gap: 8px; align-items: center; border: 1px solid var(--line2); border-radius: 999px; padding: 7px 14px; }
-  .links .gh:hover { border-color: var(--fg); }
-  .links .gh b { font: 500 12.5px var(--mono); color: var(--dim); }
-
-  /* Buttons */
-  .btn { position: relative; display: inline-flex; align-items: center; gap: 10px; height: 46px; padding: 0 20px; border-radius: 999px; font-weight: 600; font-size: 15px; text-decoration: none; border: 1px solid var(--line2); color: var(--fg); background: transparent; cursor: pointer; overflow: hidden; transition: border-color .2s, transform .2s var(--ease); font-family: inherit; }
-  .btn:hover { border-color: var(--fg); transform: translateY(-1px); }
-  .btn.primary { background: var(--fg); color: #000; border-color: var(--fg); }
-  .btn.primary::after { content: ""; position: absolute; inset: 0; background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,.75) 50%, transparent 70%); transform: translateX(-120%); animation: shine 4.5s var(--ease) infinite 1.5s; }
-  @keyframes shine { 0%, 70% { transform: translateX(-120%); } 100% { transform: translateX(120%); } }
-  .btn svg { width: 16px; height: 16px; }
-
-  /* Hero */
-  .hero { padding: 92px 0 40px; text-align: center; }
-  .badge { display: inline-flex; align-items: center; gap: 10px; border: 1px solid var(--line2); background: rgba(255,255,255,.03); border-radius: 999px; padding: 6px 14px 6px 6px; font-size: 13.5px; color: var(--dim); text-decoration: none; margin-bottom: 30px; }
-  .badge span { background: var(--fg); color: #000; border-radius: 999px; padding: 3px 9px; font: 600 11.5px/1.4 var(--mono); }
-  .badge:hover { color: var(--fg); }
-  h1 { font-size: clamp(42px, 7vw, 82px); line-height: 1; letter-spacing: -0.045em; margin: 0 auto 24px; max-width: 900px; font-weight: 700; background: linear-gradient(180deg, #fff 30%, #9a9a9a); -webkit-background-clip: text; background-clip: text; color: transparent; }
-  .lede { color: var(--dim); font-size: clamp(17px, 2vw, 20px); max-width: 620px; margin: 0 auto 36px; }
-  .lede b { color: var(--fg); font-weight: 500; }
-  .cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
-  .cmd { display: inline-flex; align-items: center; gap: 12px; height: 46px; padding: 0 8px 0 18px; border-radius: 999px; border: 1px solid var(--line2); background: rgba(255,255,255,.03); font: 14px var(--mono); color: var(--dim); }
-  .cmd button { height: 32px; border-radius: 999px; border: 0; padding: 0 12px; background: rgba(255,255,255,.1); color: var(--fg); font: 600 12.5px var(--mono); cursor: pointer; }
-  .cmd button:hover { background: rgba(255,255,255,.2); }
-  .trust { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px 26px; margin: 34px 0 0; padding: 0; list-style: none; color: var(--faint); font: 13px var(--mono); }
-  .trust li::before { content: "✓ "; color: var(--dim); }
-
-  /* Terminal */
-  .stage { position: relative; margin: 64px auto 0; max-width: 920px; }
-  .stage::before { content: ""; position: absolute; inset: -1px; border-radius: 16px; padding: 1px; background: linear-gradient(180deg, rgba(255,255,255,.35), rgba(255,255,255,.04) 60%); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none; }
-  .term { border-radius: 16px; background: rgba(10,10,10,.85); box-shadow: 0 40px 120px -20px rgba(255,255,255,.08); overflow: hidden; text-align: left; }
-  .tbar { display: flex; align-items: center; gap: 7px; padding: 13px 16px; border-bottom: 1px solid var(--line); }
-  .tbar i { width: 11px; height: 11px; border-radius: 50%; background: #2a2a2a; }
-  .tbar .t { margin-left: 10px; font: 12px var(--mono); color: var(--faint); }
-  .tbody { display: grid; grid-template-columns: 1fr 260px; }
-  .log { padding: 20px 22px 24px; font: 13.5px/1.8 var(--mono); color: #cfcfcf; min-height: 300px; }
-  .log .l { white-space: pre-wrap; }
-  .log .u::before { content: "› "; color: var(--faint); }
-  .log .u { color: var(--fg); }
-  .log .g { color: var(--fg); font-weight: 700; }
-  .log .d { color: var(--faint); }
-  .js .log .l { opacity: 0; transform: translateY(4px); transition: opacity .4s, transform .4s var(--ease); }
-  .js .log .l.on { opacity: 1; transform: none; }
-  .meter { border-left: 1px solid var(--line); padding: 20px; display: flex; flex-direction: column; gap: 18px; font: 12px var(--mono); color: var(--dim); }
-  .meter .big { font: 700 34px/1 -apple-system, sans-serif; color: var(--fg); letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
-  .meter .track { height: 6px; border-radius: 9px; background: rgba(255,255,255,.08); overflow: hidden; }
-  .meter .fill { height: 100%; width: 88%; background: var(--fg); border-radius: 9px; transition: width 1.2s var(--ease); }
-  .meter .row { display: flex; justify-content: space-between; gap: 10px; }
-  .meter .row b { color: var(--fg); font-weight: 500; }
-
-  /* Sections */
-  section { padding: 110px 0 0; }
-  .head { max-width: 640px; margin-bottom: 44px; }
-  .kicker { font: 12.5px/1 var(--mono); text-transform: uppercase; letter-spacing: .16em; color: var(--dim); margin: 0 0 16px; }
-  h2 { font-size: clamp(30px, 4vw, 46px); line-height: 1.08; letter-spacing: -0.035em; margin: 0 0 16px; }
-  .head p { color: var(--dim); margin: 0; font-size: 17.5px; }
-
-  /* Cards with hover spotlight */
-  .card { position: relative; border: 1px solid var(--line); border-radius: 16px; background: var(--card); padding: 26px; overflow: hidden; transition: border-color .3s; }
-  .card::before { content: ""; position: absolute; inset: 0; background: radial-gradient(380px circle at var(--x, 50%) var(--y, 50%), rgba(255,255,255,.08), transparent 45%); opacity: 0; transition: opacity .3s; pointer-events: none; }
-  .card:hover { border-color: var(--line2); }
-  .card:hover::before { opacity: 1; }
-  .card h3 { margin: 0 0 8px; font-size: 17.5px; letter-spacing: -0.01em; }
-  .card p { margin: 0; color: var(--dim); font-size: 15.5px; }
-
-  /* Bento */
-  .bento { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; }
-  .c-chart { grid-column: span 4; grid-row: span 4; display: flex; flex-direction: column; }
-  .c-chart .src { margin-top: auto !important; padding-top: 20px; }
-  .c-kpi { grid-column: span 2; display: flex; flex-direction: column; justify-content: space-between; gap: 18px; }
-  .kpi { font-size: 48px; font-weight: 700; letter-spacing: -0.045em; line-height: 1; font-variant-numeric: tabular-nums; }
-  .bars { margin-top: 22px; display: grid; gap: 14px; }
-  .bar { display: grid; grid-template-columns: 140px 1fr 64px; gap: 14px; align-items: center; font-size: 14.5px; }
-  .bar .tr { height: 32px; border-radius: 8px; background: rgba(255,255,255,.04); overflow: hidden; }
-  .bar .f { height: 100%; width: 0; border-radius: 8px; background: linear-gradient(90deg, #3a3a3a, #555); transition: width 1.4s var(--ease); }
-  .bar.win .f { background: linear-gradient(90deg, #bdbdbd, #fff); }
-  .bar .v { font: 600 14px var(--mono); text-align: right; font-variant-numeric: tabular-nums; }
-  .bar.win { font-weight: 600; }
-  .sep { height: 1px; background: var(--line); margin: 26px 0 0; }
-  .src { margin-top: 20px !important; font-size: 14px !important; color: var(--faint) !important; }
-  .src a { color: var(--dim); }
-
-  /* Steps */
-  .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; counter-reset: s; }
-  .steps .card { padding-top: 58px; }
-  .steps .card::after { counter-increment: s; content: "0" counter(s); position: absolute; top: 22px; left: 26px; font: 600 12.5px var(--mono); color: var(--faint); }
-  .steps .ic { position: absolute; top: 20px; right: 22px; width: 22px; height: 22px; color: var(--dim); }
-  .extras { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 14px; }
-  .extras .card { display: flex; gap: 14px; align-items: flex-start; }
-  .tag { flex: none; font: 600 11px/1 var(--mono); border: 1px solid var(--line2); border-radius: 999px; padding: 5px 8px; color: var(--dim); margin-top: 3px; }
-
-  /* Compare */
-  .tablewrap { border: 1px solid var(--line); border-radius: 16px; overflow-x: auto; background: var(--card); }
-  table { width: 100%; border-collapse: collapse; font-size: 15px; min-width: 680px; }
-  th, td { padding: 15px 20px; text-align: left; border-bottom: 1px solid var(--line); }
-  tr:last-child td { border-bottom: 0; }
-  thead th { font-weight: 500; color: var(--dim); font-size: 14px; }
-  thead th.us { color: var(--fg); }
-  td.us, th.us { background: rgba(255,255,255,.045); }
-  td.us { color: var(--fg); font-weight: 500; }
-  td { color: var(--dim); }
-  td:first-child { color: var(--fg); }
-  .y::before { content: "●"; margin-right: 8px; font-size: 10px; vertical-align: 2px; }
-  .n::before { content: "○"; margin-right: 8px; font-size: 10px; vertical-align: 2px; color: var(--faint); }
-
-  /* Calculator */
-  .calc { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-  .field { margin-bottom: 30px; }
-  .field:last-child { margin-bottom: 0; }
-  .field label { display: flex; justify-content: space-between; font-size: 15px; margin-bottom: 14px; }
-  .field label output { font: 600 15px var(--mono); }
-  .field small { display: block; color: var(--faint); font-size: 13px; margin-top: 10px; }
-  input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 6px; border-radius: 9px; background: linear-gradient(90deg, var(--fg) var(--p, 50%), rgba(255,255,255,.1) var(--p, 50%)); }
-  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: var(--fg); border: 4px solid #000; box-shadow: 0 0 0 1px var(--fg); cursor: grab; }
-  input[type=range]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: var(--fg); border: 4px solid #000; cursor: grab; }
-  .result { display: flex; flex-direction: column; justify-content: center; gap: 22px; }
-  .result .kpi { font-size: clamp(48px, 6vw, 68px); }
-  .result hr { border: 0; height: 1px; background: var(--line); margin: 0; width: 100%; }
-  .fine { color: var(--faint) !important; font-size: 13px !important; }
-
-  /* FAQ */
-  .faq { display: grid; grid-template-columns: 1fr 1.6fr; gap: 60px; }
-  details { border-bottom: 1px solid var(--line); }
-  details:first-child { border-top: 1px solid var(--line); }
-  summary { list-style: none; cursor: pointer; padding: 20px 0; display: flex; justify-content: space-between; gap: 20px; font-weight: 500; font-size: 16.5px; }
-  summary::-webkit-details-marker { display: none; }
-  summary::after { content: ""; flex: none; width: 9px; height: 9px; margin-top: 6px; border-right: 1.5px solid var(--dim); border-bottom: 1.5px solid var(--dim); transform: rotate(45deg); transition: transform .3s var(--ease); }
-  details[open] summary::after { transform: rotate(225deg); margin-top: 10px; }
-  details p { color: var(--dim); margin: -6px 0 20px; font-size: 15.5px; }
-
-  /* Final CTA */
-  .final { margin: 120px 0 0; text-align: center; padding: 80px 24px; border: 1px solid var(--line); border-radius: 24px; position: relative; overflow: hidden; background: radial-gradient(ellipse 60% 80% at 50% 0%, rgba(255,255,255,.09), transparent 70%); }
-  .final img { width: 64px; height: 64px; margin-bottom: 24px; }
-  .final h2 { margin-bottom: 14px; }
-  .final > p { color: var(--dim); margin: 0 auto 32px; max-width: 480px; }
-  .install { max-width: 600px; margin: 0 auto 28px; text-align: left; border: 1px solid var(--line2); border-radius: 14px; background: rgba(0,0,0,.6); padding: 18px 20px; font: 14.5px/1.9 var(--mono); position: relative; overflow-x: auto; white-space: nowrap; padding-right: 92px; }
-  .install .p { color: var(--faint); user-select: none; }
-  .install button { position: absolute; top: 14px; right: 14px; height: 32px; padding: 0 12px; font: 600 12.5px var(--mono); }
-
-  footer { padding: 56px 0 64px; color: var(--faint); font-size: 14px; }
-  footer .wrap { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
-  footer .fl { display: flex; gap: 22px; flex-wrap: wrap; }
-  footer a { text-decoration: none; color: var(--dim); }
-  footer a:hover { color: var(--fg); }
-
-  /* Scroll reveal */
-  .js .rv { opacity: 0; transform: translateY(18px); transition: opacity .8s var(--ease), transform .8s var(--ease); }
-  .js .rv.in { opacity: 1; transform: none; }
-
-  @media (max-width: 920px) {
-    .links a:not(.gh) { display: none; }
-    .tbody { grid-template-columns: 1fr; }
-    .meter { border-left: 0; border-top: 1px solid var(--line); }
-    .bento, .steps, .extras, .calc, .faq { grid-template-columns: 1fr; }
-    .c-chart, .c-kpi { grid-column: auto; grid-row: auto; }
-    .faq { gap: 10px; }
-    .bar { grid-template-columns: 104px 1fr 58px; font-size: 13.5px; }
-    .log { font-size: 12px; min-height: 0; }
-    .cmd { display: none; }
-    .hero { padding-top: 64px; }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    html { scroll-behavior: auto; }
-    *, *::before, *::after { animation: none !important; transition: none !important; }
-  }
-</style>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div class="bg" aria-hidden="true"></div>
 <a class="skip" href="#main">Skip to content</a>
-
-<nav id="nav" aria-label="Main">
+<header class="top">
   <div class="wrap">
-    <a class="brand" href="#top"><img src="favicon.png" alt="" width="26" height="26">ghosted_</a>
-    <div class="links">
-      <a href="#results">Results</a>
-      <a href="#how">How it works</a>
-      <a href="#calculator">Calculator</a>
-      <a href="#faq">FAQ</a>
-      <a class="gh" href="https://github.com/giovanbelle/ghosted"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub <b id="stars">★</b></a>
-    </div>
+    <a class="brand" href="./"><img src="favicon.png" alt="ghosted_ home" width="24" height="24"><span>ghosted_</span></a>
+    <nav class="tabs" aria-label="Pages"><a href="./" aria-current="page">Overview</a><a href="how-it-works.html">How it works</a><a href="benchmarks.html">Benchmarks</a><a href="docs.html">Docs</a><a href="legal.html">Legal</a></nav>
+    <a class="ghbtn" href="https://github.com/giovanbelle/ghosted"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span>GitHub</span><b id="stars">★</b></a>
   </div>
-</nav>
-
+</header>
 <main id="main">
-<div class="wrap" id="top">
-  <div class="glow" aria-hidden="true"></div>
-
-  <header class="hero">
-    <a class="badge" href="https://github.com/giovanbelle/ghosted/blob/main/BENCHMARKS.md"><span>NEW</span>36 real Opus runs, every test passing: −70% cost →</a>
-    <h1>Stop paying for context you no longer need.</h1>
-    <p class="lede">ghosted_ is a Claude Code plugin that spots when you start a new task, <b>clears the old conversation and starts the task for you</b>. Nothing to learn. Nothing to remember.</p>
-    <div class="cta">
-      <a class="btn primary" href="#install">Install free <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg></a>
-      <span class="cmd">claude plugin install ghosted@ghosted <button type="button" data-copy="claude plugin marketplace add giovanbelle/ghosted&#10;claude plugin install ghosted@ghosted" aria-label="Copy install commands">Copy</button></span>
-    </div>
-    <ul class="trust" aria-label="Facts">
-      <li>Apache-2.0</li><li>Zero dependencies</li><li>macOS · Windows · Linux</li><li>Fails open</li><li>No telemetry</li>
-    </ul>
-
-    <div class="stage rv">
-      <div class="term" role="img" aria-label="Demo: the user switches task at 176k tokens of context; ghosted_ archives the old chat, clears it and starts the new task at 18k tokens.">
-        <div class="tbar"><i></i><i></i><i></i><span class="t">claude · ~/my-app</span></div>
-        <div class="tbody">
-          <div class="log" id="demo">
-            <div class="l d">… 40 minutes fixing the auth flow …</div>
-            <div class="l u">now add dark mode to the settings page</div>
-            <div class="l g">ghosted: new task detected, clearing first.</div>
-            <div class="l d">  ✓ archived old chat   ✓ saved your prompt</div>
-            <div class="l u">/clear</div>
-            <div class="l d">  ✓ restored prompt + 5 facts from the old work</div>
-            <div class="l u">Start the pending task.</div>
-            <div class="l">● Reading src/settings/SettingsPage.tsx</div>
-            <div class="l">● Editing src/theme.ts</div>
-          </div>
-          <div class="meter" aria-hidden="true">
-            <div><div style="margin-bottom:10px">CONTEXT</div><div class="big" id="ctx">176k</div></div>
-            <div class="track"><div class="fill" id="ctxbar"></div></div>
-            <div class="row"><span>Old work re-sent</span><b id="per">every turn</b></div>
-            <div class="row"><span>Judge</span><b>$0.0013</b></div>
-            <div class="row"><span>You typed</span><b>1 prompt</b></div>
-          </div>
+<div class="wrap">
+  <section class="phead" style="padding-top:72px">
+    <div class="grid2" style="align-items:center;gap:48px">
+      <div>
+        <p class="kicker">Claude Code plugin · free and open source</p>
+        <h1>Stop paying for context you no longer need.</h1>
+        <p class="lede">When you start a new task, ghosted_ <b>clears the old conversation and starts your task for you</b>. You keep typing as usual.</p>
+        <div class="install" style="margin-bottom:18px">
+          <button type="button" class="btn sm" data-copy="claude plugin marketplace add giovanbelle/ghosted\nclaude plugin install ghosted@ghosted" aria-label="Copy install commands">Copy</button>
+          <div><span class="p">$ </span>claude plugin marketplace add giovanbelle/ghosted</div>
+          <div><span class="p">$ </span>claude plugin install ghosted@ghosted</div>
+        </div>
+        <div class="row-cta">
+          <a class="btn primary" href="how-it-works.html">See how it works</a>
+          <a class="btn" href="benchmarks.html">View benchmarks</a>
         </div>
       </div>
-    </div>
-  </header>
-
-  <section id="results" aria-labelledby="results-h">
-    <div class="head rv">
-      <p class="kicker">Results</p>
-      <h2 id="results-h">Measured, not promised.</h2>
-      <p>Real Claude Code sessions on Opus. Hidden tests had to pass in every run. Cost is the whole task, not only the replies.</p>
-    </div>
-    <div class="bento">
-      <div class="card c-chart rv">
-        <h3>Total cost · 36 runs, 6 scenarios</h3>
-        <p>Lower is better</p>
-        <div class="bars">
-          <div class="bar"><span>No plugin</span><div class="tr"><div class="f" data-w="100"></div></div><span class="v">$15.88</span></div>
-          <div class="bar"><span>ghosted_ compact</span><div class="tr"><div class="f" data-w="66"></div></div><span class="v">$10.47</span></div>
-          <div class="bar win"><span>ghosted_ clear</span><div class="tr"><div class="f" data-w="30"></div></div><span class="v">$4.78</span></div>
+      <div class="term rv" role="img" aria-label="Demo: at 176k tokens of context the user starts a new task; ghosted_ archives and clears the old chat and starts the task at 18k tokens.">
+        <div class="tbar"><i></i><i></i><i></i><span>claude · ~/my-app · context <b id="ctx" style="color:var(--fg)">176k</b></span></div>
+        <div class="tlog" id="demo">
+          <div class="l d">… 40 minutes fixing the auth flow …</div>
+          <div class="l u">now add dark mode to the settings page</div>
+          <div class="l g">ghosted: new task detected, clearing first.</div>
+          <div class="l d">  ✓ old chat archived   ✓ prompt saved</div>
+          <div class="l u" data-drop="1">/clear</div>
+          <div class="l d">  ✓ prompt restored + 5 facts carried over</div>
+          <div class="l u">Start the pending task.</div>
+          <div class="l">● Reading src/settings/SettingsPage.tsx</div>
+          <div class="l">● Editing src/theme.ts</div>
         </div>
-        <div class="sep"></div>
-        <h3 style="margin-top:24px">Stacked on caveman · per run</h3>
-        <div class="bars">
-          <div class="bar"><span>caveman alone</span><div class="tr"><div class="f" data-w="100"></div></div><span class="v">$3.32</span></div>
-          <div class="bar win"><span>+ ghosted_</span><div class="tr"><div class="f" data-w="28"></div></div><span class="v">$0.92</span></div>
-        </div>
-        <p class="src">Includes the cases where it doesn't help. <a href="https://github.com/giovanbelle/ghosted/blob/main/BENCHMARKS.md">Method and raw data</a></p>
       </div>
-      <div class="card c-kpi rv"><div class="kpi" data-count="-70" data-suffix="%">−70%</div><p>cost on sessions with a task switch</p></div>
-      <div class="card c-kpi rv"><div class="kpi" data-count="0" data-suffix=" / 64">0 / 64</div><p>wrong task switches in the latest judge test</p></div>
-      <div class="card c-kpi rv"><div class="kpi">+8s</div><p>total wall time over 36 runs (666s vs 674s)</p></div>
-      <div class="card c-kpi rv"><div class="kpi" data-count="55" data-suffix="ms">55ms</div><p>hook overhead when no judge is needed</p></div>
     </div>
   </section>
 
-  <section id="how" aria-labelledby="how-h">
-    <div class="head rv">
-      <p class="kicker">How it works</p>
-      <h2 id="how-h">Two hooks and one cheap question.</h2>
-      <p>Runs on every prompt. You never call it.</p>
+  <section style="padding-top:40px">
+    <div class="stats rv">
+      <div><b data-count="-70" data-suffix="%">−70%</b><span>cost on sessions with a task switch</span></div>
+      <div><b>36</b><span>real Opus runs, every test passing</span></div>
+      <div><b data-count="0" data-suffix=" / 64">0 / 64</b><span>wrong switches in the latest judge test</span></div>
+      <div><b>$0.0013</b><span>per judged prompt</span></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="pic-h">
+    <div class="shead rv">
+      <p class="kicker">The problem in one picture</p>
+      <h2 id="pic-h">Every turn re-sends the whole context.</h2>
+      <p>Claude Code only compacts when the context is nearly full. Switch task before then, and the old work rides along on every message.</p>
+    </div>
+    <figure class="fig rv" style="margin:0">
+      <div class="legend"><span><i style="background:#555"></i>Without ghosted_</span><span><i style="background:#f5f5f5"></i>With ghosted_</span><span><i style="background:repeating-linear-gradient(45deg,#3a3a3a 0 3px,transparent 3px 6px);border:1px solid #444"></i>Context you stop paying for</span></div>
+      <svg viewBox="0 0 800 320" role="img" aria-label="Chart of context size per turn. Without ghosted_ it keeps growing from 176k to 224k after a task switch at turn 6. With ghosted_ it drops to 18k at the switch and grows to 60k.">
+        <defs><pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="3" height="7" fill="#2f2f2f"/></pattern></defs>
+        <g stroke="#1d1d1d" font-family="ui-monospace,Menlo,monospace" font-size="11" fill="#5e5e5e">
+          <line x1="60" y1="280" x2="770" y2="280"/><line x1="60" y1="200" x2="770" y2="200"/><line x1="60" y1="120" x2="770" y2="120"/><line x1="60" y1="40" x2="770" y2="40"/>
+          <text x="50" y="284" text-anchor="end" stroke="none">0</text><text x="50" y="204" text-anchor="end" stroke="none">80k</text><text x="50" y="124" text-anchor="end" stroke="none">160k</text><text x="50" y="44" text-anchor="end" stroke="none">240k</text>
+          <text x="234" y="306" text-anchor="middle" stroke="none">Task A · fix the auth flow</text><text x="582" y="306" text-anchor="middle" stroke="none">Task B · add dark mode</text>
+        </g>
+        <path d="M408,104 L466,94 L524,84 L582,75 L640,68 L698,62 L756,56 L756,220 L698,220 L640,226 L582,234 L524,242 L466,252 L408,262 Z" fill="url(#hatch)"/>
+        <line x1="408" y1="22" x2="408" y2="280" stroke="#5e5e5e" stroke-dasharray="4 4"/>
+        <text x="416" y="30" font-family="-apple-system,sans-serif" font-size="13" fill="#f5f5f5" font-weight="600">new task → ghosted_ clears</text>
+        <path class="draw" d="M60,270 L118,240 L176,210 L234,180 L292,150 L350,125 L408,104 L466,94 L524,84 L582,75 L640,68 L698,62 L756,56" fill="none" stroke="#666" stroke-width="2.5" stroke-linejoin="round"/>
+        <path class="draw" d="M60,270 L118,240 L176,210 L234,180 L292,150 L350,125 L408,104 L408,262 L466,252 L524,242 L582,234 L640,226 L698,220 L756,220" fill="none" stroke="#f5f5f5" stroke-width="2.5" stroke-linejoin="round"/>
+        <circle cx="408" cy="262" r="5" fill="#f5f5f5"/><text x="420" y="276" font-family="ui-monospace,Menlo,monospace" font-size="12" fill="#f5f5f5">18k</text>
+        <circle cx="756" cy="56" r="4" fill="#666"/><text x="748" y="48" text-anchor="end" font-family="ui-monospace,Menlo,monospace" font-size="12" fill="#9a9a9a">224k</text>
+      </svg>
+      <figcaption>Illustration of one session. You pay for the context on every turn, so the hatched area is what ghosted_ takes off the bill.</figcaption>
+    </figure>
+  </section>
+
+  <section aria-labelledby="flow-h">
+    <div class="shead rv">
+      <p class="kicker">What happens</p>
+      <h2 id="flow-h">Three steps. Zero commands.</h2>
     </div>
     <div class="steps">
-      <div class="card rv"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h6"/></svg><h3>You type</h3><p>Small contexts, slash commands and follow-ups like “fix it” pass straight through.</p></div>
-      <div class="card rv"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg><h3>Haiku judges</h3><p>Above 20k tokens, one isolated question: new task? Unsure means same. About $0.0013 and 3.5s.</p></div>
-      <div class="card rv"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 7h16v13H4zM9 7V4h6v3"/></svg><h3>Archive and clear</h3><p>Old chat saved on your machine, your prompt saved, <code>/clear</code> typed for you.</p></div>
-      <div class="card rv"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M6 4l14 8-14 8z"/></svg><h3>Task starts</h3><p>Prompt restored with up to 5 key facts from the old work. Claude gets going.</p></div>
+      <div class="panel rv"><h3>It notices</h3><p>A small Haiku judge asks one question: is this prompt a new task? Follow-ups never trigger it.</p></div>
+      <div class="panel rv"><h3>It clears</h3><p>The old chat is archived on your machine, then <code>/clear</code> is typed for you.</p></div>
+      <div class="panel rv"><h3>It restarts</h3><p>Your prompt comes back with up to 5 useful facts, and Claude starts on it.</p></div>
     </div>
-    <div class="extras">
-      <div class="card rv"><span class="tag">ON</span><div><h3>Terse answers</h3><p>19% cheaper, 20% less text to read. Steps aside if caveman is active.</p></div></div>
-      <div class="card rv"><span class="tag">ON</span><div><h3>Recall</h3><p><code>/ghosted:recall auth</code> brings back past work.</p></div></div>
-      <div class="card rv"><span class="tag">OPT-IN</span><div><h3>Long runs</h3><p><code>/ghosted max 250k</code> compacts mid-run, then continues.</p></div></div>
-    </div>
+    <p class="note"><a href="how-it-works.html">Full walkthrough with diagrams →</a></p>
   </section>
 
-  <section aria-labelledby="compare-h">
-    <div class="head rv">
-      <p class="kicker">Compare</p>
-      <h2 id="compare-h">Why not just /clear?</h2>
-      <p>You can, if you remember every time, retype your prompt, and accept losing everything.</p>
+  <div class="closer rv">
+    <div>
+      <h2>Install in 30 seconds.</h2>
+      <p>Two commands, then restart Claude Code. Apache-2.0, zero dependencies, works on macOS, Windows and Linux.</p>
+      <div class="row-cta"><a class="btn primary" href="https://github.com/giovanbelle/ghosted">★ Star on GitHub</a><a class="btn" href="docs.html">Read the docs</a></div>
     </div>
-    <div class="tablewrap rv">
-      <table>
-        <thead><tr><th scope="col"><span class="skip">Feature</span></th><th scope="col">Built-in auto-compact</th><th scope="col">Manual /clear</th><th scope="col" class="us">ghosted_</th></tr></thead>
-        <tbody>
-          <tr><td>Acts when you switch task</td><td class="n">No, only near a full context</td><td class="n">Only if you remember</td><td class="us y">Automatically</td></tr>
-          <tr><td>Your prompt</td><td class="y">Kept</td><td class="n">Retype it</td><td class="us y">Restored and started</td></tr>
-          <tr><td>What carries over</td><td class="n">A long summary of everything</td><td class="n">Nothing</td><td class="us y">Up to 5 relevant facts</td></tr>
-          <tr><td>Searchable history</td><td class="n">No</td><td class="n">No</td><td class="us y">/ghosted:recall</td></tr>
-          <tr><td>Measured cost, 36 runs</td><td>$15.88</td><td>Depends on you</td><td class="us">$4.78</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
-
-  <section id="calculator" aria-labelledby="calc-h">
-    <div class="head rv">
-      <p class="kicker">Calculator</p>
-      <h2 id="calc-h">What would it save you?</h2>
-      <p>An estimate from the measured 70% on sessions with a task switch. Your mix will differ.</p>
-    </div>
-    <div class="calc">
-      <div class="card rv">
-        <div class="field">
-          <label for="spend">Monthly Claude Code spend <output id="spendOut" for="spend">$200</output></label>
-          <input id="spend" type="range" min="20" max="2000" step="10" value="200">
-          <small>On a Pro or Max plan, use what your usage would cost at API prices.</small>
-        </div>
-        <div class="field">
-          <label for="share">Sessions where you switch task <output id="shareOut" for="share">50%</output></label>
-          <input id="share" type="range" min="0" max="100" step="5" value="50">
-          <small>A fresh session per task? Go low. One session all day? Go high.</small>
-        </div>
-      </div>
-      <div class="card result rv" aria-live="polite">
-        <div><div class="kpi" id="saved">$70</div><p>estimated saving per month</p></div>
-        <hr>
-        <div><div class="kpi" id="mult">1.5×</div><p>more work before you hit a plan limit</p></div>
-        <p class="fine">Judge cost included in the 70%. An estimate, not a guarantee.</p>
-      </div>
-    </div>
-  </section>
-
-  <section id="faq" aria-labelledby="faq-h">
-    <div class="faq">
-      <div class="head rv">
-        <p class="kicker">FAQ</p>
-        <h2 id="faq-h">Good questions.</h2>
-        <p>Something else? <a href="https://github.com/giovanbelle/ghosted/issues">Open an issue</a>.</p>
-      </div>
-      <div class="rv">
-        <details><summary>Will it clear something I still needed?</summary><p>Rarely: 0 wrong switches in the latest 64 test prompts, and the judge answers “same” when unsure. If it happens, the old chat is archived and <code>/ghosted:recall</code> finds it. Start a prompt with <code>same:</code> to block a switch, or <code>new:</code> to force one.</p></details>
-        <details><summary>Is my code sent anywhere?</summary><p>Only to Claude, through your own <code>claude</code> login, for the judge question. Archives stay on your machine, readable only by you. No telemetry, no accounts, no server.</p></details>
-        <details><summary>Why clear instead of compact?</summary><p>A compact summary still carries a lot of old text and costs a model call to write. Clearing with a few carried facts saved 70%; compacting saved 34%. Prefer compact? Set <code>GHOSTED_MODE=compact</code>.</p></details>
-        <details><summary>Which terminals does it work in?</summary><p>Everywhere Claude Code runs. In macOS Terminal.app and Windows consoles it types the commands for you. In iTerm, tmux, VS Code and Linux terminals it tells you which command to run, then you type <code>go</code>.</p></details>
-        <details><summary>Can I tune or pause it?</summary><p><code>/ghosted pause</code>, <code>/ghosted stats</code>, <code>/ghosted full|lite|off</code> for terse answers, <code>/ghosted max 250k</code> for long runs. Settings also live in <code>/config</code>.</p></details>
-      </div>
-    </div>
-  </section>
-
-  <section id="install" class="final rv" aria-labelledby="install-h">
-    <img src="favicon.png" alt="" width="64" height="64">
-    <h2 id="install-h">Install in 30 seconds.</h2>
-    <p>Two commands, then restart Claude Code. Free and open source.</p>
     <div class="install">
-      <button type="button" class="btn" data-copy="claude plugin marketplace add giovanbelle/ghosted&#10;claude plugin install ghosted@ghosted" aria-label="Copy install commands">Copy</button>
+      <button type="button" class="btn sm" data-copy="claude plugin marketplace add giovanbelle/ghosted\nclaude plugin install ghosted@ghosted" aria-label="Copy install commands">Copy</button>
       <div><span class="p">$ </span>claude plugin marketplace add giovanbelle/ghosted</div>
       <div><span class="p">$ </span>claude plugin install ghosted@ghosted</div>
     </div>
-    <div class="cta">
-      <a class="btn primary" href="https://github.com/giovanbelle/ghosted">★ Star on GitHub</a>
-      <a class="btn" href="https://github.com/giovanbelle/ghosted/blob/main/BENCHMARKS.md">Read the benchmarks</a>
-    </div>
-  </section>
+  </div>
 </div>
 </main>
-
 <footer>
   <div class="wrap">
-    <span>ghosted_ · Apache-2.0 · © 2026 Gio van Belle</span>
+    <div>ghosted_ · Apache-2.0 · © 2026 Gio van Belle
+      <small>Independent project. Not affiliated with, endorsed by or sponsored by Anthropic. Claude and Claude Code are trademarks of Anthropic, PBC.</small>
+    </div>
     <div class="fl">
+      <a href="docs.html">Docs</a>
+      <a href="legal.html#privacy">Privacy</a>
+      <a href="legal.html#terms">Terms</a>
+      <a href="legal.html#license">License</a>
       <a href="https://github.com/giovanbelle/ghosted">GitHub</a>
-      <a href="https://github.com/giovanbelle/ghosted/blob/main/BENCHMARKS.md">Benchmarks</a>
       <a href="https://github.com/giovanbelle/ghosted/issues">Issues</a>
-      <a href="https://github.com/giovanbelle/ghosted/blob/main/LICENSE">License</a>
     </div>
   </div>
 </footer>
-
-<script>
-(() => {
-  const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
-
-  $$('[data-copy]').forEach(b => b.addEventListener('click', async () => {
-    try { await navigator.clipboard.writeText(b.dataset.copy); b.textContent = 'Copied ✓'; }
-    catch { b.textContent = 'Select to copy'; }
-    setTimeout(() => { b.textContent = 'Copy'; }, 1600);
-  }));
-
-  const nav = $('#nav');
-  addEventListener('scroll', () => nav.classList.toggle('scrolled', scrollY > 8), { passive: true });
-
-  // Live star count; stays a plain star if the API is unavailable.
-  fetch('https://api.github.com/repos/giovanbelle/ghosted').then(r => r.json()).then(d => {
-    if (Number.isFinite(d.stargazers_count)) $('#stars').textContent = '★ ' + d.stargazers_count;
-  }).catch(() => {});
-
-  // Calculator: saving = spend × share of switching sessions × measured 70%.
-  const spend = $('#spend'), share = $('#share');
-  const calc = () => {
-    const s = +spend.value, p = +share.value / 100, cut = p * 0.7;
-    for (const r of [spend, share]) r.style.setProperty('--p', ((r.value - r.min) / (r.max - r.min) * 100) + '%');
-    $('#spendOut').textContent = '$' + s.toLocaleString('en-US');
-    $('#shareOut').textContent = Math.round(p * 100) + '%';
-    $('#saved').textContent = '$' + Math.round(s * cut).toLocaleString('en-US');
-    $('#mult').textContent = (1 / (1 - cut)).toFixed(1) + '×';
-  };
-  spend.addEventListener('input', calc); share.addEventListener('input', calc); calc();
-
-  const fillBars = root => root.querySelectorAll('.f').forEach(f => { f.style.width = f.dataset.w + '%'; });
-  if (still) { fillBars(document); return; }
-  document.documentElement.classList.add('js');
-
-  addEventListener('pointermove', e => {
-    document.documentElement.style.setProperty('--mx', e.clientX + 'px');
-    document.documentElement.style.setProperty('--my', e.clientY + 'px');
-  }, { passive: true });
-  $$('.card').forEach(c => c.addEventListener('pointermove', e => {
-    const r = c.getBoundingClientRect();
-    c.style.setProperty('--x', (e.clientX - r.left) + 'px');
-    c.style.setProperty('--y', (e.clientY - r.top) + 'px');
-  }));
-
-  const ease = k => 1 - Math.pow(1 - k, 3);
-  const tween = (ms, fn) => {
-    const t0 = performance.now();
-    const step = t => { const k = Math.min(1, (t - t0) / ms); fn(ease(k)); if (k < 1) requestAnimationFrame(step); };
-    requestAnimationFrame(step);
-  };
-  const countUp = el => {
-    const to = +el.dataset.count, suf = el.dataset.suffix || '';
-    tween(1300, k => { const v = Math.round(to * k); el.textContent = (v < 0 ? '−' + -v : v) + suf; });
-  };
-
-  const io = new IntersectionObserver(es => es.forEach(e => {
-    if (!e.isIntersecting) return;
-    const el = e.target;
-    el.style.transitionDelay = (Number(el.dataset.i) || 0) * 70 + 'ms';
-    el.classList.add('in');
-    fillBars(el);
-    el.querySelectorAll('[data-count]').forEach(countUp);
-    io.unobserve(el);
-  }), { threshold: 0.15 });
-  $$('.rv').forEach(el => {
-    el.dataset.i = [...el.parentElement.children].filter(x => x.classList.contains('rv')).indexOf(el);
-    io.observe(el);
-  });
-
-  // Terminal demo with a live context meter, on a loop.
-  const lines = $$('#demo .l'), ctx = $('#ctx'), bar = $('#ctxbar'), per = $('#per');
-  const play = () => {
-    lines.forEach(l => l.classList.remove('on'));
-    ctx.textContent = '176k'; bar.style.width = '88%'; per.textContent = 'every turn';
-    lines.forEach((l, i) => setTimeout(() => {
-      l.classList.add('on');
-      if (i === 4) { tween(1100, k => { ctx.textContent = Math.round(176 - 158 * k) + 'k'; }); bar.style.width = '9%'; per.textContent = 'never'; }
-    }, 500 + i * 700));
-    setTimeout(play, 500 + lines.length * 700 + 4000);
-  };
-  play();
-})();
-</script>
+<script src="site.js"></script>
 </body>
 </html>

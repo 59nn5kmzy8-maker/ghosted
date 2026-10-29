@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Benchmarks · ghosted_</title>
+<meta name="description" content="Measured cost of Claude Code sessions with and without ghosted_: 36 real Opus runs, per-scenario results, judge accuracy, terse mode and where it doesn't help.">
+<link rel="canonical" href="https://giovanbelle.github.io/ghosted/benchmarks.html">
+<meta name="theme-color" content="#000000">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://giovanbelle.github.io/ghosted/benchmarks.html">
+<meta property="og:title" content="Benchmarks · ghosted_">
+<meta property="og:description" content="Measured cost of Claude Code sessions with and without ghosted_: 36 real Opus runs, per-scenario results, judge accuracy, terse mode and where it doesn't help.">
+<meta property="og:image" content="https://giovanbelle.github.io/ghosted/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://giovanbelle.github.io/ghosted/og.png">
+<link rel="icon" href="favicon.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="./"><img src="favicon.png" alt="ghosted_ home" width="24" height="24"><span>ghosted_</span></a>
+    <nav class="tabs" aria-label="Pages"><a href="./">Overview</a><a href="how-it-works.html">How it works</a><a href="benchmarks.html" aria-current="page">Benchmarks</a><a href="docs.html">Docs</a><a href="legal.html">Legal</a></nav>
+    <a class="ghbtn" href="https://github.com/giovanbelle/ghosted"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span>GitHub</span><b id="stars">★</b></a>
+  </div>
+</header>
+<main id="main">
+<style>
+  .scn { display: grid; grid-template-columns: 170px 1fr 60px; gap: 6px 16px; align-items: center; padding: 16px 0; border-top: 1px solid var(--line); }
+  .scn:first-of-type { border-top: 0; }
+  .scn .lab b { display: block; font-size: 15px; }
+  .scn .lab span { color: var(--faint); font: 12.5px var(--mono); }
+  .scn .trio { display: grid; gap: 5px; }
+  .scn .trio .tr { height: 12px; border-radius: 4px; background: var(--panel2); overflow: hidden; }
+  .scn .trio .f { height: 100%; width: 0; border-radius: 4px; transition: width 1.2s var(--ease); }
+  .scn .trio .f.a { background: #3c3c3c; } .scn .trio .f.b { background: #7a7a7a; } .scn .trio .f.c { background: var(--fg); }
+  .scn .pct { font: 700 18px var(--mono); text-align: right; }
+  .dots { display: grid; grid-template-columns: repeat(16, 1fr); gap: 8px; max-width: 420px; }
+  .dots i { aspect-ratio: 1; border-radius: 50%; background: var(--fg); }
+  .dots i.s { background: transparent; border: 1.5px solid #555; }
+  @media (max-width: 900px) { .scn { grid-template-columns: 1fr 52px; } .scn .lab { grid-column: 1 / -1; } }
+</style>
+<div class="wrap">
+  <section class="phead">
+    <p class="kicker">Benchmarks</p>
+    <h1>Measured, not promised.</h1>
+    <p class="lede">Real Claude Code sessions in hidden terminals, started from seeded conversations of a known size. Costs are what <code>/cost</code> reported, judge included. Tests had to pass.</p>
+    <div class="stats rv">
+      <div><b>$15.88</b><span>36 runs without ghosted_</span></div>
+      <div><b>$4.78</b><span>the same runs with ghosted_</span></div>
+      <div><b data-count="-70" data-suffix="%">−70%</b><span>total cost</span></div>
+      <div><b>+8s</b><span>wall time (666s vs 674s)</span></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="scn-h" style="padding-top:64px">
+    <div class="shead rv"><h2 id="scn-h">Every scenario got cheaper</h2><p>Six scenarios, three setups, two runs each, on Opus. Average cost per run.</p></div>
+    <div class="fig rv">
+      <div class="legend"><span><i style="background:#3c3c3c"></i>No plugin</span><span><i style="background:#7a7a7a"></i>ghosted_ compact</span><span><i style="background:#f5f5f5"></i>ghosted_ clear (default)</span><span style="margin-left:auto">saved with clear</span></div>
+      <div class="scn"><div class="lab"><b>Small session</b><span>57k context · 5 turns</span></div><div class="trio"><div class="tr"><div class="f a" data-w="42.8"></div></div><div class="tr"><div class="f b" data-w="38.4"></div></div><div class="tr"><div class="f c" data-w="23.6"></div></div></div><div class="pct">45%</div></div>
+      <div class="scn"><div class="lab"><b>One quick task</b><span>176k · 1 turn</span></div><div class="trio"><div class="tr"><div class="f a" data-w="46.3"></div></div><div class="tr"><div class="f b" data-w="24.2"></div></div><div class="tr"><div class="f c" data-w="6.8"></div></div></div><div class="pct">85%</div></div>
+      <div class="scn"><div class="lab"><b>Coding task</b><span>176k · 5 turns</span></div><div class="trio"><div class="tr"><div class="f a" data-w="64.6"></div></div><div class="tr"><div class="f b" data-w="45"></div></div><div class="tr"><div class="f c" data-w="21.6"></div></div></div><div class="pct">67%</div></div>
+      <div class="scn"><div class="lab"><b>Huge session</b><span>290k · 6 turns</span></div><div class="trio"><div class="tr"><div class="f a" data-w="100"></div></div><div class="tr"><div class="f b" data-w="65.7"></div></div><div class="tr"><div class="f c" data-w="28.2"></div></div></div><div class="pct">72%</div></div>
+      <div class="scn"><div class="lab"><b>Half-related task</b><span>176k · 2 turns</span></div><div class="trio"><div class="tr"><div class="f a" data-w="41.3"></div></div><div class="tr"><div class="f b" data-w="25.8"></div></div><div class="tr"><div class="f c" data-w="11.4"></div></div></div><div class="pct">72%</div></div>
+      <div class="scn"><div class="lab"><b>Three tasks in a row</b><span>176k · 3 turns</span></div><div class="trio"><div class="tr"><div class="f a" data-w="52"></div></div><div class="tr"><div class="f b" data-w="29.5"></div></div><div class="tr"><div class="f c" data-w="12.7"></div></div></div><div class="pct">76%</div></div>
+      <p class="note">Longest bar = $4.58. Each run started from its own copy of the seed, so no run reused another's prompt cache.</p>
+    </div>
+  </section>
+
+  <section aria-labelledby="acc-h">
+    <div class="grid2" style="gap:40px;align-items:center">
+      <div class="rv">
+        <p class="kicker">Judge accuracy</p>
+        <h2 id="acc-h">0 wrong switches in 64 prompts.</h2>
+        <p class="dim">32 labelled prompts (15 follow-ups, 17 new tasks) against a real 176k conversation, run repeatedly. A wrong switch is the one mistake that costs you context, so the judge answers “same” whenever it is unsure.</p>
+        <div class="legend" style="margin-top:18px"><span><i style="background:#f5f5f5;border-radius:50%"></i>Judged correctly</span><span><i style="border:1.5px solid #555;border-radius:50%"></i>Obvious follow-up, judge skipped</span></div>
+      </div>
+      <div class="fig rv"><div class="dots" role="img" aria-label="64 dots: 50 judged correctly, 14 skipped the judge as obvious follow-ups, 0 wrong."><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="s"></i><i class="s"></i><i class="s"></i><i class="s"></i><i class="s"></i><i class="s"></i><i class="s"></i><i class="s"></i><i class="s"></i><i class="s"></i><i class="s"></i><i class="s"></i><i class="s"></i><i class="s"></i></div></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="cav-h">
+    <div class="grid2">
+      <div class="panel rv">
+        <p class="kicker">Stacks with caveman</p>
+        <h3 id="cav-h">Same coding task, per run</h3>
+        <div class="bars" style="margin-top:18px">
+          <div class="bar"><span>caveman alone</span><div class="tr"><div class="f" data-w="100"></div></div><span class="v">$3.32</span></div>
+          <div class="bar win"><span>+ ghosted_</span><div class="tr"><div class="f" data-w="28"></div></div><span class="v">$0.92</span></div>
+        </div>
+        <p class="note">Caveman shortens replies; ghosted_ drops the old conversation. The savings add up.</p>
+      </div>
+      <div class="panel rv">
+        <p class="kicker">Terse answers</p>
+        <h3>Text shown in the terminal</h3>
+        <div class="bars" style="margin-top:18px">
+          <div class="bar"><span>Plain answers</span><div class="tr"><div class="f" data-w="100"></div></div><span class="v">9.8k</span></div>
+          <div class="bar win"><span>ghosted_ full</span><div class="tr"><div class="f" data-w="80"></div></div><span class="v">7.8k</span></div>
+        </div>
+        <p class="note">Characters of prose per task, not code. Cost went from $1.23 to $0.99 (−19%).</p>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="calc-h">
+    <div class="shead rv"><h2 id="calc-h">What would it save you?</h2><p>An estimate from the measured 70% on sessions with a task switch. Your mix will differ.</p></div>
+    <div class="grid2">
+      <div class="panel rv">
+        <div class="field"><label for="spend">Monthly Claude Code spend <output id="spendOut" for="spend">$200</output></label><input id="spend" type="range" min="20" max="2000" step="10" value="200"><small>On a Pro or Max plan, use what your usage would cost at API prices.</small></div>
+        <div class="field"><label for="share">Sessions where you switch task <output id="shareOut" for="share">50%</output></label><input id="share" type="range" min="0" max="100" step="5" value="50"><small>A fresh session per task? Go low. One session all day? Go high.</small></div>
+      </div>
+      <div class="panel rv" aria-live="polite" style="display:grid;gap:22px;align-content:center">
+        <div><div class="big" id="saved">$70</div><p>estimated saving per month</p></div>
+        <div style="height:1px;background:var(--line)"></div>
+        <div><div class="big" id="mult">1.5×</div><p>more work before you hit a plan limit</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="no-h">
+    <div class="shead rv"><h2 id="no-h">Where it doesn't help</h2><p>Published so you can judge for yourself.</p></div>
+    <div class="grid3">
+      <div class="panel rv"><h3>One long task, no switch</h3><p>Nothing to clear, so nothing saved. ghosted_ stays out of the way.</p></div>
+      <div class="panel rv"><h3>Mid-run compaction</h3><p>In single runs it cost more ($8.61 vs $9.73), because files get read again. That's why it's off by default.</p></div>
+      <div class="panel rv"><h3>A wrong switch</h3><p>Once, before the judge fix, a follow-up was judged new and the work was lost. Since then: 0 in 64, and <code>same:</code> blocks it.</p></div>
+    </div>
+    <p class="note">Full method, raw numbers and older runs: <a href="https://github.com/giovanbelle/ghosted/blob/main/BENCHMARKS.md">BENCHMARKS.md</a></p>
+  </section>
+</div>
+</main>
+<footer>
+  <div class="wrap">
+    <div>ghosted_ · Apache-2.0 · © 2026 Gio van Belle
+      <small>Independent project. Not affiliated with, endorsed by or sponsored by Anthropic. Claude and Claude Code are trademarks of Anthropic, PBC.</small>
+    </div>
+    <div class="fl">
+      <a href="docs.html">Docs</a>
+      <a href="legal.html#privacy">Privacy</a>
+      <a href="legal.html#terms">Terms</a>
+      <a href="legal.html#license">License</a>
+      <a href="https://github.com/giovanbelle/ghosted">GitHub</a>
+      <a href="https://github.com/giovanbelle/ghosted/issues">Issues</a>
+    </div>
+  </div>
+</footer>
+<script src="site.js"></script>
+</body>
+</html>

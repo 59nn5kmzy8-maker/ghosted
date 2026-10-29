@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Docs · ghosted_</title>
+<meta name="description" content="Install, configure and use ghosted_ for Claude Code: commands, settings, environment variables, uninstall and FAQ.">
+<link rel="canonical" href="https://giovanbelle.github.io/ghosted/docs.html">
+<meta name="theme-color" content="#000000">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://giovanbelle.github.io/ghosted/docs.html">
+<meta property="og:title" content="Docs · ghosted_">
+<meta property="og:description" content="Install, configure and use ghosted_ for Claude Code: commands, settings, environment variables, uninstall and FAQ.">
+<meta property="og:image" content="https://giovanbelle.github.io/ghosted/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://giovanbelle.github.io/ghosted/og.png">
+<link rel="icon" href="favicon.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="./"><img src="favicon.png" alt="ghosted_ home" width="24" height="24"><span>ghosted_</span></a>
+    <nav class="tabs" aria-label="Pages"><a href="./">Overview</a><a href="how-it-works.html">How it works</a><a href="benchmarks.html">Benchmarks</a><a href="docs.html" aria-current="page">Docs</a><a href="legal.html">Legal</a></nav>
+    <a class="ghbtn" href="https://github.com/giovanbelle/ghosted"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span>GitHub</span><b id="stars">★</b></a>
+  </div>
+</header>
+<main id="main">
+<div class="wrap">
+  <section class="phead">
+    <p class="kicker">Docs</p>
+    <h1>Set up once. Then forget it.</h1>
+    <p class="lede">Needs Node.js and the <code>claude</code> CLI on your PATH. No other dependencies.</p>
+  </section>
+
+  <section aria-labelledby="inst-h" style="padding-top:56px">
+    <div class="shead rv"><h2 id="inst-h">Install</h2></div>
+    <div class="steps">
+      <div class="panel rv"><h3>Add the marketplace</h3><p><code>claude plugin marketplace add giovanbelle/ghosted</code></p></div>
+      <div class="panel rv"><h3>Install the plugin</h3><p><code>claude plugin install ghosted@ghosted</code></p></div>
+      <div class="panel rv"><h3>Restart Claude Code</h3><p>You'll be asked for three settings. The defaults are fine.</p></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="ref-h">
+    <div class="shead rv"><h2 id="ref-h">Reference</h2></div>
+    <div class="rv">
+      <div class="tablist" role="tablist" aria-label="Reference">
+        <button role="tab" id="t-cmd" aria-controls="p-cmd" data-key="cmd">Commands</button>
+        <button role="tab" id="t-set" aria-controls="p-set" data-key="set">Settings</button>
+        <button role="tab" id="t-env" aria-controls="p-env" data-key="env">Environment</button>
+        <button role="tab" id="t-un" aria-controls="p-un" data-key="un">Uninstall</button>
+      </div>
+      <div role="tabpanel" id="p-cmd" aria-labelledby="t-cmd" class="tablewrap">
+        <table>
+          <thead><tr><th scope="col">Command</th><th scope="col">What it does</th></tr></thead>
+          <tbody>
+            <tr><td><code>/ghosted full</code> · <code>lite</code> · <code>auto</code> · <code>off</code></td><td>Terse answer level. <code>auto</code> is full, or off while caveman is active.</td></tr>
+            <tr><td><code>/ghosted max 250k</code> · <code>max off</code></td><td>Compact mid-run at this context size, then continue.</td></tr>
+            <tr><td><code>/ghosted pause</code> · <code>resume</code></td><td>Turn ghosted_ off or on.</td></tr>
+            <tr><td><code>/ghosted stats</code></td><td>Task switches, mid-run compactions, judge calls and what they cost.</td></tr>
+            <tr><td><code>/ghosted reset</code> · <code>help</code></td><td>Back to your <code>/config</code> settings · list the commands.</td></tr>
+            <tr><td><code>/ghosted:recall &lt;words&gt;</code></td><td>Find archived work.</td></tr>
+            <tr><td><code>new:</code> · <code>same:</code> before a prompt</td><td>Force or block a task switch.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div role="tabpanel" id="p-set" aria-labelledby="t-set" class="tablewrap" hidden>
+        <table>
+          <thead><tr><th scope="col">Setting in /config</th><th scope="col">Default</th><th scope="col">Meaning</th></tr></thead>
+          <tbody>
+            <tr><td>Check for a new task above</td><td><code>20000</code></td><td>Below this many tokens, prompts are never judged.</td></tr>
+            <tr><td>Compact mid-run at</td><td><code>0</code> (off)</td><td>For example <code>250k</code>. Values under 100k count as 100k.</td></tr>
+            <tr><td>Terse answers</td><td><code>auto</code></td><td><code>full</code>, <code>lite</code> or <code>off</code>. <code>auto</code> = full unless caveman is active.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div role="tabpanel" id="p-env" aria-labelledby="t-env" class="tablewrap" hidden>
+        <table>
+          <thead><tr><th scope="col">Variable</th><th scope="col">Effect</th></tr></thead>
+          <tbody>
+            <tr><td><code>GHOSTED_OFF=1</code></td><td>Turn everything off.</td></tr>
+            <tr><td><code>GHOSTED_MODE=compact</code></td><td>Compact instead of clear on a task switch.</td></tr>
+            <tr><td><code>GHOSTED_MIN_TOKENS</code></td><td>Overrides the switch threshold.</td></tr>
+            <tr><td><code>GHOSTED_MAX_CONTEXT</code></td><td>Overrides the mid-run limit.</td></tr>
+            <tr><td><code>GHOSTED_TERSE</code></td><td>Overrides the terse level.</td></tr>
+          </tbody>
+        </table>
+        <p class="note" style="padding:0 18px 16px">Order of precedence: environment, then <code>/ghosted</code> commands, then <code>/config</code>.</p>
+      </div>
+      <div role="tabpanel" id="p-un" aria-labelledby="t-un" class="panel" hidden>
+        <p>Remove the plugin: <code>claude plugin uninstall ghosted@ghosted</code></p>
+        <p style="margin-top:10px">Delete its archives and stats: remove <code>~/.claude/plugins/data/ghosted-ghosted</code>. Nothing is stored anywhere else.</p>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="faq-h">
+    <div class="shead rv"><h2 id="faq-h">FAQ</h2></div>
+    <div class="rv">
+      <details><summary>Will it clear something I still needed?</summary><p>Rarely: 0 wrong switches in the latest 64 test prompts, and the judge answers “same” when unsure. If it happens, the old chat is archived and <code>/ghosted:recall</code> finds it. Start a prompt with <code>same:</code> to block a switch.</p></details>
+      <details><summary>Do I need to run anything after installing?</summary><p>No. It runs through Claude Code hooks on every prompt. The commands are only for tuning.</p></details>
+      <details><summary>Why clear instead of compact?</summary><p>A compact summary still carries a lot of old text and costs a model call to write. Clearing with a few carried facts saved 70%; compacting saved 34%.</p></details>
+      <details><summary>I already use caveman. Do I need both?</summary><p>They stack: $3.32 per run with caveman alone, $0.92 with ghosted_ added. ghosted_'s own terse mode steps aside while caveman is active.</p></details>
+      <details><summary>Nothing happened after “new task detected”.</summary><p>Your terminal doesn't support auto-typing, or macOS automation permission was declined. Run <code>/clear</code>, then type <code>go</code>. Your task is saved and comes back.</p></details>
+    </div>
+    <p class="note">Something else? <a href="https://github.com/giovanbelle/ghosted/issues">Open an issue on GitHub</a>.</p>
+  </section>
+</div>
+</main>
+<footer>
+  <div class="wrap">
+    <div>ghosted_ · Apache-2.0 · © 2026 Gio van Belle
+      <small>Independent project. Not affiliated with, endorsed by or sponsored by Anthropic. Claude and Claude Code are trademarks of Anthropic, PBC.</small>
+    </div>
+    <div class="fl">
+      <a href="docs.html">Docs</a>
+      <a href="legal.html#privacy">Privacy</a>
+      <a href="legal.html#terms">Terms</a>
+      <a href="legal.html#license">License</a>
+      <a href="https://github.com/giovanbelle/ghosted">GitHub</a>
+      <a href="https://github.com/giovanbelle/ghosted/issues">Issues</a>
+    </div>
+  </div>
+</footer>
+<script src="site.js"></script>
+</body>
+</html>
