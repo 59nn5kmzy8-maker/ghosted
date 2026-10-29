@@ -63,6 +63,7 @@
         <tr><td><code>/ghosted warm 2h</code> · <code>warm off</code></td><td>Keep the prompt cache warm this long after your last turn.</td></tr>
         <tr><td><code>/ghosted full</code> · <code>lite</code> · <code>auto</code> · <code>off</code></td><td>Terse answer level. <code>auto</code> is full, or off while caveman is active.</td></tr>
         <tr><td><code>/ghosted max 250k</code> · <code>max off</code></td><td>Compact mid-run at this context size, then continue.</td></tr>
+        <tr><td><code>/ghosted setup</code> · <code>setup off</code></td><td>Auto-typing in any terminal (VS Code, Ghostty, Alacritty). Run once, then open a new terminal.</td></tr>
         <tr><td><code>/ghosted pause</code> · <code>resume</code></td><td>Turn ghosted_ off or on.</td></tr>
         <tr><td><code>/ghosted reset</code> · <code>help</code></td><td>Back to your <code>/config</code> settings · list the commands.</td></tr>
         <tr><td><code>/ghosted:recall &lt;words&gt;</code></td><td>Find archived work.</td></tr>
@@ -109,10 +110,10 @@
         <tr><td>tmux, in any terminal</td><td class="ok">Yes</td><td class="ok">Yes</td></tr>
         <tr><td>WezTerm, kitty</td><td class="ok">Yes</td><td class="ok">Yes</td></tr>
         <tr><td>Windows console, Windows Terminal</td><td class="ok">Yes</td><td class="ok">Yes</td></tr>
-        <tr><td>VS Code terminal, Ghostty, Alacritty</td><td class="no">Shows the command; type <code>go</code></td><td class="ok">Yes</td></tr>
+        <tr><td>VS Code terminal, Ghostty, Alacritty, any terminal</td><td class="ok">Yes, after <code>/ghosted setup</code> once</td><td class="ok">Yes</td></tr>
       </tbody>
     </table></div>
-    <p>Running <code>claude</code> inside tmux gives you auto-typing in any terminal.</p>
+    <p>Some terminals, like VS Code's, Ghostty and Alacritty, give outside programs no way to type into them. Run <code>/ghosted setup</code> once: it adds a small <code>claude</code> function to your shell config that runs Claude Code through ghosted_'s own pass-through terminal layer, so ghosted_ can type for you there too. Everything you type and see is unchanged. <code>/ghosted setup off</code> removes it.</p>
 
     <h2 id="uninstall">Uninstall</h2>
     <pre>claude plugin uninstall ghosted@ghosted</pre>
@@ -122,7 +123,7 @@
     <details><summary>Will it clear something I still needed?</summary><p>Rarely: 0 wrong switches in the latest 64 test prompts, and the judge answers “same” when unsure. If it happens, the old chat is archived and <code>/ghosted:recall</code> finds it. Start a prompt with <code>same:</code> to block a switch.</p></details>
     <details><summary>Why clear instead of compact?</summary><p>A compact summary still carries a lot of old text and costs a model call to write. Clearing with a few carried facts saved 70%; compacting saved 34%.</p></details>
     <details><summary>I already use caveman. Do I need both?</summary><p>They stack: $3.32 per run with caveman alone, $0.92 with ghosted_ added. ghosted_'s own terse mode steps aside while caveman is active.</p></details>
-    <details><summary>Nothing happened after “new task detected”.</summary><p>Your terminal doesn't support auto-typing, or macOS automation permission was declined. Run <code>/clear</code>, then type <code>go</code>; your task comes back.</p></details>
+    <details><summary>Nothing happened after “new task detected”.</summary><p>Your terminal can't be typed into from outside, or macOS automation permission was declined. Run <code>/clear</code>, then type <code>go</code>; your task comes back. To make it automatic, run <code>/ghosted setup</code> once.</p></details>
     <p class="note">Something else? <a href="https://github.com/giovanbelle/ghosted/issues">Open an issue on GitHub</a>.</p>
   </article>
 

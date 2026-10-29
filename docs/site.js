@@ -112,6 +112,61 @@
     addEventListener('scroll', mark, { passive: true }); mark();
   }
 
+  // How it works: try-it playground. Mirrors the plugin's follow-up rules; the Haiku judge is simulated.
+  const tryform = $('#tryform');
+  if (tryform) {
+    const q = $('#tryq'), log = $('#trylog'), ctx = $('#tryctx'), steps = $$('#trysteps li');
+    const obvious = p => p.split(/\s+/).filter(Boolean).length <= 2
+      || /^(ok(ay)?|yes|yep|no|nope|sure|thanks|thank you|great|nice|perfect|continue|go on|go ahead|do it|also|again|retry|try again|fix (it|that|this))\b/i.test(p)
+      || /\b(you (already|just)|what you (saw|read|found|wrote|did)|based on (that|this|what|your)|your (analysis|summary|comparison|overview|answer|code)|as (before|above)|above|earlier|previous(ly)?|that (file|function|change|one|error|bug)|those|the same)\b/i.test(p);
+    const aboutAuth = p => /\b(auth|login|logout|token|session|password|sign ?in|expir)/i.test(p);
+    let run = 0;
+    const wait = ms => new Promise(r => setTimeout(r, still ? 0 : ms));
+    const line = async (text, cls, my) => {
+      const el = document.createElement('div'); if (cls) el.className = cls; log.append(el);
+      if (still || cls !== 'u') { el.textContent = text; return; }
+      el.classList.add('caret');
+      for (let i = 1; i <= text.length && my === run; i++) { el.textContent = text.slice(0, i); await wait(18); }
+      el.classList.remove('caret');
+    };
+    const mark = (name, state) => { const li = steps.find(x => x.dataset.s === name); if (li) li.classList.add(state); };
+    const go = async text => {
+      const my = ++run, p = text.trim();
+      if (!p) return;
+      steps.forEach(li => li.className = ''); log.textContent = ''; ctx.textContent = '176k';
+      await line(p, 'u', my); await wait(300);
+      if (my !== run) return;
+      mark('check', 'on'); await wait(500);
+      const forced = /^new:/i.test(p) ? 'new' : /^same:/i.test(p) ? 'same' : null;
+      if (forced === 'same' || (!forced && obvious(p))) {
+        mark('check', 'hit'); ['judge', 'clear', 'start'].forEach(n => mark(n, 'skip'));
+        await line('  passes through · follow-up, no judge needed', 'd', my);
+        await wait(400); await line('⏺ Working on it with the full context', '', my);
+        return;
+      }
+      mark('judge', 'on'); await line('  judge: is this a new task? …', 'd', my); await wait(900);
+      if (my !== run) return;
+      if (!forced && aboutAuth(p)) {
+        mark('judge', 'hit'); ['clear', 'start'].forEach(n => mark(n, 'skip'));
+        await line('  judge: same task (still the auth work) · context kept', 'd', my);
+        await wait(400); await line('⏺ Continuing with the full context', '', my);
+        return;
+      }
+      await line('ghosted: new task detected, clearing first.', 'g', my);
+      mark('clear', 'on'); await wait(500);
+      await line('/clear', 'u', my); await line('  ✓ old chat archived  ✓ prompt saved', 'd', my);
+      if (still) ctx.textContent = '18k'; else tween(900, k => { ctx.textContent = Math.round(176 - 158 * k) + 'k'; });
+      await wait(600); mark('start', 'on'); mark('start', 'hit');
+      await line('Start the pending task.', 'u', my);
+      await line('  ✓ prompt restored with 5 facts from the auth work', 'd', my);
+      await wait(400); await line(`⏺ Working on: ${p.replace(/^new:\s*/i, '')}`, '', my);
+    };
+    tryform.addEventListener('submit', e => { e.preventDefault(); go(q.value); });
+    $$('.chips button').forEach(b => b.addEventListener('click', () => { q.value = b.textContent; go(b.textContent); }));
+    const shared = new URLSearchParams(location.search).get('try'); // how-it-works.html?try=<prompt> runs it on load
+    if (shared) { q.value = shared; go(shared); }
+  }
+
   const fill = root => root.querySelectorAll('.f[data-w]').forEach(f => { f.style.width = f.dataset.w + '%'; });
   if (still) { fill(document); return; }
   document.documentElement.classList.add('js');

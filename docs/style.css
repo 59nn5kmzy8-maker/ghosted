@@ -269,3 +269,27 @@ footer small { display: block; margin-top: 8px; max-width: 520px; }
 @media (max-width: 800px) { .docs { grid-template-columns: 1fr; } .dnav { position: static; } }
 .doc td:first-child { white-space: nowrap; }
 .js .tlog pre.l { max-height: none; }
+
+/* Try-it playground */
+.play .pin { display: flex; align-items: center; gap: 12px; border: 1px solid var(--line2); border-radius: 14px; background: var(--s1); padding: 8px 8px 8px 18px; font: 15px var(--mono); transition: border-color .2s; }
+.play .pin:focus-within { border-color: #555; }
+.play .pin span { color: var(--faint); }
+.play .pin input { flex: 1; min-width: 0; background: none; border: 0; outline: 0; color: var(--hi); font: inherit; padding: 8px 0; }
+.play .pin input::placeholder { color: #4a4a4a; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 22px; }
+.chips button { border: 1px solid var(--line2); background: transparent; color: var(--dim); border-radius: 999px; padding: 7px 13px; font: 13px var(--sans); cursor: pointer; transition: color .2s, border-color .2s, background .2s; }
+.chips button:hover { color: var(--hi); border-color: #4a4a4a; background: var(--s2); }
+.pgrid { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 16px; }
+.steps2 { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; align-content: start; }
+.steps2 li { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; background: var(--s1); transition: border-color .35s, background .35s, opacity .35s; }
+.steps2 li b { display: block; font-weight: 500; color: var(--dim); font-size: 14.5px; transition: color .35s; }
+.steps2 li span { font-size: 13px; color: var(--faint); }
+.steps2 li.on { border-color: #4a4a4a; background: var(--s2); }
+.steps2 li.on b { color: var(--hi); }
+.steps2 li.skip { opacity: .35; }
+.steps2 li.hit { border-color: var(--hi); }
+.play .tlog { min-height: 250px; }
+.play .tlog > div { white-space: pre-wrap; }
+.play .caret::after { content: "▍"; animation: blink 1s steps(1) infinite; color: var(--hi); }
+@keyframes blink { 50% { opacity: 0; } }
+@media (max-width: 900px) { .pgrid { grid-template-columns: 1fr; } }

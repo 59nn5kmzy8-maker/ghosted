@@ -67,6 +67,32 @@
     </figure>
   </section>
 
+
+  <section aria-labelledby="try-h" style="padding-top:72px">
+    <div class="shead rv"><p class="kicker">Try it</p><h2 id="try-h">Type a prompt. Watch what happens.</h2><p>You're 40 minutes into fixing an auth bug, with 176k tokens of context. What do you ask next?</p></div>
+    <div class="play rv">
+      <form class="pin" id="tryform">
+        <span aria-hidden="true">›</span>
+        <input id="tryq" type="text" autocomplete="off" spellcheck="false" placeholder="e.g. add dark mode to the settings page" aria-label="Your next prompt">
+        <button class="btn primary sm" type="submit">Send</button>
+      </form>
+      <div class="chips" aria-label="Examples">
+        <button type="button">fix it</button><button type="button">also cover the logout race</button><button type="button">based on what you read, write the summary</button>
+        <button type="button">add dark mode to the settings page</button><button type="button">write the release notes</button><button type="button">why is the build slow?</button>
+      </div>
+      <div class="pgrid">
+        <ol class="steps2" id="trysteps">
+          <li data-s="check"><b>Quick checks</b><span>Follow-ups and short replies pass straight through</span></li>
+          <li data-s="judge"><b>Haiku judge</b><span>Is this a new task? Unsure means same</span></li>
+          <li data-s="clear"><b>Archive and /clear</b><span>Old chat saved, context cleared</span></li>
+          <li data-s="start"><b>Task starts</b><span>Prompt restored with 5 facts</span></li>
+        </ol>
+        <div class="term"><div class="tbar"><i></i><i></i><i></i><span>claude · ~/my-app</span><span class="ctx">context <b id="tryctx">176k</b></span></div><div class="tlog" id="trylog" aria-live="polite"><div class="d">Pick an example or type your own prompt.</div></div></div>
+      </div>
+      <p class="note">Simulated in your browser with ghosted_'s real follow-up rules. In Claude Code, prompts that pass those rules go to a Haiku judge.</p>
+    </div>
+  </section>
+
   <section aria-labelledby="feat-h">
     <div class="shead rv"><h2 id="feat-h">Features</h2><p>Pick a tab to see what you'd see in your terminal.</p></div>
     <div class="rv">
@@ -147,7 +173,7 @@
           <tr><td>tmux, in any terminal: VS Code, Linux, SSH</td><td class="ok">Yes</td><td class="ok">Yes</td></tr>
           <tr><td>WezTerm, kitty</td><td class="ok">Yes</td><td class="ok">Yes</td></tr>
           <tr><td>Windows console, Windows Terminal</td><td class="ok">Yes</td><td class="ok">Yes</td></tr>
-          <tr><td>VS Code terminal, Ghostty, Alacritty</td><td class="no">Shows the command; you type <code>go</code>. Or run <code>claude</code> inside tmux.</td><td class="ok">Yes</td></tr>
+          <tr><td>VS Code terminal, Ghostty, Alacritty, any terminal</td><td class="ok">Yes, after <code>/ghosted setup</code> once</td><td class="ok">Yes</td></tr>
         </tbody>
       </table>
     </div>
