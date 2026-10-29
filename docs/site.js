@@ -77,25 +77,32 @@
     spend.addEventListener('input', calc); share.addEventListener('input', calc); calc();
   }
 
+  // Hero ghost: the logo drawn as a dot matrix, once.
+  const cv = $('#ghost');
+  if (cv) {
+    const img = new Image();
+    const draw = () => {
+      const ctx = cv.getContext('2d'), r = cv.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1);
+      cv.width = r.width * dpr; cv.height = r.height * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const S = 96, off = document.createElement('canvas'); off.width = off.height = S;
+      const o = off.getContext('2d'); o.drawImage(img, 0, 0, S, S);
+      let data; try { data = o.getImageData(0, 0, S, S).data; } catch { return; }
+      const step = r.width / S * 1.05, ox = (r.width - S * step) / 2, oy = (r.height - S * step) / 2;
+      ctx.clearRect(0, 0, r.width, r.height);
+      for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+        const i = (y * S + x) * 4, v = data[i] / 255;
+        if (v < .4) continue;
+        ctx.fillStyle = `rgba(255,255,255,${.25 + v * .75})`;
+        ctx.beginPath(); ctx.arc(ox + x * step, oy + y * step, step * .32, 0, 6.283); ctx.fill();
+      }
+    };
+    img.onload = draw; img.src = cv.dataset.src;
+    addEventListener('resize', draw);
+  }
+
   const fill = root => root.querySelectorAll('.f[data-w]').forEach(f => { f.style.width = f.dataset.w + '%'; });
   if (still) { fill(document); return; }
   document.documentElement.classList.add('js');
-
-  // Border light that follows the pointer.
-  $$('.lit').forEach(c => c.addEventListener('pointermove', e => {
-    const r = c.getBoundingClientRect();
-    c.style.setProperty('--x', (e.clientX - r.left) + 'px');
-    c.style.setProperty('--y', (e.clientY - r.top) + 'px');
-  }));
-
-  // Buttons lean toward the pointer.
-  $$('.btn.primary, .btn.mag').forEach(b => {
-    b.addEventListener('pointermove', e => {
-      const r = b.getBoundingClientRect();
-      b.style.transform = `translate(${(e.clientX - r.left - r.width / 2) * .18}px, ${(e.clientY - r.top - r.height / 2) * .3}px)`;
-    });
-    b.addEventListener('pointerleave', () => { b.style.transform = ''; });
-  });
 
   // Count up: the first number in the text runs from 0 to its value.
   const odo = el => {
@@ -103,16 +110,6 @@
     if (!m) return;
     const [, pre, num, post] = m, to = +num;
     tween(1600, k => { el.textContent = pre + Math.round(to * k) + post; });
-  };
-
-  // Scramble: text resolves from random glyphs.
-  const GLYPHS = '▓▒░/\\|_<>-=+*#%';
-  const scramble = el => {
-    const final = el.textContent;
-    tween(900, k => {
-      const n = Math.floor(final.length * k);
-      el.textContent = final.slice(0, n) + [...final.slice(n)].map(c => c === ' ' ? ' ' : GLYPHS[Math.random() * GLYPHS.length | 0]).join('');
-    }, () => { el.textContent = final; });
   };
 
   $$('.draw').forEach(p => { if (p.getTotalLength) p.style.setProperty('--len', Math.ceil(p.getTotalLength())); });
@@ -126,82 +123,35 @@
     el.classList.add('in');
     fill(el);
     el.querySelectorAll('[data-odo]').forEach(odo);
-    if (el.matches('.kicker')) scramble(el);
     io.unobserve(el);
   }), { threshold: 0.18 });
-  $$('.rv, .kicker').forEach(el => io.observe(el));
+  $$('.rv').forEach(el => io.observe(el));
 
-  // Hero ghost: particles sampled from the logo drift, dissolve and re-form; the pointer pushes them away.
-  const cv = $('#ghost');
-  if (cv) {
-    const ctx = cv.getContext('2d'), img = new Image();
-    let pts = [], W = 0, H = 0, dpr = Math.min(2, devicePixelRatio || 1), mx = -1e4, my = -1e4, t0 = performance.now();
-    const build = () => {
-      const r = cv.getBoundingClientRect(); W = r.width; H = r.height;
-      cv.width = W * dpr; cv.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      const S = 140, off = document.createElement('canvas'); off.width = off.height = S;
-      const o = off.getContext('2d'); o.drawImage(img, 0, 0, S, S);
-      let data; try { data = o.getImageData(0, 0, S, S).data; } catch { return; } // tainted on file://
-      const scale = Math.min(W, H) * 1.2 / S, ox = (W - S * scale) / 2, oy = (H - S * scale) / 2;
-      pts = [];
-      for (let y = 0; y < S; y += 2) for (let x = 0; x < S; x += 2) {
-        const i = (y * S + x) * 4;
-        if (data[i + 3] > 128 && data[i] > 128) {
-          const hx = ox + x * scale, hy = oy + y * scale;
-          pts.push({ hx, hy, x: hx, y: hy, vx: 0, vy: 0, s: Math.random(), seed: Math.random() * 6.28 });
-        }
-      }
-    };
-    img.onload = () => { build(); requestAnimationFrame(frame); };
-    img.src = cv.dataset.src;
-    addEventListener('resize', build);
-    cv.addEventListener('pointermove', e => { const r = cv.getBoundingClientRect(); mx = e.clientX - r.left; my = e.clientY - r.top; });
-    cv.addEventListener('pointerleave', () => { mx = my = -1e4; });
-    let visible = true;
-    new IntersectionObserver(([e]) => { visible = e.isIntersecting; }).observe(cv);
-    function frame(now) {
-      requestAnimationFrame(frame);
-      if (!visible) return;
-      const t = (now - t0) / 1000, cyc = t % 9;
-      // 0–5.5s formed, 5.5–7.5s dissolving upward, 7.5–9s re-forming
-      const loose = cyc < 5.5 ? 0 : cyc < 7.5 ? (cyc - 5.5) / 2 : Math.max(0, 1 - (cyc - 7.5) / 1.2);
-      ctx.clearRect(0, 0, W, H);
-      for (const p of pts) {
-        const lift = loose * loose * (60 + p.s * 140);
-        const tx = p.hx + Math.sin(t * 1.3 + p.seed) * (1.2 + loose * 30 * p.s);
-        const ty = p.hy - lift + Math.cos(t * 1.1 + p.seed) * 1.2;
-        let ax = (tx - p.x) * .06, ay = (ty - p.y) * .06;
-        const dx = p.x - mx, dy = p.y - my, d2 = dx * dx + dy * dy;
-        if (d2 < 9000) { const f = (9000 - d2) / 9000 * 3.2; ax += dx / Math.sqrt(d2 + 1) * f; ay += dy / Math.sqrt(d2 + 1) * f; }
-        p.vx = (p.vx + ax) * .82; p.vy = (p.vy + ay) * .82; p.x += p.vx; p.y += p.vy;
-        const a = (1 - loose * (.4 + p.s * .6)) * (.55 + p.s * .45);
-        ctx.fillStyle = `rgba(255,255,255,${a})`;
-        ctx.fillRect(p.x, p.y, 1.8, 1.8);
-      }
-    }
-  }
-
-  // Terminal demo: the old conversation dissolves when /clear runs, then the new task starts.
+  // Terminal demo: plays once when it comes into view; Replay plays it again.
   const demo = $('#demo');
   if (demo) {
-    const lines = [...demo.querySelectorAll('.l')], ctxEl = $('#ctx'), bar = $('#ctxbar');
+    const lines = [...demo.querySelectorAll('.l')], ctxEl = $('#ctx'), bar = $('#ctxbar'), again = $('#replay');
+    let timers = [];
     const play = () => {
+      timers.forEach(clearTimeout); timers = [];
       lines.forEach(l => l.classList.remove('on', 'gone'));
       if (ctxEl) ctxEl.textContent = '176k'; if (bar) bar.style.width = '88%';
+      if (again) again.hidden = true;
       let t = 300;
       lines.forEach(l => {
-        setTimeout(() => {
+        timers.push(setTimeout(() => {
           l.classList.add('on');
           if (l.dataset.drop) {
-            lines.filter(x => x.classList.contains('old')).forEach((x, i) => setTimeout(() => x.classList.add('gone'), i * 90));
+            lines.filter(x => x.classList.contains('old')).forEach(x => x.classList.add('gone'));
             if (ctxEl) tween(1200, k => { ctxEl.textContent = Math.round(176 - 158 * k) + 'k'; });
             if (bar) bar.style.width = '9%';
           }
-        }, t);
-        t += l.classList.contains('old') ? 160 : 720;
+        }, t));
+        t += l.classList.contains('old') ? 140 : 650;
       });
-      setTimeout(play, t + 4200);
+      timers.push(setTimeout(() => { if (again) again.hidden = false; }, t + 400));
     };
-    new IntersectionObserver(([e], o) => { if (e.isIntersecting) { play(); o.disconnect(); } }).observe(demo);
+    if (again) again.addEventListener('click', play);
+    new IntersectionObserver(([e], o) => { if (e.isIntersecting) { play(); o.disconnect(); } }, { threshold: .5 }).observe(demo);
   }
 })();

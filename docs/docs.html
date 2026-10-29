@@ -28,6 +28,7 @@
     <a class="brand" href="./"><img src="favicon.png" alt="ghosted_ home" width="24" height="24"><span>ghosted_</span></a>
     <nav class="tabs" aria-label="Pages"><a href="./">Overview</a><a href="how-it-works.html">How it works</a><a href="benchmarks.html">Benchmarks</a><a href="docs.html" aria-current="page">Docs</a><a href="legal.html">Legal</a></nav>
     <a class="ghbtn" href="https://github.com/giovanbelle/ghosted"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span>GitHub</span><b id="stars">★</b></a>
+    <a class="btn primary sm cta-sm" href="docs.html">Install</a>
   </div>
 </header>
 <main id="main">
@@ -35,15 +36,15 @@
   <section class="phead">
     <p class="kicker">Docs</p>
     <h1>Set up once. Then forget it.</h1>
-    <p class="lede">Needs Node.js and the <code>claude</code> CLI on your PATH. Cache warming also uses <code>python3</code>. No other dependencies.</p>
+    <p class="lede">Needs Node.js and the <code>claude</code> CLI on your PATH. Cache warming uses <code>python3</code> on macOS and Linux. No other dependencies.</p>
   </section>
 
   <section aria-labelledby="inst-h" style="padding-top:56px">
     <div class="shead rv"><h2 id="inst-h">Install</h2></div>
     <div class="steps">
-      <div class="panel lit rv"><h3>Add the marketplace</h3><p><code>claude plugin marketplace add giovanbelle/ghosted</code></p></div>
-      <div class="panel lit rv"><h3>Install the plugin</h3><p><code>claude plugin install ghosted@ghosted</code></p></div>
-      <div class="panel lit rv"><h3>Restart Claude Code</h3><p>You'll be asked for three settings. The defaults are fine.</p></div>
+      <div class="panel rv"><h3>Add the marketplace</h3><p><code>claude plugin marketplace add giovanbelle/ghosted</code></p></div>
+      <div class="panel rv"><h3>Install the plugin</h3><p><code>claude plugin install ghosted@ghosted</code></p></div>
+      <div class="panel rv"><h3>Restart Claude Code</h3><p>You'll be asked for three settings. The defaults are fine.</p></div>
     </div>
   </section>
 
@@ -56,7 +57,7 @@
         <button role="tab" id="t-env" aria-controls="p-env" data-key="env">Environment</button>
         <button role="tab" id="t-un" aria-controls="p-un" data-key="un">Uninstall</button>
       </div>
-      <div role="tabpanel" id="p-cmd" aria-labelledby="t-cmd" class="tablewrap lit">
+      <div role="tabpanel" id="p-cmd" aria-labelledby="t-cmd" class="tablewrap">
         <table>
           <thead><tr><th scope="col">Command</th><th scope="col">What it does</th></tr></thead>
           <tbody>
@@ -71,7 +72,7 @@
           </tbody>
         </table>
       </div>
-      <div role="tabpanel" id="p-set" aria-labelledby="t-set" class="tablewrap lit" hidden>
+      <div role="tabpanel" id="p-set" aria-labelledby="t-set" class="tablewrap" hidden>
         <table>
           <thead><tr><th scope="col">Setting in /config</th><th scope="col">Default</th><th scope="col">Meaning</th></tr></thead>
           <tbody>
@@ -82,7 +83,7 @@
           </tbody>
         </table>
       </div>
-      <div role="tabpanel" id="p-env" aria-labelledby="t-env" class="tablewrap lit" hidden>
+      <div role="tabpanel" id="p-env" aria-labelledby="t-env" class="tablewrap" hidden>
         <table>
           <thead><tr><th scope="col">Variable</th><th scope="col">Effect</th></tr></thead>
           <tbody>
@@ -96,7 +97,7 @@
         </table>
         <p class="note" style="padding:0 18px 16px">Order of precedence: environment, then <code>/ghosted</code> commands, then <code>/config</code>.</p>
       </div>
-      <div role="tabpanel" id="p-un" aria-labelledby="t-un" class="panel lit" hidden>
+      <div role="tabpanel" id="p-un" aria-labelledby="t-un" class="panel" hidden>
         <p>Remove the plugin: <code>claude plugin uninstall ghosted@ghosted</code></p>
         <p style="margin-top:10px">Delete its archives and stats: remove <code>~/.claude/plugins/data/ghosted-ghosted</code>. Nothing is stored anywhere else.</p>
       </div>
@@ -111,7 +112,7 @@
       <details><summary>Why clear instead of compact?</summary><p>A compact summary still carries a lot of old text and costs a model call to write. Clearing with a few carried facts saved 70%; compacting saved 34%.</p></details>
       <details><summary>I already use caveman. Do I need both?</summary><p>They stack: $3.32 per run with caveman alone, $0.92 with ghosted_ added. ghosted_'s own terse mode steps aside while caveman is active.</p></details>
       <details><summary>What does cache warming cost?</summary><p>Each ping reads the context from cache at a tenth of the input price, about once an hour on subscriptions. It stops before the pings cost half of the full cache rewrite you'd pay coming back cold, and immediately if one ever misses the cache. <code>/ghosted stats</code> shows every ping.</p></details>
-      <details><summary>Nothing happened after “new task detected”.</summary><p>Your terminal doesn't support auto-typing, or macOS automation permission was declined. Run <code>/clear</code>, then type <code>go</code>. Your task is saved and comes back.</p></details>
+      <details><summary>Nothing happened after “new task detected”.</summary><p>Your terminal doesn't support auto-typing (VS Code's terminal, Ghostty, Alacritty), or macOS automation permission was declined. Run <code>/clear</code>, then type <code>go</code>; your task comes back. Running <code>claude</code> inside tmux gives you auto-typing in any terminal.</p></details>
     </div>
     <p class="note">Something else? <a href="https://github.com/giovanbelle/ghosted/issues">Open an issue on GitHub</a>.</p>
   </section>
