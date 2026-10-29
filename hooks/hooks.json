@@ -27,6 +27,15 @@
         "hooks": [
           {
             "type": "command",
+            "command": "command -v node >/dev/null 2>&1 || printf '%s' '{\"systemMessage\": \"ghosted_ needs Node.js and could not find it, so it is not running. Install Node from https://nodejs.org, then restart Claude Code.\"}'",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/ghosted.js\" start"
           }
         ]
