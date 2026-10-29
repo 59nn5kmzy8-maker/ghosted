@@ -100,6 +100,18 @@
     addEventListener('resize', draw);
   }
 
+  // Docs: mark the section being read in the sidebar and the on-this-page list.
+  const heads = $$('.doc [id]');
+  if (heads.length) {
+    const mark = () => {
+      let cur = heads[0].id;
+      for (const h of heads) if (h.getBoundingClientRect().top < 140) cur = h.id;
+      $$('.toc a, .dnav a').forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + cur));
+      const c = $('.crumbs'); if (c) c.textContent = 'ghosted_ / Docs / ' + ($(`.toc a[href="#${cur}"]`)?.textContent || '');
+    };
+    addEventListener('scroll', mark, { passive: true }); mark();
+  }
+
   const fill = root => root.querySelectorAll('.f[data-w]').forEach(f => { f.style.width = f.dataset.w + '%'; });
   if (still) { fill(document); return; }
   document.documentElement.classList.add('js');

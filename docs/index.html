@@ -4,13 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ghosted_ · stop paying for context you no longer need</title>
-<meta name="description" content="Open-source Claude Code plugin. When you switch task, ghosted_ clears the old conversation and starts your new task for you. Measured 70% cheaper across 36 real runs.">
+<meta name="description" content="Open-source Claude Code plugin. When you switch task, ghosted_ clears the old conversation and starts your new task for you, and keeps your cache warm during breaks. Measured 70% cheaper across 36 real runs.">
 <link rel="canonical" href="https://giovanbelle.github.io/ghosted/">
 <meta name="theme-color" content="#000000">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://giovanbelle.github.io/ghosted/">
 <meta property="og:title" content="ghosted_ · stop paying for context you no longer need">
-<meta property="og:description" content="Open-source Claude Code plugin. When you switch task, ghosted_ clears the old conversation and starts your new task for you. Measured 70% cheaper across 36 real runs.">
+<meta property="og:description" content="Open-source Claude Code plugin. When you switch task, ghosted_ clears the old conversation and starts your new task for you, and keeps your cache warm during breaks. Measured 70% cheaper across 36 real runs.">
 <meta property="og:image" content="https://giovanbelle.github.io/ghosted/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -23,6 +23,7 @@
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
+<div class="announce"><a href="docs.html#warm"><b>New in 0.7</b> Cache warming keeps your cache alive during breaks, now on every platform <span>Read →</span></a></div>
 <header class="top">
   <div class="wrap">
     <a class="brand" href="./"><img src="favicon.png" alt="ghosted_ home" width="24" height="24"><span>ghosted_</span></a>
@@ -33,201 +34,174 @@
 </header>
 <main id="main">
 <style>
-  .hero { display: grid; grid-template-columns: 1.15fr .85fr; gap: 24px; align-items: center; padding: 88px 0 72px; }
-  .hero h1 { font-size: clamp(46px, 6.6vw, 88px); }
-  #ghost { width: 100%; aspect-ratio: 1; display: block; cursor: crosshair; }
-  .ghostwrap { position: relative; }
-  .ghostwrap .tag { position: absolute; font: 500 11.5px var(--mono); color: var(--faint); letter-spacing: .08em; }
-  .ghostwrap .tag b { color: var(--hi); font-weight: 500; }
-  .bento { display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; }
-  .bento .panel { min-height: 300px; display: flex; flex-direction: column; justify-content: flex-end; }
-  .b-a { grid-column: span 4; } .b-b { grid-column: span 2; } .b-c { grid-column: span 2; } .b-d { grid-column: span 4; }
-  .viz { flex: 1; display: grid; place-items: center; margin-bottom: 22px; }
-  .squash { width: 100%; max-width: 340px; font: 12.5px/1.7 var(--mono); color: var(--dim); }
-  .squash .long { transition: opacity .6s, filter .6s, max-height .8s var(--ease); max-height: 120px; overflow: hidden; }
-  .squash .short { color: var(--hi); opacity: 0; transition: opacity .6s .3s; }
-  .js .in .squash .long { animation: squash 6s var(--ease) infinite; }
-  .js .in .squash .short { animation: unsquash 6s var(--ease) infinite; }
-  @keyframes squash { 0%, 35% { opacity: 1; filter: none; max-height: 120px; } 50%, 90% { opacity: 0; filter: blur(6px); max-height: 0; } 100% { opacity: 1; max-height: 120px; } }
-  @keyframes unsquash { 0%, 40% { opacity: 0; } 55%, 88% { opacity: 1; } 100% { opacity: 0; } }
-  .search { width: 100%; max-width: 280px; }
-  .search .q { border: 1px solid var(--line2); border-radius: 10px; padding: 10px 14px; font: 13px var(--mono); color: var(--hi); background: #080808; }
-  .search .hit { margin-top: 10px; border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; font: 12px/1.6 var(--mono); color: var(--dim); }
-  .search .hit b { color: var(--hi); font-weight: 500; }
-  .typing { display: inline-block; overflow: hidden; white-space: nowrap; vertical-align: bottom; width: 0; }
-  .js .in .typing { animation: type 5s steps(18) infinite; }
-  @keyframes type { 0% { width: 0; } 40%, 100% { width: 18ch; } }
-  .limit { width: 100%; max-width: 560px; }
-  .limit svg { width: 100%; height: auto; }
-  .switches { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 300px; }
-  .switches div { display: flex; justify-content: space-between; align-items: center; font: 12.5px var(--mono); color: var(--dim); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; }
-  .switches b { color: var(--hi); font-weight: 500; }
+  .hero { text-align: center; padding: 112px 0 64px; }
+  .hero .mark { width: 44px; height: 44px; margin: 0 auto 34px; display: block; }
+  .hero h1 { font-size: clamp(44px, 7.2vw, 96px); max-width: 980px; margin: 0 auto 22px; }
+  .hero .lede { margin: 0 auto 34px; text-align: center; }
+  .hero .row-cta { justify-content: center; }
+  .cmdpill { display: inline-flex; align-items: center; gap: 14px; height: 44px; padding: 0 6px 0 18px; border: 1px solid var(--line2); border-radius: 999px; background: var(--s1); font: 13px var(--mono); color: var(--dim); }
+  .cmdpill b { color: var(--hi); font-weight: 400; }
+  .stars { display: inline-flex; gap: 8px; align-items: center; margin-top: 26px; font-size: 13.5px; color: var(--dim); text-decoration: none; }
+
+  .frame { margin: 24px auto 0; max-width: 1120px; border: 1px solid var(--line2); border-radius: 14px; background: #0a0a0a; overflow: hidden; box-shadow: 0 40px 120px -40px rgba(0,0,0,.9), 0 0 0 6px rgba(255,255,255,.015); text-align: left; }
+  .frame .bar { display: flex; align-items: center; gap: 7px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+  .frame .bar i { width: 10px; height: 10px; border-radius: 50%; background: #1f1f1f; }
+  .frame .bar span { margin-left: 10px; font: 12px var(--mono); color: var(--faint); }
+  .frame .body { display: grid; grid-template-columns: 210px 1fr; min-height: 470px; }
+  .side { border-right: 1px solid var(--line); padding: 16px 10px; font-size: 13px; }
+  .side .h { font: 500 10.5px var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--faint); padding: 14px 10px 8px; }
+  .side span { display: flex; justify-content: space-between; padding: 7px 10px; border-radius: 7px; color: var(--dim); }
+  .side span.on { background: #151515; color: var(--hi); }
+  .side small { font: 11px var(--mono); color: var(--faint); }
+  .main { padding: 20px 22px; min-width: 0; }
+  .crumb { font-size: 13px; color: var(--faint); margin-bottom: 16px; }
+  .crumb b { color: var(--hi); font-weight: 500; }
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--line); border-radius: 10px; margin-bottom: 18px; }
+  .kpis > div { padding: 14px 16px; border-left: 1px solid var(--line); }
+  .kpis > div:first-child { border-left: 0; }
+  .kpis span { display: block; font-size: 12px; color: var(--faint); margin-bottom: 6px; }
+  .kpis b { font: 600 22px/1 var(--sans); letter-spacing: -0.03em; color: var(--hi); }
+  .kpis small { display: block; margin-top: 6px; font-size: 11.5px; color: var(--faint); }
+  .ev { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .ev th { font: 500 11px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--faint); text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  .ev td { padding: 11px 10px; border-bottom: 1px solid #141414; color: var(--hi); vertical-align: top; }
+  .ev td.n { font-family: var(--mono); font-size: 12.5px; text-align: right; white-space: nowrap; }
+  .ev td.t { color: var(--faint); white-space: nowrap; }
+  .ev td small { display: block; color: var(--faint); font-size: 12px; margin-top: 2px; }
+  .tag { display: inline-block; font: 500 11px var(--mono); padding: 3px 8px; border-radius: 999px; border: 1px solid var(--line2); color: var(--dim); white-space: nowrap; }
+  .tag.w { background: var(--hi); color: #000; border-color: var(--hi); }
+  .frame .foot { display: flex; justify-content: space-between; padding: 10px 16px; border-top: 1px solid var(--line); font: 11.5px var(--mono); color: var(--faint); }
+
+  .statement { font: 500 clamp(26px, 3.4vw, 42px)/1.18 var(--sans); letter-spacing: -0.035em; color: var(--hi); max-width: 1000px; margin: 0; }
+  .statement span { color: #5c5c5c; }
+
+  .figlab { display: flex; justify-content: space-between; font: 11px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--faint); margin-bottom: 10px; }
+  .node rect { fill: #0e0e0e; stroke: #2a2a2a; }
+  .node.hi rect { fill: #f5f5f5; stroke: #f5f5f5; }
+  .fl { font-family: Geist, sans-serif; font-size: 14px; fill: #ededed; }
+  .node.hi .fl { fill: #000; font-weight: 600; }
+  .fm { font-family: "Geist Mono", monospace; font-size: 10.5px; letter-spacing: .08em; fill: #666; }
+  .node.hi .fm { fill: #444; }
+  .wire { fill: none; stroke: #3a3a3a; stroke-width: 1.2; }
+  .wire.d { stroke-dasharray: 3 4; }
+
+  .nums { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--line); }
+  .nums > div { padding: 34px 28px 30px 0; border-bottom: 1px solid var(--line); }
+  .nums > div + div { padding-left: 28px; border-left: 1px solid var(--line); }
+  .nums b { display: block; font: 600 clamp(40px, 5vw, 60px)/1 var(--sans); letter-spacing: -0.05em; color: var(--hi); margin-bottom: 14px; }
+  .nums p { margin: 0; color: var(--dim); font-size: 15px; max-width: 280px; }
+
+  .feat { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--line); }
+  .feat > div { padding: 30px 28px 34px 0; }
+  .feat > div + div { padding-left: 28px; border-left: 1px solid var(--line); }
+  .feat .k { font: 500 11px var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--faint); margin: 0 0 18px; }
+  .feat p { color: var(--dim); margin: 0; font-size: 15px; }
   @media (max-width: 900px) {
-    .hero { grid-template-columns: 1fr; padding-top: 48px; }
-    .ghostwrap { max-width: 360px; margin: 0 auto; order: -1; }
-    .bento { grid-template-columns: 1fr; } .bento > * { grid-column: auto !important; }
+    .frame .body { grid-template-columns: 1fr; } .side { display: none; }
+    .kpis { grid-template-columns: repeat(2, 1fr); } .kpis > div:nth-child(3) { border-left: 0; } .kpis > div:nth-child(n+3) { border-top: 1px solid var(--line); }
+    .ev td.t, .ev th.t { display: none; }
+    .nums, .feat { grid-template-columns: 1fr; } .nums > div + div, .feat > div + div { padding-left: 0; border-left: 0; }
+    .cmdpill { display: none; }
+    .hero { padding-top: 64px; }
   }
-  .judge ul { list-style: none; margin: 0; padding: 0; }
-  .judge li { padding: 13px 0; border-top: 1px solid var(--line); color: var(--dim); font-size: 15.5px; display: flex; justify-content: space-between; gap: 12px; }
-  .judge li::after { content: "same"; font: 500 11.5px var(--mono); color: var(--faint); letter-spacing: .06em; }
-  .judge .new li { color: var(--hi); }
-  .judge .new li::after { content: "new · cleared"; color: var(--hi); }
-  .col-h { font: 500 12px var(--mono) !important; letter-spacing: .12em; text-transform: uppercase; color: var(--faint) !important; margin: 0 0 12px !important; }
-  .warmline { width: 100%; max-width: 420px; display: grid; gap: 8px; }
-  .warmline div { display: flex; gap: 16px; align-items: center; border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; font: 12.5px var(--mono); color: var(--dim); }
-  .warmline span { color: var(--faint); }
-  .warmline b { font-weight: 500; }
-  .warmline .back { border-color: var(--line2); color: var(--hi); }
 </style>
-<div class="wrap">
-  <section class="hero" style="padding-top:88px">
-    <div>
-      <p class="kicker">Claude Code plugin · free and open source</p>
-      <h1>Stop paying for context you no longer <em>need.</em></h1>
-      <p class="lede">When you start a new task, ghosted_ <b>clears the old conversation and starts your task for you</b>. Same typing. A fraction of the bill.</p>
-      <div class="install" style="margin-bottom:22px">
-        <button type="button" class="btn sm" data-copy="claude plugin marketplace add giovanbelle/ghosted\nclaude plugin install ghosted@ghosted" aria-label="Copy install commands">Copy</button>
-        <div><span class="p">$ </span>claude plugin marketplace add giovanbelle/ghosted</div>
-        <div><span class="p">$ </span>claude plugin install ghosted@ghosted</div>
-      </div>
-      <div class="row-cta">
-        <a class="btn primary" href="how-it-works.html">See how it works <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg></a>
-        <a class="btn" href="benchmarks.html">Benchmarks</a>
-      </div>
-    </div>
-    <div class="ghostwrap" aria-hidden="true">
-      <canvas id="ghost" data-src="ghost.png"></canvas>
-    </div>
-  </section>
-</div>
 
 <div class="wrap">
-  <section style="padding-top:72px">
-    <div class="stats rv">
-      <div><b data-odo>−70%</b><span>cost on sessions with a task switch</span></div>
-      <div><b data-odo>36</b><span>real Opus runs, every test passing</span></div>
-      <div><b data-odo>0 / 64</b><span>wrong switches in the latest judge test</span></div>
-      <div><b>$0.0013</b><span>per judged prompt</span></div>
+  <section class="hero">
+    <img class="mark" src="favicon.png" alt="" width="44" height="44">
+    <h1>Stop paying for context you no longer <em>need.</em></h1>
+    <p class="lede">ghosted_ clears finished work when you start something new, starts your task for you, and keeps your cache warm while you're away.</p>
+    <div class="row-cta">
+      <span class="cmdpill">$ <b>claude plugin install ghosted@ghosted</b><button type="button" class="btn sm" data-copy="claude plugin marketplace add giovanbelle/ghosted\nclaude plugin install ghosted@ghosted" aria-label="Copy both install commands">Copy</button></span>
+      <a class="btn primary" href="docs.html">Get started</a>
     </div>
+    <a class="stars" href="https://github.com/giovanbelle/ghosted">Open source on GitHub · Apache-2.0 →</a>
   </section>
 
-
-  <section aria-labelledby="judge-h">
-    <div class="shead rv">
-      <p class="kicker">The judge</p>
-      <h2 id="judge-h">It only clears when the old work <em>can't</em> help.</h2>
-      <p>Follow-ups never reach the judge. When it is unsure, it keeps the context.</p>
-    </div>
-    <div class="grid2 judge">
-      <div class="panel rv">
-        <p class="col-h">Kept · same task</p>
-        <ul>
-          <li>fix the failing test</li><li>also handle the empty state</li><li>based on what you read, summarize it</li><li>use the same approach for the admin page</li><li>that file too</li>
-        </ul>
+  <div class="frame rv" role="img" aria-label="Illustration of ghosted_ stats: context 18k after a task switch, task switches, warm pings and judge spend, with a list of recent events.">
+    <div class="bar"><i></i><i></i><i></i><span>/ghosted stats</span></div>
+    <div class="body">
+      <div class="side" aria-hidden="true">
+        <div class="h">Sessions</div>
+        <span class="on">dark-mode <small>active</small></span>
+        <span>auth-flow <small>archived</small></span>
+        <span>release-notes <small>archived</small></span>
+        <span>ci-docs <small>archived</small></span>
+        <div class="h">Settings</div>
+        <span>Terse <small>full</small></span>
+        <span>Keep warm <small>2h</small></span>
+        <span>Judge above <small>20k</small></span>
       </div>
-      <div class="panel rv">
-        <p class="col-h">Cleared · new task</p>
-        <ul class="new">
-          <li>now write the release notes</li><li>set up CI for the docs site</li><li>add dark mode to the settings page</li><li>why is the build slow?</li><li>plan next week's sprint</li>
-        </ul>
-      </div>
-    </div>
-  </section>
-
-  <section aria-labelledby="watch-h">
-    <div class="grid2" style="gap:56px;align-items:center">
-      <div class="shead rv" style="margin:0">
-        <p class="kicker">Watch it happen</p>
-        <h2 id="watch-h">The old work <em>vanishes.</em> Your task doesn't.</h2>
-        <p>Forty minutes of auth fixes are archived and cleared the moment you ask for something new. Your prompt comes back with the five facts that matter, and Claude starts on it.</p>
-      </div>
-      <div class="term rv" role="img" aria-label="Demo: at 176k tokens the user asks for dark mode; ghosted_ archives and clears the old chat, and the task starts at 18k tokens.">
-        <div class="tbar"><i></i><i></i><i></i><span>~/my-app</span><span class="ctx">context <span class="meter"><i id="ctxbar"></i></span><b id="ctx">176k</b></span></div>
-        <button type="button" class="btn sm replay" id="replay" hidden>Replay</button>
-        <div class="tlog" id="demo">
-          <div class="l old">› fix the token refresh in auth.ts</div>
-          <div class="l old">● Read src/auth.ts · src/session.ts · 14 more</div>
-          <div class="l old">● 3 tests fixed · expiry check now uses &lt;=</div>
-          <div class="l old">› also cover the logout race</div>
-          <div class="l old">● Edited src/session.ts · tests pass</div>
-          <div class="l u">add dark mode to the settings page</div>
-          <div class="l g">ghosted: new task detected, clearing first.</div>
-          <div class="l u" data-drop="1">/clear</div>
-          <div class="l d">  ✓ archived  ✓ prompt restored  ✓ 5 facts carried</div>
-          <div class="l u">Start the pending task.</div>
-          <div class="l">● Reading src/settings/SettingsPage.tsx</div>
+      <div class="main">
+        <div class="crumb">ghosted_ / <b>my-app</b></div>
+        <div class="kpis">
+          <div><span>Context now</span><b>18k</b><small>was 176k</small></div>
+          <div><span>Task switches</span><b>12</b><small>this week</small></div>
+          <div><span>Warm pings</span><b>6</b><small>191k read each</small></div>
+          <div><span>Judge spend</span><b>$0.04</b><small>31 prompts judged</small></div>
         </div>
+        <table class="ev">
+          <thead><tr><th>Event</th><th>Detail</th><th class="t">When</th><th style="text-align:right">Tokens</th></tr></thead>
+          <tbody>
+            <tr><td><span class="tag w">new task</span></td><td>add dark mode to the settings page<small>auth-flow archived · 5 facts carried</small></td><td class="t">2m ago</td><td class="n">−158k</td></tr>
+            <tr><td><span class="tag">kept</span></td><td>also cover the logout race<small>follow-up, judge skipped</small></td><td class="t">14m ago</td><td class="n">—</td></tr>
+            <tr><td><span class="tag">warm</span></td><td>cache kept warm during your break<small>hidden fork, deleted after</small></td><td class="t">1h ago</td><td class="n">191k read</td></tr>
+            <tr><td><span class="tag w">new task</span></td><td>write the release notes<small>ci-docs archived · 3 facts carried</small></td><td class="t">3h ago</td><td class="n">−121k</td></tr>
+            <tr><td><span class="tag">kept</span></td><td>use the same approach for admin<small>judge: same task</small></td><td class="t">3h ago</td><td class="n">—</td></tr>
+          </tbody>
+        </table>
       </div>
     </div>
+    <div class="foot"><span>Illustration · not live data</span><span>Your numbers: /ghosted stats</span></div>
+  </div>
+
+  <section>
+    <p class="kicker rv">What it does</p>
+    <p class="statement rv">ghosted_ clears what you finished. <span>Your next task starts on a clean context with the five facts that matter, old work stays searchable, and your cache stays warm while you're away.</span></p>
   </section>
 
-  <section aria-labelledby="pic-h">
-    <div class="shead rv">
-      <p class="kicker">The problem</p>
-      <h2 id="pic-h">You pay for every token, <em>every turn.</em></h2>
-      <p>Claude Code only compacts when the context is nearly full. Until then, finished work rides along on every message.</p>
-    </div>
-    <figure class="fig rv">
-      <div class="legend"><span><i style="background:#555"></i>Without ghosted_</span><span><i style="background:#fff"></i>With ghosted_</span><span><i style="background:repeating-linear-gradient(45deg,#444 0 2px,transparent 2px 5px);border:1px solid #444"></i>Context you stop paying for</span></div>
-      <svg viewBox="0 0 800 320" role="img" aria-label="Context size per turn. Without ghosted_ it keeps growing from 176k to 224k after a task switch. With ghosted_ it drops to 18k at the switch and grows to 60k.">
-        <defs>
-          <pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="2" height="6" fill="#333"/></pattern>
-          <linearGradient id="glowline" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity=".3"/><stop offset="1" stop-color="#fff"/></linearGradient>
-          <filter id="soft"><feGaussianBlur stdDeviation="6"/></filter>
-        </defs>
-        <g stroke="#151515" font-family="Geist Mono,ui-monospace,monospace" font-size="11" fill="#555">
-          <line x1="60" y1="280" x2="770" y2="280" stroke="#222"/><line x1="60" y1="200" x2="770" y2="200"/><line x1="60" y1="120" x2="770" y2="120"/><line x1="60" y1="40" x2="770" y2="40"/>
-          <text x="50" y="284" text-anchor="end" stroke="none">0</text><text x="50" y="204" text-anchor="end" stroke="none">80k</text><text x="50" y="124" text-anchor="end" stroke="none">160k</text><text x="50" y="44" text-anchor="end" stroke="none">240k</text>
-          <text x="234" y="306" text-anchor="middle" stroke="none">TASK A · FIX AUTH</text><text x="582" y="306" text-anchor="middle" stroke="none">TASK B · DARK MODE</text>
-        </g>
-        <path class="hatch" d="M408,104 L466,94 L524,84 L582,75 L640,68 L698,62 L756,56 L756,220 L698,220 L640,226 L582,234 L524,242 L466,252 L408,262 Z" fill="url(#hatch)"/>
-        <line x1="408" y1="22" x2="408" y2="280" stroke="#333" stroke-dasharray="3 4"/>
-        <text x="418" y="30" font-family="Geist,sans-serif" font-size="13" fill="#fff" font-weight="500">new task · ghosted_ clears</text>
-        <path class="draw" d="M60,270 L118,240 L176,210 L234,180 L292,150 L350,125 L408,104 L466,94 L524,84 L582,75 L640,68 L698,62 L756,56" fill="none" stroke="#4a4a4a" stroke-width="2" stroke-linejoin="round"/>
-        <path class="draw" d="M60,270 L118,240 L176,210 L234,180 L292,150 L350,125 L408,104 L408,262 L466,252 L524,242 L582,234 L640,226 L698,220 L756,220" fill="none" stroke="url(#glowline)" stroke-width="2.2" stroke-linejoin="round"/>
-        <circle cx="408" cy="262" r="4.5" fill="#fff"/><circle cx="408" cy="262" r="10" fill="none" stroke="#fff" stroke-opacity=".3"/>
-        <text x="422" y="276" font-family="Geist Mono,monospace" font-size="12" fill="#fff">18k</text>
-        <text x="748" y="46" text-anchor="end" font-family="Geist Mono,monospace" font-size="12" fill="#777">224k</text>
+  <section aria-label="System diagram" style="padding-top:64px">
+    <figure class="fig rv" style="margin:0">
+      <div class="figlab"><span>Fig 0.1</span><span>System</span></div>
+      <svg viewBox="0 0 1000 380" role="img" aria-label="Diagram: your prompt goes from Claude Code through ghosted_ hooks, which judge, clear and keep the cache warm, to the Anthropic API. Old chats go to an archive on your machine; a hidden fork pings before the cache expires.">
+        <path class="wire" d="M200,120 H380"/><path class="wire" d="M620,120 H800"/>
+        <path class="wire d" d="M500,170 V250 H300 V280"/><path class="wire d" d="M500,170 V250 H700 V280"/>
+        <g class="node"><rect x="40" y="80" width="160" height="80" rx="10"/><text class="fl" x="120" y="118" text-anchor="middle">Claude Code</text><text class="fm" x="120" y="140" text-anchor="middle">ANY TERMINAL</text></g>
+        <g class="node hi"><rect x="380" y="70" width="240" height="100" rx="12"/><text class="fl" x="500" y="112" text-anchor="middle">ghosted_ hooks</text><text class="fm" x="500" y="138" text-anchor="middle">JUDGES · CLEARS · KEEPS WARM</text></g>
+        <g class="node"><rect x="800" y="80" width="160" height="80" rx="10"/><text class="fl" x="880" y="118" text-anchor="middle">Anthropic API</text><text class="fm" x="880" y="140" text-anchor="middle">YOUR LOGIN</text></g>
+        <g class="node"><rect x="200" y="280" width="200" height="70" rx="10"/><text class="fl" x="300" y="312" text-anchor="middle">Archive</text><text class="fm" x="300" y="332" text-anchor="middle">ON YOUR MACHINE · RECALL</text></g>
+        <g class="node"><rect x="600" y="280" width="200" height="70" rx="10"/><text class="fl" x="700" y="312" text-anchor="middle">Hidden fork</text><text class="fm" x="700" y="332" text-anchor="middle">PING BEFORE EXPIRY</text></g>
+        <text class="fm" x="290" y="108" text-anchor="middle">YOUR PROMPT</text><text class="fm" x="710" y="108" text-anchor="middle">SMALLER REQUEST</text>
+        <text class="fm" x="400" y="240" text-anchor="middle">OLD CHAT</text><text class="fm" x="600" y="240" text-anchor="middle">WHILE IDLE</text>
       </svg>
-      <figcaption>Illustration of one session. The hatched area is what ghosted_ takes off the bill.</figcaption>
+      <figcaption>Two hooks, one Haiku question, nothing to run. Anything that fails, fails open.</figcaption>
     </figure>
   </section>
 
-  <section aria-labelledby="feat-h">
-    <div class="shead rv">
-      <p class="kicker">Built in</p>
-      <h2 id="feat-h">Quiet by design. <em>Loud</em> on savings.</h2>
+  <section aria-labelledby="num-h">
+    <div class="shead rv"><p class="kicker">Measured</p><h2 id="num-h">Real runs. Tests passing. <em>Nothing rounded up.</em></h2></div>
+    <div class="nums rv">
+      <div><b>−70%</b><p>Total cost over 36 Opus runs in 6 scenarios: $15.88 without, $4.78 with.</p></div>
+      <div><b>0 / 64</b><p>Wrong task switches in the latest judge test. When unsure, it keeps the context.</p></div>
+      <div><b>191k</b><p>Tokens read from cache by one warm ping, against 372 written.</p></div>
     </div>
-    <div class="bento">
-      <div class="panel b-a rv">
-        <div class="viz"><div class="warmline">
-          <div><span>12:00</span><b>last turn</b></div><div><span>12:55</span><b>ping · 191k read from cache</b></div><div><span>13:50</span><b>ping · 191k read from cache</b></div><div class="back"><span>14:20</span><b>you're back · cache hit</b></div>
-        </div></div>
-        <h3>Cache warming</h3><p>Take a break without paying to rewrite the cache. While you're away, ghosted_ keeps it warm for a tenth of the price.</p>
-      </div>
-      <div class="panel b-b rv">
-        <div class="viz"><div class="squash"><div class="long">I've looked into the issue and it seems that the problem is caused by the token expiry check, which currently uses a strict comparison…</div><div class="short">Expiry check uses &lt; not &lt;=. Fix:</div></div></div>
-        <h3>Terse answers</h3><p>20% less to read, 19% cheaper.</p>
-      </div>
-      <div class="panel b-c rv">
-        <div class="viz"><div class="search"><div class="q">/ghosted:recall <span class="typing">auth expiry</span></div><div class="hit"><b>fix the auth flow</b> · 28 Oct<br>expiry check now &lt;=, test added</div></div></div>
-        <h3>Recall</h3><p>Every cleared chat, searchable.</p>
-      </div>
-      <div class="panel b-d rv">
-        <div class="viz"><div class="limit"><svg viewBox="0 0 560 120" aria-hidden="true">
-          <line x1="0" y1="20" x2="560" y2="20" stroke="#fff" stroke-dasharray="3 4" stroke-opacity=".5"/><text x="556" y="14" text-anchor="end" font-family="Geist Mono,monospace" font-size="11" fill="#777">LIMIT 250k</text>
-          <path class="draw" d="M0,110 L120,80 L230,52 L300,22 L300,96 L420,74 L560,50" fill="none" stroke="#fff" stroke-width="2"/>
-          <circle cx="300" cy="22" r="4" fill="#fff"/></svg></div></div>
-        <h3>Long runs <code>opt-in</code></h3><p>Set <code>/ghosted max 250k</code>. Past the limit, the run compacts and continues on its own.</p>
-      </div>
+    <p class="note rv">Where it doesn't help is published too. <a href="benchmarks.html">See the benchmarks</a></p>
+  </section>
+
+  <section aria-labelledby="f-h">
+    <div class="shead rv"><p class="kicker">Built in</p><h2 id="f-h">Everything runs on its own.</h2></div>
+    <div class="feat rv">
+      <div><p class="k">Task switch</p><h3>Clean context, same flow</h3><p>A Haiku judge spots a new task for $0.0013. The old chat is archived, <code>/clear</code> is typed for you, and your prompt starts.</p></div>
+      <div><p class="k">Cache warming</p><h3>Breaks don't reset the cache</h3><p>While you're away, a hidden copy of the session keeps the prompt cache alive for a tenth of the input price, so coming back doesn't rewrite it at up to 2×.</p></div>
+      <div><p class="k">Terse and recall</p><h3>Less to read, nothing lost</h3><p>Compressed answers in the terminal, 19% cheaper. <code>/ghosted:recall</code> brings back any cleared conversation.</p></div>
     </div>
   </section>
 
   <div class="closer rv">
     <div>
       <h2>Install in <em>30 seconds.</em></h2>
-      <p>Two commands, then restart Claude Code. Apache-2.0, zero dependencies. macOS, Windows, Linux, tmux, iTerm2, WezTerm and kitty.</p>
-      <div class="row-cta"><a class="btn primary" href="https://github.com/giovanbelle/ghosted">★ Star on GitHub</a><a class="btn" href="docs.html">Read the docs</a></div>
+      <p>Two commands, then restart Claude Code. Free and open source, with zero dependencies.</p>
+      <div class="row-cta"><a class="btn primary" href="docs.html">Read the docs</a><a class="btn" href="https://github.com/giovanbelle/ghosted">View on GitHub</a></div>
     </div>
     <div class="install">
       <button type="button" class="btn sm" data-copy="claude plugin marketplace add giovanbelle/ghosted\nclaude plugin install ghosted@ghosted" aria-label="Copy install commands">Copy</button>
