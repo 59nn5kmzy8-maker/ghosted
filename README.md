@@ -26,7 +26,7 @@ Claude Code only compacts when the context is nearly full. So when you finish on
 | Wall time | 666s | 674s |
 | Tests passing | all | all |
 
-Full numbers, including where it doesn't help, are in [BENCHMARKS.md](BENCHMARKS.md).
+Already using caveman? ghosted_ still cut a caveman setup's cost from $3.32 to $0.92 (−72%), because caveman shortens replies and ghosted_ drops the old conversation. Full numbers, including where it doesn't help, are in [BENCHMARKS.md](BENCHMARKS.md).
 
 ## Install
 

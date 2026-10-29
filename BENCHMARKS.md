@@ -39,6 +39,18 @@ Text is the characters of assistant prose shown in the terminal, not code or too
 
 All runs passed their tests. One lite run hit a test-harness timeout and is left out. Run-to-run spread is large (full: 7,090–8,682), so treat these as direction, not decimals.
 
+## Measured: with and without caveman (scenario 4, Opus, whole-task cost)
+
+| Setup | Runs | Avg cost | Range |
+|---|---|---|---|
+| caveman + other plugins, **no ghosted_** | 3 | $3.32 | $3.11–3.71 |
+| caveman + other plugins, **with ghosted_** (task switching; terse steps aside) | 6 | **$0.92** | $0.86–0.98 |
+| caveman alone (isolated), ghosted_ switching on | 3 | $0.94 | $0.89–1.02 |
+| ghosted_ full terse alone (isolated) | 4 | $0.99 | $0.92–1.07 |
+| ghosted_ full terse **stacked** on caveman | 4 | $1.02 | $0.89–1.10 |
+
+ghosted_ cut the cost of a caveman setup by 72%: caveman shortens replies, ghosted_ stops you paying for the old conversation on every turn, and those savings add up. The two style rules tie on cost (caveman alone wrote 10,815 characters of terminal text, ghosted_ full 7,842), and stacking them costs more, which is why terse mode's default `auto` turns itself off when caveman is active.
+
 ## Measured: mid-run compaction (one long run, Opus)
 
 Claude Code's own auto-compact window was set to 250k, so this tests the mid-run idea itself:
