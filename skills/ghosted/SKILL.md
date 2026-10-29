@@ -18,7 +18,7 @@ How ghosted_ works, for questions:
 - When a prompt starts a new, unrelated task (a Haiku judge decides, only above about 20k tokens of context), ghosted_ archives the old conversation, runs `/clear`, restores the prompt and types "Start the pending task." Up to 5 facts from the old work come along.
 - `new: <prompt>` forces a switch; `same: <prompt>` blocks one.
 - Mid-run compaction (off unless set): past the limit, the run stops, `/compact` runs, then "Continue where you left off." is typed.
-- Cache warming (`/ghosted warm 2h`, default 2h): while the session is idle, a hidden fork of it sends one short turn just before the prompt cache expires, so a break doesn't force a full cache rewrite. Stops when the user is back, when Claude Code exits, or before it costs half the rewrite. macOS and Linux, needs python3.
+- Cache warming (`/ghosted warm 2h`, default 2h): while the session is idle, a hidden fork of it sends one short turn just before the prompt cache expires, so a break doesn't force a full cache rewrite. Stops when the user is back, when Claude Code exits, or before it costs half the rewrite. macOS, Linux (python3) and Windows (ConPTY).
 - Old conversations are archived; `/ghosted:recall <words>` finds them.
-- Auto-typing works in macOS Terminal.app and Windows consoles; elsewhere ghosted_ says which command to run, then the user types `go`.
+- Auto-typing works in Terminal.app, iTerm2, tmux, WezTerm, kitty and Windows consoles; elsewhere (VS Code terminal, Ghostty, Alacritty) ghosted_ says which command to run, then the user types `go`.
 - Environment variables override everything: `GHOSTED_TERSE`, `GHOSTED_MAX_CONTEXT`, `GHOSTED_MIN_TOKENS`, `GHOSTED_KEEP_WARM`, `GHOSTED_MODE=compact`, `GHOSTED_OFF=1`.
