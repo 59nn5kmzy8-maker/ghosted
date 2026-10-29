@@ -4,126 +4,366 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ghosted_ · stop paying for context you no longer need</title>
-<meta name="description" content="A Claude Code plugin that frees the context when you switch task, then starts your task for you. Measured 70% cheaper on task switches.">
-<meta property="og:title" content="ghosted_">
-<meta property="og:description" content="Stop paying for context you no longer need. A Claude Code plugin.">
-<meta property="og:image" content="https://59nn5kmzy8-maker.github.io/ghosted/logo.png">
+<meta name="description" content="Open-source Claude Code plugin. When you switch task, ghosted_ clears the old conversation and starts your new task for you. Measured 70% cheaper across 36 real runs.">
+<link rel="canonical" href="https://59nn5kmzy8-maker.github.io/ghosted/">
+<meta name="theme-color" content="#000000">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://59nn5kmzy8-maker.github.io/ghosted/">
+<meta property="og:title" content="ghosted_ · stop paying for context you no longer need">
+<meta property="og:description" content="Open-source Claude Code plugin. Clears the old conversation when you switch task, then starts your task. 70% cheaper in 36 measured runs.">
+<meta property="og:image" content="https://59nn5kmzy8-maker.github.io/ghosted/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://59nn5kmzy8-maker.github.io/ghosted/og.png">
 <link rel="icon" href="favicon.png">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"ghosted_","applicationCategory":"DeveloperApplication","operatingSystem":"macOS, Windows, Linux","license":"https://www.apache.org/licenses/LICENSE-2.0","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"url":"https://59nn5kmzy8-maker.github.io/ghosted/","codeRepository":"https://github.com/59nn5kmzy8-maker/ghosted"}
+</script>
 <style>
-  :root { --bg: #000; --fg: #fff; --dim: #8a8a8a; --line: #222; --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+  :root { --bg: #000; --fg: #fff; --dim: #8f8f8f; --line: #222; --panel: #0b0b0b; --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
   * { box-sizing: border-box; }
-  html { background: var(--bg); color: var(--fg); }
-  body { margin: 0; font: 17px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif; }
+  html { background: var(--bg); color: var(--fg); scroll-behavior: smooth; }
+  body { margin: 0; font: 17px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
   a { color: var(--fg); }
-  a:focus-visible, button:focus-visible { outline: 2px solid var(--fg); outline-offset: 3px; }
-  .wrap { max-width: 920px; margin: 0 auto; padding: 0 24px; }
-  nav { display: flex; justify-content: space-between; align-items: center; padding: 22px 0; }
-  nav img { height: 34px; display: block; }
-  nav .links a { margin-left: 22px; text-decoration: none; color: var(--dim); font-size: 15px; }
+  a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--fg); outline-offset: 3px; }
+  .skip { position: absolute; left: -999px; }
+  .skip:focus { left: 16px; top: 16px; background: var(--fg); color: var(--bg); padding: 8px 12px; border-radius: 6px; z-index: 10; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
+
+  nav { position: sticky; top: 0; z-index: 5; background: rgba(0,0,0,.82); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid #111; }
+  nav .wrap { display: flex; justify-content: space-between; align-items: center; height: 64px; }
+  nav .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; font: 600 17px/1 var(--mono); }
+  nav .brand img { height: 28px; width: 28px; }
+  nav .links { display: flex; align-items: center; gap: 24px; }
+  nav .links a { text-decoration: none; color: var(--dim); font-size: 15px; }
   nav .links a:hover { color: var(--fg); }
-  .hero { padding: 72px 0 56px; }
-  .hero img { width: min(420px, 100%); height: auto; display: block; margin: 0 0 40px; }
-  h1 { font-size: clamp(34px, 5vw, 54px); line-height: 1.08; letter-spacing: -0.02em; margin: 0 0 18px; }
-  .lede { color: var(--dim); font-size: 20px; max-width: 640px; margin: 0 0 34px; }
-  .install { position: relative; background: #0d0d0d; border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; font: 15px/1.7 var(--mono); overflow-x: auto; }
-  .install .p { color: var(--dim); user-select: none; }
-  .install button { position: absolute; top: 12px; right: 12px; background: var(--fg); color: var(--bg); border: 0; border-radius: 6px; padding: 6px 12px; font: 600 13px/1 inherit; font-family: inherit; cursor: pointer; }
-  section { padding: 56px 0; border-top: 1px solid var(--line); }
-  h2 { font-size: 26px; letter-spacing: -0.01em; margin: 0 0 22px; }
-  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-  .stat { border: 1px solid var(--line); border-radius: 10px; padding: 22px; }
-  .stat b { display: block; font-size: 40px; letter-spacing: -0.02em; line-height: 1.1; }
-  .stat span { color: var(--dim); font-size: 15px; }
+  nav .links a.gh { color: var(--fg); border: 1px solid #333; border-radius: 8px; padding: 7px 12px; }
+  nav .links a.gh:hover { border-color: var(--fg); }
+
+  .btn { display: inline-flex; align-items: center; gap: 8px; text-decoration: none; font-weight: 600; font-size: 15px; border-radius: 9px; padding: 12px 18px; border: 1px solid var(--fg); cursor: pointer; font-family: inherit; }
+  .btn.primary { background: var(--fg); color: var(--bg); }
+  .btn.ghost { background: transparent; color: var(--fg); border-color: #333; }
+  .btn.ghost:hover { border-color: var(--fg); }
+
+  .hero { display: grid; grid-template-columns: 1.05fr 1fr; gap: 48px; align-items: center; padding: 84px 0 72px; }
+  .pill { display: inline-block; font: 13px/1 var(--mono); color: var(--dim); border: 1px solid #2a2a2a; border-radius: 99px; padding: 7px 12px; margin-bottom: 26px; }
+  .hero .logo { width: min(360px, 100%); height: auto; display: block; margin: 0 0 30px; }
+  h1 { font-size: clamp(36px, 5vw, 56px); line-height: 1.05; letter-spacing: -0.03em; margin: 0 0 20px; }
+  .lede { color: var(--dim); font-size: 19px; margin: 0 0 30px; max-width: 520px; }
+  .cta { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+  .fine { color: var(--dim); font-size: 14px; margin: 0; }
+
+  .term { background: var(--panel); border: 1px solid #262626; border-radius: 12px; overflow: hidden; box-shadow: 0 30px 80px rgba(255,255,255,.04); }
+  .term .bar { display: flex; align-items: center; gap: 7px; padding: 12px 14px; border-bottom: 1px solid #1c1c1c; }
+  .term .bar i { width: 11px; height: 11px; border-radius: 50%; background: #2c2c2c; }
+  .term .bar span { margin-left: 8px; color: #666; font: 12px/1 var(--mono); }
+  .term .body { padding: 18px 18px 22px; font: 13.5px/1.75 var(--mono); color: #d6d6d6; min-height: 318px; }
+  .term .l { white-space: pre-wrap; }
+  .term .u { color: var(--fg); }
+  .term .u::before { content: "> "; color: #666; }
+  .term .g { color: var(--fg); font-weight: 600; }
+  .term .d { color: #6f6f6f; }
+  .term .ctx { display: inline-block; border: 1px solid #333; border-radius: 4px; padding: 0 6px; font-size: 12px; color: #9a9a9a; }
+  .js .term .l { opacity: 0; transform: translateY(3px); transition: opacity .35s, transform .35s; }
+  .js .term .l.on { opacity: 1; transform: none; }
+
+  section { padding: 80px 0; border-top: 1px solid var(--line); }
+  .kicker { font: 13px/1 var(--mono); color: var(--dim); text-transform: uppercase; letter-spacing: .12em; margin: 0 0 14px; }
+  h2 { font-size: clamp(28px, 3.4vw, 38px); letter-spacing: -0.02em; line-height: 1.15; margin: 0 0 18px; }
+  .sub { color: var(--dim); max-width: 640px; margin: 0 0 40px; }
+
+  .problem { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .step { border: 1px solid var(--line); border-radius: 12px; padding: 24px; }
+  .step b { font: 600 13px/1 var(--mono); color: var(--dim); display: block; margin-bottom: 14px; }
+  .step h3 { margin: 0 0 8px; font-size: 18px; }
+  .step p { margin: 0; color: var(--dim); font-size: 15.5px; }
+
+  .numbers { display: grid; grid-template-columns: 1.3fr 1fr; gap: 24px; align-items: start; }
+  .chart { border: 1px solid var(--line); border-radius: 12px; padding: 26px; }
+  .chart h3 { margin: 0 0 4px; font-size: 16px; }
+  .chart .cap { color: var(--dim); font-size: 14px; margin: 0 0 22px; }
+  .row { display: grid; grid-template-columns: 150px 1fr 70px; align-items: center; gap: 12px; margin: 12px 0; font-size: 15px; }
+  .row .track { height: 26px; background: #111; border-radius: 6px; overflow: hidden; }
+  .row .fill { height: 100%; background: #555; border-radius: 6px; }
+  .row.best .fill { background: var(--fg); }
+  .row .v { font: 14px var(--mono); text-align: right; }
+  .row.best .v, .row.best .k { font-weight: 700; }
+  .kpis { display: grid; gap: 16px; }
+  .kpi { border: 1px solid var(--line); border-radius: 12px; padding: 22px 24px; }
+  .kpi b { display: block; font-size: 38px; letter-spacing: -0.03em; line-height: 1.1; }
+  .kpi span { color: var(--dim); font-size: 15px; }
+  .note { color: var(--dim); font-size: 15px; margin-top: 18px; }
+
   .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
-  .card { border: 1px solid var(--line); border-radius: 10px; padding: 22px; }
+  .card { border: 1px solid var(--line); border-radius: 12px; padding: 26px; }
   .card h3 { margin: 0 0 8px; font-size: 18px; }
   .card p { margin: 0; color: var(--dim); }
-  code { font-family: var(--mono); font-size: 0.92em; background: #141414; padding: 2px 6px; border-radius: 5px; color: var(--fg); }
-  pre.flow { font: 14px/1.6 var(--mono); color: #cfcfcf; background: #0d0d0d; border: 1px solid var(--line); border-radius: 10px; padding: 20px; overflow-x: auto; }
-  table { width: 100%; border-collapse: collapse; font-size: 15px; }
-  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+  .card .tag { float: right; font: 12px/1 var(--mono); color: var(--dim); border: 1px solid #2a2a2a; border-radius: 99px; padding: 5px 9px; }
+
+  code { font-family: var(--mono); font-size: 0.9em; background: #151515; padding: 2px 6px; border-radius: 5px; color: var(--fg); }
+  pre.flow { font: 14px/1.65 var(--mono); color: #cfcfcf; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 22px; overflow-x: auto; margin: 0; }
+  .install { position: relative; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 20px 22px; font: 15px/1.8 var(--mono); overflow-x: auto; }
+  .install .p { color: #666; user-select: none; }
+  .install button { position: absolute; top: 14px; right: 14px; background: var(--fg); color: var(--bg); border: 0; border-radius: 7px; padding: 7px 13px; font: 600 13px/1 var(--mono); cursor: pointer; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 15.5px; }
+  th, td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
   th { color: var(--dim); font-weight: 500; }
-  .note { color: var(--dim); font-size: 15px; margin-top: 14px; }
-  footer { padding: 40px 0 60px; border-top: 1px solid var(--line); color: var(--dim); font-size: 14px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
-  @media (max-width: 720px) { .stats, .grid { grid-template-columns: 1fr; } nav .links a { margin-left: 14px; } }
+  td:first-child { white-space: nowrap; }
+  .tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; }
+  .tablewrap tr:last-child td { border-bottom: 0; }
+
+  details { border-bottom: 1px solid var(--line); padding: 18px 0; }
+  details:first-of-type { border-top: 1px solid var(--line); }
+  summary { cursor: pointer; font-weight: 600; font-size: 17px; list-style: none; display: flex; justify-content: space-between; gap: 16px; }
+  summary::-webkit-details-marker { display: none; }
+  summary::after { content: "+"; color: var(--dim); font: 20px/1 var(--mono); }
+  details[open] summary::after { content: "−"; }
+  details p { color: var(--dim); margin: 12px 0 0; max-width: 760px; }
+
+  .final { text-align: center; }
+  .final h2 { margin-bottom: 12px; }
+  .final .sub { margin: 0 auto 30px; }
+  .final .install { max-width: 640px; margin: 0 auto 22px; text-align: left; }
+  .final .cta { justify-content: center; }
+
+  footer { border-top: 1px solid var(--line); padding: 36px 0 56px; color: var(--dim); font-size: 14px; }
+  footer .wrap { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 14px; }
+  footer a { color: var(--dim); text-decoration: none; margin-left: 18px; }
+  footer a:hover { color: var(--fg); }
+
+  @media (max-width: 880px) {
+    .hero, .numbers { grid-template-columns: 1fr; }
+    .hero { padding-top: 56px; }
+    .problem, .grid { grid-template-columns: 1fr; }
+    nav .links a:not(.gh) { display: none; }
+    .row { grid-template-columns: 110px 1fr 62px; }
+    .term .body { font-size: 12px; min-height: 0; }
+    footer a { margin: 0 18px 0 0; }
+  }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .js .term .l { transition: none; } }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <nav>
-    <img src="favicon.png" alt="ghosted_ home" width="34" height="34">
+<a class="skip" href="#main">Skip to content</a>
+<nav aria-label="Main">
+  <div class="wrap">
+    <a class="brand" href="#top"><img src="favicon.png" alt="" width="28" height="28">ghosted_</a>
     <div class="links">
       <a href="#how">How it works</a>
-      <a href="https://github.com/59nn5kmzy8-maker/ghosted/blob/main/BENCHMARKS.md">Benchmarks</a>
-      <a href="https://github.com/59nn5kmzy8-maker/ghosted">GitHub</a>
+      <a href="#numbers">Benchmarks</a>
+      <a href="#commands">Commands</a>
+      <a href="#faq">FAQ</a>
+      <a class="gh" href="https://github.com/59nn5kmzy8-maker/ghosted">★ GitHub</a>
     </div>
-  </nav>
+  </div>
+</nav>
 
+<main id="main">
+<div class="wrap" id="top">
   <header class="hero">
-    <img src="logo.png" alt="ghosted_" width="420" height="85">
-    <h1>Stop paying for context<br>you no longer need.</h1>
-    <p class="lede">A Claude Code plugin. When you start a new task, ghosted_ clears the old conversation and starts your task for you, so you stop paying for the old work on every turn.</p>
+    <div>
+      <span class="pill">Claude Code plugin · free and open source</span>
+      <img class="logo" src="logo.png" alt="ghosted_" width="360" height="73">
+      <h1>Stop paying for context you no longer need.</h1>
+      <p class="lede">When you start a new task, ghosted_ clears the old conversation and starts your task for you. You keep typing as usual. Your bill stops carrying work you already finished.</p>
+      <div class="cta">
+        <a class="btn primary" href="#install">Install in 30 seconds</a>
+        <a class="btn ghost" href="https://github.com/59nn5kmzy8-maker/ghosted">View source</a>
+      </div>
+      <p class="fine">Apache-2.0 · zero dependencies · macOS, Windows, Linux</p>
+    </div>
+
+    <div class="term" role="img" aria-label="Example terminal session: the user switches to a new task, ghosted_ clears the old context and starts the new task automatically.">
+      <div class="bar"><i></i><i></i><i></i><span>claude · ~/my-app</span></div>
+      <div class="body" id="demo">
+        <div class="l d">… 40 minutes of fixing the auth flow …</div>
+        <div class="l"><span class="ctx">context 176k</span></div>
+        <div class="l u">now add dark mode to the settings page</div>
+        <div class="l g">ghosted: new task detected, clearing first.</div>
+        <div class="l d">  archived old chat · saved your prompt</div>
+        <div class="l u">/clear</div>
+        <div class="l d">  restored prompt + 5 facts from the old work</div>
+        <div class="l u">Start the pending task.</div>
+        <div class="l"><span class="ctx">context 18k</span></div>
+        <div class="l">● Reading src/settings/SettingsPage.tsx</div>
+      </div>
+    </div>
+  </header>
+</div>
+
+<section aria-labelledby="problem-h">
+  <div class="wrap">
+    <p class="kicker">The problem</p>
+    <h2 id="problem-h">Claude Code re-reads your whole session on every turn.</h2>
+    <p class="sub">It only compacts when the context is nearly full. So when one task ends and the next begins, every new message still pays for the old one.</p>
+    <div class="problem">
+      <div class="step"><b>01</b><h3>You finish a task</h3><p>The session now holds 150k+ tokens of files, diffs and tool output.</p></div>
+      <div class="step"><b>02</b><h3>You start a new one</h3><p>None of that history helps, but it is sent again with every message.</p></div>
+      <div class="step"><b>03</b><h3>ghosted_ steps in</h3><p>It spots the switch, archives the old chat, clears it, and runs your new task on a clean context.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="numbers" aria-labelledby="numbers-h">
+  <div class="wrap">
+    <p class="kicker">Benchmarks</p>
+    <h2 id="numbers-h">Measured, not promised.</h2>
+    <p class="sub">Real Claude Code runs on Opus with hidden tests that had to pass every time. The cost is the whole task, not only the replies.</p>
+    <div class="numbers">
+      <div class="chart">
+        <h3>Total cost, 36 runs across 6 scenarios</h3>
+        <p class="cap">Lower is better</p>
+        <div class="row"><span class="k">No plugin</span><div class="track"><div class="fill" style="width:100%"></div></div><span class="v">$15.88</span></div>
+        <div class="row"><span class="k">ghosted_ compact</span><div class="track"><div class="fill" style="width:66%"></div></div><span class="v">$10.47</span></div>
+        <div class="row best"><span class="k">ghosted_ clear</span><div class="track"><div class="fill" style="width:30%"></div></div><span class="v">$4.78</span></div>
+        <h3 style="margin-top:34px">Already using caveman?</h3>
+        <p class="cap">Same coding task, average per run</p>
+        <div class="row"><span class="k">caveman alone</span><div class="track"><div class="fill" style="width:100%"></div></div><span class="v">$3.32</span></div>
+        <div class="row best"><span class="k">+ ghosted_</span><div class="track"><div class="fill" style="width:28%"></div></div><span class="v">$0.92</span></div>
+      </div>
+      <div class="kpis">
+        <div class="kpi"><b>−70%</b><span>cost on sessions with a task switch</span></div>
+        <div class="kpi"><b>+8s</b><span>wall time over 36 runs (666s vs 674s)</span></div>
+        <div class="kpi"><b>0 / 64</b><span>wrong task switches in the latest judge test</span></div>
+        <div class="kpi"><b>$0.0013</b><span>per judged prompt, using Haiku</span></div>
+      </div>
+    </div>
+    <p class="note">Where it doesn't help is published too, such as single long runs with no task switch. Full method and raw numbers: <a href="https://github.com/59nn5kmzy8-maker/ghosted/blob/main/BENCHMARKS.md">BENCHMARKS.md</a>.</p>
+  </div>
+</section>
+
+<section aria-labelledby="what-h">
+  <div class="wrap">
+    <p class="kicker">Features</p>
+    <h2 id="what-h">Runs on its own. Nothing to remember.</h2>
+    <p class="sub">ghosted_ hooks into Claude Code. You never need to call it; the commands are there if you want to tune it.</p>
+    <div class="grid">
+      <div class="card"><span class="tag">on</span><h3>Task switch</h3><p>A small Haiku judge spots a new task. ghosted_ archives the old chat, runs <code>/clear</code>, restores your prompt and starts it, with up to 5 useful facts carried over.</p></div>
+      <div class="card"><span class="tag">on</span><h3>Terse answers</h3><p>Compressed notes in the terminal: 20% less text and 19% lower cost than plain answers in tests. Code and files stay normal. Turns itself off if caveman is installed.</p></div>
+      <div class="card"><span class="tag">on</span><h3>Recall</h3><p>Every cleared conversation is archived and indexed. <code>/ghosted:recall &lt;words&gt;</code> brings back a short digest of past work.</p></div>
+      <div class="card"><span class="tag">opt-in</span><h3>Long runs</h3><p>Set a limit like <code>/ghosted max 250k</code>. Past it, ghosted_ compacts mid-run and types <code>Continue where you left off.</code></p></div>
+    </div>
+  </div>
+</section>
+
+<section id="how" aria-labelledby="how-h">
+  <div class="wrap">
+    <p class="kicker">How it works</p>
+    <h2 id="how-h">Two hooks and one cheap question.</h2>
+    <p class="sub">Each prompt costs about 55ms when no judge is needed. When it is, the question to Haiku takes about 3.5s and loads none of your settings, plugins or MCP servers.</p>
+<pre class="flow">your prompt ──► UserPromptSubmit hook
+                 ├─ small context · slash command · "same:" · obvious follow-up ──► passes
+                 └─ Haiku judge: new task?
+                      ├─ no  ──► passes
+                      └─ yes ──► archive old chat · save prompt · /clear
+                                   └─► SessionStart hook: restore prompt + carried facts
+                                       ──► "Start the pending task."</pre>
+    <p class="note">Anything that goes wrong fails open: your prompt goes through as if ghosted_ weren't installed.</p>
+  </div>
+</section>
+
+<section id="commands" aria-labelledby="commands-h">
+  <div class="wrap">
+    <p class="kicker">Commands</p>
+    <h2 id="commands-h">In control when you want to be.</h2>
+    <p class="sub">Settings stick across sessions. You can also set them in <code>/config</code>.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th scope="col">Command</th><th scope="col">What it does</th></tr></thead>
+        <tbody>
+          <tr><td><code>/ghosted full</code> · <code>lite</code> · <code>auto</code> · <code>off</code></td><td>Terse answer level. <code>auto</code> is full, or off while caveman is active.</td></tr>
+          <tr><td><code>/ghosted max 250k</code> · <code>max off</code></td><td>Compact mid-run at this context size, then continue.</td></tr>
+          <tr><td><code>/ghosted pause</code> · <code>resume</code></td><td>Turn ghosted_ off or on.</td></tr>
+          <tr><td><code>/ghosted stats</code></td><td>Task switches, mid-run compactions, judge calls and what they cost.</td></tr>
+          <tr><td><code>/ghosted reset</code> · <code>help</code></td><td>Back to your <code>/config</code> settings · list the commands.</td></tr>
+          <tr><td><code>/ghosted:recall &lt;words&gt;</code></td><td>Find archived work.</td></tr>
+          <tr><td><code>new: &lt;prompt&gt;</code> · <code>same: &lt;prompt&gt;</code></td><td>Force or block a task switch for one prompt.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section aria-labelledby="platforms-h">
+  <div class="wrap">
+    <p class="kicker">Platforms</p>
+    <h2 id="platforms-h">Works wherever Claude Code does.</h2>
+    <p class="sub">Needs Node.js and the <code>claude</code> CLI on your PATH. No other dependencies.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th scope="col">Terminal</th><th scope="col">Judge, recall, terse</th><th scope="col">Types the command for you</th></tr></thead>
+        <tbody>
+          <tr><td>macOS Terminal.app</td><td>Yes</td><td>Yes (asks once for automation permission)</td></tr>
+          <tr><td>Windows console</td><td>Yes</td><td>Yes (tested in CI)</td></tr>
+          <tr><td>iTerm, tmux, VS Code, Linux</td><td>Yes</td><td>No: it tells you the command, then you type <code>go</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="faq" aria-labelledby="faq-h">
+  <div class="wrap">
+    <p class="kicker">FAQ</p>
+    <h2 id="faq-h">Questions people ask.</h2>
+    <details><summary>Will it clear something I still needed?</summary><p>Rarely: the judge made 0 wrong switches in the latest 64 test prompts, and it answers "same task" when unsure. Follow-ups like "fix it" or "that file" skip the judge entirely. If it does happen, the old chat is archived (<code>/ghosted:recall</code> finds it), and starting a prompt with <code>same:</code> prevents a switch.</p></details>
+    <details><summary>Does the judge cost extra?</summary><p>About $0.0013 per judged prompt on Haiku, and only once the context is above 20k tokens. In the benchmarks it is included in the totals.</p></details>
+    <details><summary>Why clear instead of compact?</summary><p>A compact summary still carries a lot of old text, and it costs a model call to write. Clearing and carrying a few key facts was 70% cheaper; compacting was 34% cheaper. Prefer compact? Set <code>GHOSTED_MODE=compact</code>.</p></details>
+    <details><summary>Do I need to run anything after installing?</summary><p>No. It runs through Claude Code hooks on every prompt. The <code>/ghosted</code> commands are only for tuning.</p></details>
+    <details><summary>I already use caveman. Do I need both?</summary><p>No, but they stack. Caveman shortens replies; ghosted_ drops old context. Together they cost $0.92 per run versus $3.32 for caveman alone in our test. With caveman active, ghosted_'s own terse mode switches off so they don't overlap.</p></details>
+    <details><summary>Is my code or chat sent anywhere?</summary><p>Only to Claude, through your own <code>claude</code> CLI login, for the judge question. Archives stay on your machine, readable only by you. No telemetry.</p></details>
+  </div>
+</section>
+
+<section id="install" class="final" aria-labelledby="install-h">
+  <div class="wrap">
+    <h2 id="install-h">Install in 30 seconds.</h2>
+    <p class="sub">Run these two commands, then restart Claude Code.</p>
     <div class="install" aria-label="Install commands">
       <button type="button" id="copy">Copy</button>
       <div><span class="p">$ </span>claude plugin marketplace add 59nn5kmzy8-maker/ghosted</div>
       <div><span class="p">$ </span>claude plugin install ghosted@ghosted</div>
     </div>
-  </header>
-
-  <section aria-labelledby="numbers">
-    <h2 id="numbers">Measured, not promised</h2>
-    <div class="stats">
-      <div class="stat"><b>−70%</b><span>cost across 36 runs, 6 scenarios ($15.88 to $4.78)</span></div>
-      <div class="stat"><b>±0s</b><span>wall time (666s vs 674s)</span></div>
-      <div class="stat"><b>0 / 64</b><span>wrong switches in the latest judge test</span></div>
+    <div class="cta">
+      <a class="btn ghost" href="https://github.com/59nn5kmzy8-maker/ghosted">★ Star on GitHub</a>
+      <a class="btn ghost" href="https://github.com/59nn5kmzy8-maker/ghosted/issues">Report an issue</a>
     </div>
-    <p class="note">Real Claude Code runs on Opus, with tests that passed in every run. Where it doesn't help is written down too: see the <a href="https://github.com/59nn5kmzy8-maker/ghosted/blob/main/BENCHMARKS.md">benchmarks</a>.</p>
-  </section>
+  </div>
+</section>
+</main>
 
-  <section aria-labelledby="what">
-    <h2 id="what">What it does</h2>
-    <div class="grid">
-      <div class="card"><h3>Task switch</h3><p>A Haiku judge spots a new task. ghosted_ archives the old chat, runs <code>/clear</code>, restores your prompt and starts it.</p></div>
-      <div class="card"><h3>Long runs</h3><p>Optional: past a limit you choose, it compacts mid-run and types <code>Continue where you left off.</code></p></div>
-      <div class="card"><h3>Terse answers</h3><p>On by default: compressed notes in the terminal, about 20% less text and cost in tests. Switch with <code>/ghosted full</code>, <code>lite</code> or <code>off</code>.</p></div>
-      <div class="card"><h3>Recall</h3><p>Every cleared conversation is archived. <code>/ghosted:recall &lt;words&gt;</code> brings back a short digest.</p></div>
-    </div>
-  </section>
-
-  <section id="how" aria-labelledby="how-h">
-    <h2 id="how-h">How it works</h2>
-<pre class="flow">your prompt ──► hook
-                 ├─ small context · slash command · "same:" · obvious follow-up ──► passes
-                 └─ Haiku judge: new task?
-                      ├─ no  ──► passes
-                      └─ yes ──► archive · save prompt · /clear
-                                   └─► restore prompt + carried facts ──► "Start the pending task."</pre>
-    <p class="note">The judge costs about $0.0013 per switch and loads none of your settings, plugins or MCP servers. Errors fail open: your prompt goes through as if ghosted_ weren't installed.</p>
-  </section>
-
-  <section aria-labelledby="platforms">
-    <h2 id="platforms">Platforms</h2>
-    <table>
-      <thead><tr><th scope="col">Terminal</th><th scope="col">Judge, recall, terse</th><th scope="col">Types the command for you</th></tr></thead>
-      <tbody>
-        <tr><td>macOS Terminal.app</td><td>Yes</td><td>Yes</td></tr>
-        <tr><td>Windows console</td><td>Yes</td><td>Yes (tested in CI)</td></tr>
-        <tr><td>iTerm, tmux, VS Code, Linux</td><td>Yes</td><td>No: it tells you which command to run</td></tr>
-      </tbody>
-    </table>
-  </section>
-
-  <footer>
+<footer>
+  <div class="wrap">
     <span>ghosted_ · Apache-2.0 · © 2026 Gio van Belle</span>
-    <span><a href="https://github.com/59nn5kmzy8-maker/ghosted">github.com/59nn5kmzy8-maker/ghosted</a></span>
-  </footer>
-</div>
+    <span>
+      <a href="https://github.com/59nn5kmzy8-maker/ghosted">GitHub</a>
+      <a href="https://github.com/59nn5kmzy8-maker/ghosted/blob/main/BENCHMARKS.md">Benchmarks</a>
+      <a href="https://github.com/59nn5kmzy8-maker/ghosted/blob/main/LICENSE">License</a>
+    </span>
+  </div>
+</footer>
+
 <script>
   document.getElementById('copy').addEventListener('click', async (e) => {
-    await navigator.clipboard.writeText('claude plugin marketplace add 59nn5kmzy8-maker/ghosted\nclaude plugin install ghosted@ghosted');
-    e.target.textContent = 'Copied';
-    setTimeout(() => { e.target.textContent = 'Copy'; }, 1500);
+    try {
+      await navigator.clipboard.writeText('claude plugin marketplace add 59nn5kmzy8-maker/ghosted\nclaude plugin install ghosted@ghosted');
+      e.target.textContent = 'Copied';
+    } catch { e.target.textContent = 'Select and copy'; }
+    setTimeout(() => { e.target.textContent = 'Copy'; }, 1600);
   });
+  // Replay the terminal demo line by line; static when reduced motion is on.
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    document.documentElement.classList.add('js');
+    const lines = [...document.querySelectorAll('#demo .l')];
+    const play = () => {
+      lines.forEach(l => l.classList.remove('on'));
+      lines.forEach((l, i) => setTimeout(() => l.classList.add('on'), 400 + i * 650));
+      setTimeout(play, 400 + lines.length * 650 + 4500);
+    };
+    play();
+  }
 </script>
 </body>
 </html>
