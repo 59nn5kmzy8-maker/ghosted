@@ -23,7 +23,7 @@
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
-<div class="announce"><a href="docs.html#warm"><b>New in 0.7</b> Cache warming keeps your cache alive during breaks, now on every platform <span>Read →</span></a></div>
+<div class="announce"><a href="index.html#dash"><b>New in 0.9</b> /ghosted-stats opens your own savings dashboard <span>See it →</span></a></div>
 <header class="top">
   <div class="wrap">
     <a class="brand" href="./"><img src="favicon.png" alt="ghosted_ home" width="24" height="24"><span>ghosted_</span></a>
@@ -116,7 +116,7 @@
       <div role="tabpanel" id="p-terse" aria-labelledby="t-terse" class="panel" hidden>
         <div class="tabbody">
           <div><h3>Terse answers <code>auto</code></h3><p>Short notes in the terminal instead of paragraphs. Code and files Claude writes stay normal.</p>
-            <ul><li>20% less text, 19% lower cost in tests</li><li>Steps aside when caveman is installed</li><li><code>/ghosted full</code>, <code>lite</code> or <code>off</code></li></ul></div>
+            <ul><li>20% less text, 19% lower cost in tests</li><li>Steps aside when caveman is installed</li><li><code>/ghosted-terse</code>, <code>lite</code> or <code>off</code></li></ul></div>
           <div class="grid2" style="gap:10px">
             <div class="term"><div class="tbar"><span>off</span></div><div class="tlog" style="font-size:12px"><div class="l u">why does the login test fail?</div><div class="l">I've looked into the issue and it seems the problem is that the token expiry check uses a strict less-than comparison, which means tokens expire one second early…</div></div></div>
             <div class="term"><div class="tbar"><span>full</span></div><div class="tlog" style="font-size:12px"><div class="l u">why does the login test fail?</div><div class="l">Expiry check uses &lt; not &lt;=. Tokens expire 1s early. Fix in auth.ts:42.</div></div></div>
@@ -151,7 +151,7 @@
       <div role="tabpanel" id="p-ctl" aria-labelledby="t-ctl" class="panel" hidden>
         <div class="tabbody">
           <div><h3>Overrides</h3><p>One word at the start of a prompt decides for the judge.</p>
-            <ul><li><code>same:</code> never switch on this prompt</li><li><code>new:</code> always switch, no judge</li><li><code>/ghosted pause</code> turns everything off</li></ul></div>
+            <ul><li><code>same:</code> never switch on this prompt</li><li><code>new:</code> always switch, no judge</li><li><code>/ghosted-off</code> turns everything off</li></ul></div>
           <div class="term"><div class="tbar"><i></i><i></i><i></i><span>overrides</span></div><div class="tlog"><div class="l u">same: now do the same for the admin page</div><div class="l d">  same: → stays in this task, no judge</div><div class="l">⏺ Applying the same change to src/admin</div><div class="l u">new: plan next week's sprint</div><div class="l d">  new: → switch now, no judge</div><div class="l g">ghosted: new task detected, clearing first.</div></div></div>
         </div>
       </div>
