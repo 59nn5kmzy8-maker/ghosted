@@ -21,7 +21,7 @@ function setup() {
 function run(mode, input, env, args = []) {
   const r = spawnSync(process.execPath, [SCRIPT, mode, ...args], {
     input: JSON.stringify(input), encoding: 'utf8',
-    env: { ...process.env, GHOSTED_CHILD: '', GHOSTED_OFF: '', GHOSTED_MODE: '', GHOSTED_MAX_CONTEXT: '', GHOSTED_TERSE: '', ...env },
+    env: { ...process.env, GHOSTED_CHILD: '', GHOSTED_OFF: '', GHOSTED_MODE: '', GHOSTED_MAX_CONTEXT: '', GHOSTED_TERSE: 'off', ...env },
   });
   return !r.stdout ? null : mode === 'recall' ? r.stdout : JSON.parse(r.stdout);
 }
@@ -142,11 +142,12 @@ test('mid-run: over the limit stops, types /compact, and resumes with "Continue 
   assert.equal(run('tool', input, { ...env, GHOSTED_MAX_CONTEXT: '0' }), null);
 });
 
-test('terse mode: off by default, lite and full add a style rule', () => {
+test('terse mode: full by default, off adds nothing', () => {
   const s = setup();
-  assert.equal(run('start', {}, envFor(s, 'new')), null);
+  assert.match(run('start', {}, { ...envFor(s, 'new'), GHOSTED_TERSE: '' }).hookSpecificOutput.additionalContext, /terse mode \(full\)/);
+  assert.equal(run('start', {}, { ...envFor(s, 'new'), GHOSTED_TERSE: 'off' }), null);
   assert.match(run('start', {}, { ...envFor(s, 'new'), GHOSTED_TERSE: 'lite' }).hookSpecificOutput.additionalContext, /terse mode \(lite\)/);
-  assert.match(run('start', {}, { ...envFor(s, 'new'), GHOSTED_TERSE: 'full' }).hookSpecificOutput.additionalContext, /drop articles/);
+  assert.match(run('start', {}, { ...envFor(s, 'new'), GHOSTED_TERSE: 'full' }).hookSpecificOutput.additionalContext, /drop articles/i);
   assert.equal(run('start', {}, { ...envFor(s, 'new'), GHOSTED_TERSE: 'off' }), null);
 });
 

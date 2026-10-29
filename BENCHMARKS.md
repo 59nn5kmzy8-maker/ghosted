@@ -26,15 +26,18 @@ Two more scenarios, run the same way:
 
 In scenario 7 the right answer is not to switch, and the judge got it right in 3 of 4 runs. In the fourth it judged "From the files you already read: write notes.md…" a new task, cleared, and `notes.md` was never written. That is the risk clear mode carries: a wrong switch loses what the request points at. 0.3.1 tells the judge to treat back-references as the same task and to answer SAME when unsure. In a recheck the follow-up was judged same 8 of 8 times, and real new tasks were still judged new 6 of 6 times. In 4 more full runs of scenario 7 on 0.3.1, the plugin never switched, and `notes.md` was written every time. If a switch is wrong, `same: <prompt>` prevents it, and the archive keeps the old conversation.
 
-## Measured: terse mode (scenario 4, Opus, 3 runs each)
+## Measured: terse mode (scenario 4: 5 coding turns at 176k context, Opus)
 
-| Terse | Avg cost | Avg output tokens |
-|---|---|---|
-| off | $0.90 | 9.9k |
-| lite | $1.26 | 13.4k |
-| full | $0.95 (2 runs) | 10.8k |
+Text is the characters of assistant prose shown in the terminal, not code or tool calls. Earlier terse runs were invalid because the author's own caveman hooks were active in every session; these run with no user settings or hooks (`--setting-sources project,local`) and ghosted_ loaded from the repo.
 
-All runs passed their tests. Terse mode did not lower the cost of a coding task: most of the output is code and tool calls, which a style rule doesn't shorten, and with `lite` the model even wrote more. That is why it is off by default. It is there for chat-heavy use, where the answer text is most of the output.
+| Setup | Runs | Terminal text | Cost |
+|---|---|---|---|
+| No terse mode | 3 | 9,818 | $1.23 |
+| caveman (user hooks, ghosted_ terse off) | 3 | 8,929 (−9%) | n/a |
+| ghosted_ full, v0.5.1 rule | 4 | **7,842 (−20%)** | **$0.99 (−19%)** |
+| ghosted_ lite | 2 | 8,172 (−17%) | $1.05 |
+
+All runs passed their tests. One lite run hit a test-harness timeout and is left out. Run-to-run spread is large (full: 7,090–8,682), so treat these as direction, not decimals.
 
 ## Measured: mid-run compaction (one long run, Opus)
 

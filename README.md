@@ -41,7 +41,7 @@ Restart Claude Code. You'll be asked for the settings below; change them any tim
 
 - **Task switch:** when there's more than about 20k tokens of context and your prompt starts something new, ghosted_ runs `/clear` (or `/compact`), restores your prompt and types `Start the pending task.` Up to 5 facts from the old work and the archive path come along.
 - **Long runs (optional):** past a limit you choose (for example 250k), it stops the run, compacts, and types `Continue where you left off.`
-- **Terse answers (optional):** shorter text in the terminal, with a one-line reminder on every prompt so it doesn't fade. Code and files Claude writes stay normal.
+- **Terse answers (on by default):** compressed notes in the terminal, like caveman, with a one-line reminder on every prompt so it doesn't fade. In tests: 20% less text and 19% lower cost than no terse mode, and less text than caveman. Code and files Claude writes stay normal.
 - **Recall:** every cleared conversation is archived and indexed. `/ghosted:recall <words>` returns a short digest of the matching work.
 
 Anything that goes wrong fails open: your prompt goes through as if ghosted_ weren't there.
@@ -52,7 +52,7 @@ Anything that goes wrong fails open: your prompt goes through as if ghosted_ wer
 |---|---|---|
 | Compact mid-run at (tokens) | `0` (off) | e.g. `250000` or `250k`; values under 100k count as 100k |
 | Check for a new task above (tokens) | `20000` | below this, prompts are never judged |
-| Terse answers | `off` | `off`, `lite` (no filler) or `full` (compressed notes) |
+| Terse answers | `full` | `full` (compressed notes), `lite` (no filler) or `off`; set `off` if you already run caveman |
 
 Each has an environment override: `GHOSTED_MAX_CONTEXT`, `GHOSTED_MIN_TOKENS`, `GHOSTED_TERSE`. Also `GHOSTED_MODE=compact` (compact instead of clear on a switch) and `GHOSTED_OFF=1`.
 
@@ -92,7 +92,7 @@ The judge runs `claude -p --model haiku` with no settings, plugins, MCP servers 
 
 - A wrong "new task" verdict drops the context the prompt needed. It's rare (0 in the last 64 judged prompts), the old conversation is always archived, and `same:` prevents it.
 - Mid-run compaction cost more than it saved in single long runs, so it's off by default.
-- Terse mode helps chat-style sessions. In coding runs most output is code and tool calls, which it doesn't touch.
+- Terse mode shortens the text you read, not code or tool calls, so its saving depends on how much of a session is prose.
 - The transcript's `compact_boundary` marker isn't documented. If it changes, ghosted_ judges more often but stays safe.
 
 ## Develop

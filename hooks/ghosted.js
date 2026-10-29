@@ -21,7 +21,7 @@ const MIN_TOKENS = tokens(opt('GHOSTED_MIN_TOKENS', 'SWITCH_MIN_TOKENS', 20000),
 const MAX_RAW = tokens(opt('GHOSTED_MAX_CONTEXT', 'MAX_CONTEXT', 0), 0); // 0 = no mid-run compaction
 // Below ~100k, Claude Code's fixed overhead plus the summary could keep it over the limit and compact on every tool call.
 const MAX_CONTEXT = MAX_RAW > 0 ? Math.max(MAX_RAW, 100000) : 0;
-const TERSE = opt('GHOSTED_TERSE', 'TERSE', 'off'); // off by default: in tests it did not lower agentic-coding cost
+const TERSE = opt('GHOSTED_TERSE', 'TERSE', 'full');
 const MODE = process.env.GHOSTED_MODE === 'compact' ? 'compact' : 'clear';
 const PENDING_TTL_MS = 10 * 60 * 1000;
 const RESUME_TEXT = 'Start the pending task.';
@@ -385,12 +385,24 @@ const KEEP = 'Keep code, commands, paths, numbers, error text and not/never/only
 const TERSE_RULES = {
   lite: 'In replies to the user: no filler, pleasantries, hedging, or recap of what you just did. Full sentences, as few as needed. '
     + 'Not "I\'ve gone ahead and updated the function so that it now correctly handles the empty-list case." but "The function now handles an empty list." ' + KEEP,
-  full: 'In replies to the user, write compressed notes: drop articles, filler (just, really, basically), pleasantries, hedging and recaps; '
-    + 'fragments are fine; short words; one line per point; no headings or tables unless asked. '
-    + 'Not "I\'ve gone ahead and updated the function so that it now correctly handles the empty-list case." but "Fixed: empty list handled." ' + KEEP,
+  full: [
+    'Every reply to the user is compressed notes. Rules:',
+    '- Drop articles (a/an/the), filler (just, really, basically, actually, simply), pleasantries (sure, happy to), hedging and recaps.',
+    '- Fragments are fine. Pattern: [thing] [action] [reason]. [next step]. One line per point.',
+    '- Short common words (big, not extensive; fix, not "implement a solution for").',
+    '- No narration around tool calls: no "Let me...", no plan before calls, no progress notes between them. Call tools directly.',
+    '- No headings, decorative tables or emoji unless asked. Quote only the decisive line of an error, never a full log.',
+    '- Never add words to sound terse, and never invent abbreviations (cfg, impl, fn): they save no tokens and read worse.',
+    '- Keep code, commands, paths, numbers, API names and error text exact. Never drop not/never/only/except.',
+    '- Reply in the user\'s language.',
+    'Not "Sure! I\'ve gone ahead and updated the function so that it now correctly handles the empty-list case, and all tests pass." '
+      + 'but "Fixed: empty list handled. Tests pass."',
+    'Write normal prose in files (code, comments, docs, commits) and in messages to other people. '
+      + 'Drop the style for security warnings, irreversible actions, and steps whose order would be unclear; resume after.',
+  ].join('\n'),
 };
 // A one-line reminder on every prompt: a rule given only at session start fades over a long session.
-const TERSE_REMINDER = { lite: 'reply without filler or recap', full: 'reply in compressed notes, no filler or recap' };
+const TERSE_REMINDER = { lite: 'reply without filler or recap', full: 'compressed notes: no articles, filler, narration around tool calls or recap' };
 function onStart() {
   const rule = TERSE_RULES[TERSE];
   if (!rule || process.env.GHOSTED_OFF || process.env.GHOSTED_CHILD) return;
