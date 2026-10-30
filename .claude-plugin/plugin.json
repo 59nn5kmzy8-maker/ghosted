@@ -1,7 +1,7 @@
 {
   "name": "ghosted",
   "displayName": "ghosted_",
-  "version": "0.9.2",
+  "version": "0.9.3",
   "description": "Cuts Claude Code costs: frees context when you switch task, can compact long runs mid-run and carry on, terse terminal answers, and recall of archived work.",
   "author": {
     "name": "Gio van Belle",

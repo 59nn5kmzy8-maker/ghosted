@@ -585,11 +585,25 @@ function obviousFollowUp(prompt) {
   return /\b(you (already|just)|what you (saw|read|found|wrote|did)|based on (that|this|what|your)|your (analysis|summary|comparison|overview|answer|code)|as (before|above)|above|earlier|previous(ly)?|that (file|function|change|one|error|bug)|those|the same)\b/i.test(prompt);
 }
 
+// A skill or custom command with a request after it (`/claude-seo:seo-audit example.com`) can start a new task.
+// Bare commands and Claude Code's own commands never are: blocking them would break /clear, /model and the like.
+const OWN_COMMANDS = /^\/(clear|compact|model|plugins?|config|settings|add-dir|resume|rename|export|memory|permissions|hooks|mcp|agents|output-style|effort|fast|login|logout|status|cost|usage|help|doctor|vim|theme|reload-plugins|ghosted\S*)(\s|$)/i;
+function taskCommand(prompt) { return /^\/\S+\s+\S/.test(prompt) && !OWN_COMMANDS.test(prompt); }
+
+// After a clear, a pending slash command is retyped as-is so Claude Code expands it again; let it through once.
+const retypedPath = () => path.join(DATA_DIR, 'retyped');
+function takeRetyped(prompt) {
+  try { if (fs.readFileSync(retypedPath(), 'utf8') !== prompt) return false; } catch { return false; }
+  fs.rmSync(retypedPath(), { force: true });
+  return true;
+}
+
 function onPrompt(input) {
   const prompt = (input.prompt || '').trim();
   if (OFF || process.env.GHOSTED_CHILD || process.env.GHOSTED_WARMING) return;
   // `!` is Claude Code's shell mode, so the overrides are plain-word prefixes.
-  if (prompt.startsWith('/') || /^same:/i.test(prompt) || prompt === RESUME_TEXT || prompt === CONTINUE_TEXT) return;
+  if ((prompt.startsWith('/') && !taskCommand(prompt)) || /^same:/i.test(prompt) || prompt === RESUME_TEXT || prompt === CONTINUE_TEXT) return;
+  if (takeRetyped(prompt)) return; // the command ghosted just retyped after clearing
 
   if (readPending(input.cwd)) return; // mid-handoff: never judge
 
@@ -681,6 +695,13 @@ function onResume(input) {
   process.stdout.write(JSON.stringify({
     hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: parts.filter(Boolean).join('\n\n') },
   }));
+  const command = String(pending.prompt || '').trim();
+  if (command.startsWith('/')) { // retype the command itself: "Start the pending task." would not load its skill
+    privateDir(DATA_DIR);
+    fs.writeFileSync(retypedPath(), command, PRIVATE);
+    typeLater([[1.0, command], [0.8, '\r'], [0.8, '\r']]); // as with /clear: the first CR can go to the command menu
+    return;
+  }
   typeLater([[1.0, RESUME_TEXT], [0.5, '\r']]);
 }
 

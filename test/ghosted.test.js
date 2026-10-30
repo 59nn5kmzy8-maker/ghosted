@@ -70,6 +70,21 @@ test('clear is the default: types /clear and says so on resume', () => {
   assert.match(run('resume', { session_id: 'x', cwd: s.cwd }, env).hookSpecificOutput.additionalContext, /freed the context \(clear\)/);
 });
 
+test('a skill command with a request is judged; after the clear it is retyped once, not judged again', () => {
+  const s = setup();
+  const env = envFor(s, 'new');
+  const cmd = '/claude-seo:seo-audit example.com and write a new hero line';
+  const input = { session_id: 'abc', cwd: s.cwd, transcript_path: s.transcript, prompt: cmd };
+  assert.equal(run('prompt', input, env).decision, 'block');
+  for (const own of ['/compact keep the plan', '/model opus', '/ghosted:ghosted-stats', '/review']) {
+    assert.equal(run('prompt', { ...input, prompt: own }, envFor(s, 'new')), null, own);
+  }
+  run('resume', { session_id: 'x', cwd: s.cwd }, env);
+  assert.equal(typedText(s)[1], cmd + '\r\r');
+  assert.equal(run('prompt', input, env), null); // the retyped command passes
+  assert.equal(run('prompt', input, env).decision, 'block'); // only once
+});
+
 test('passes through: same task, judge error, slash, same:, small context, child', () => {
   const s = setup();
   const input = { session_id: 'abc', cwd: s.cwd, transcript_path: s.transcript, prompt: 'tweak it' };

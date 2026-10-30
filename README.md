@@ -94,7 +94,7 @@ Needs Node.js and the `claude` CLI on your PATH. Cache warming and the terminal 
 
 ```
 your prompt ──► UserPromptSubmit hook
-                 ├─ small context, slash command, "same:", obvious follow-up ──► passes through
+                 ├─ small context, bare or built-in command, "same:", obvious follow-up ──► passes through
                  └─ Haiku judge: new task?
                       ├─ no  ──► passes through
                       └─ yes ──► archive old chat, save prompt, block, type /clear
