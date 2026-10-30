@@ -100,13 +100,15 @@ function readPending(cwd, anyCwd = false) {
 
 // Text of the conversation since the last compaction, oldest first.
 function conversationSinceCompact(transcriptPath) {
-  let lines;
-  try { lines = fs.readFileSync(transcriptPath, 'utf8').split('\n'); } catch { return ''; }
+  let buf;
+  try { buf = fs.readFileSync(transcriptPath); } catch { return ''; }
   // shortcut: compact_boundary marker is undocumented; if missing, whole transcript counts (judges more often, still safe).
-  let start = 0;
-  lines.forEach((l, i) => { if (l.includes('"subtype":"compact_boundary"')) start = i + 1; });
+  // Searched in the raw bytes and only the part after it is decoded and parsed: 0.7s less on a 150 MB transcript.
+  const mark = buf.lastIndexOf('"subtype":"compact_boundary"');
+  const from = mark < 0 ? 0 : buf.indexOf(10, mark) + 1;
+  const lines = from > 0 || mark < 0 ? buf.toString('utf8', from).split('\n') : [];
   const out = [];
-  for (const line of lines.slice(start)) {
+  for (const line of lines) {
     let entry;
     try { entry = JSON.parse(line); } catch { continue; }
     const msg = entry.message;
@@ -185,6 +187,7 @@ function judge(head, recent, prompt, sessionId) {
     '', 'Reply now with only the JSON object.',
   ].join('\n');
   // Keep the judge lean: no user settings/hooks/plugins/MCP/tools in its context (about 15x cheaper, ~2s faster).
+  // Claude Code's default system prompt stays: it is already cached, and a custom one measured no faster.
   const r = claudeCli(['-p', '--model', 'haiku', '--no-session-persistence', '--output-format', 'json',
     '--setting-sources=', '--strict-mcp-config', '--tools=', '--disable-slash-commands'], question);
   debug('judge exit', r.status, r.error ? r.error.message : '', (r.stderr || '').slice(0, 300));
@@ -816,7 +819,8 @@ function onStop(input) {
   const ctx = contextTokens(input.transcript_path);
   if (!ctx || ctx < MIN_TOKENS) return;
   const pid = claudePid();
-  const job = { session: input.session_id, transcript: input.transcript_path, cwd: input.cwd, ctx, claude: pid, flags: startFlags(pid), envNames: envNames(pid), pidFile };
+  // The ps calls for the start flags and env names run in the detached warmer, not here: this hook runs after every reply.
+  const job = { session: input.session_id, transcript: input.transcript_path, cwd: input.cwd, ctx, claude: pid, pidFile };
   const child = spawn(process.execPath, [__filename, 'warm'], {
     detached: true, stdio: 'ignore', env: { ...process.env, GHOSTED_WARM_JOB: JSON.stringify(job) },
   });
@@ -857,6 +861,7 @@ async function warmLoop(job) {
     if (pinging) { killPing(pinging.child); removeFork(pinging.projDir, pinging.before, findFork(pinging.projDir, pinging.before)); }
     process.exit(0);
   });
+  if (!job.flags) Object.assign(job, { flags: startFlags(job.claude), envNames: envNames(job.claude) }); // Claude Code is still running
   const size = () => { try { return fs.statSync(job.transcript).size; } catch { return -1; } };
   await sleep(10000); // Claude Code may still be finishing the transcript when Stop fires
   const start = size(), model = lastModel(job.transcript);

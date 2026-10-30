@@ -2,6 +2,22 @@
 
 Every number here comes from real Claude Code runs in hidden terminals, started from seeded conversations of a known size. Costs are what `/cost` reported, judge included. Runs that had unit tests passed them unless noted.
 
+## Speed (0.10.1)
+
+Where the time goes on a prompt, measured on a MacBook Air:
+
+| Step | Time | When |
+|---|---|---|
+| Hook start (Node) | ~70ms | every prompt, every reply |
+| ghosted_'s own checks | ~15ms | every prompt |
+| Reading the chat since the last compaction, 152 MB transcript | 661ms before, 297ms now | only when the judge runs |
+| Stop hook after a reply in a large chat | ~100ms before, ~78ms now | every reply |
+| Haiku judge | median ~2.7s | only when the judge runs |
+
+The transcript is now searched for the last compaction in raw bytes, and only the part after it is parsed. On the 40 largest transcripts on the test machine the result is byte-for-byte identical to before. The `ps` calls that cache warming needs moved from the Stop hook into the background warmer.
+
+Two judge changes were measured and dropped because they made no difference: a one-line system prompt instead of Claude Code's default (the default is already cached), and a shorter judge reply for "same". Over 3 rounds of the 25-prompt test, the median judge time stayed at about 2.7s either way. Most of it is the `claude` CLI starting (~1s) and the API's time to first token. The judge prompt is unchanged from 0.10.0, so its accuracy is unchanged.
+
 ## Three-way judge (0.10.0)
 
 Since 0.10.0 the judge answers same, related or new. Related means a new job on the same project or subject: ghosted_ compacts, keeping what the new task needs, instead of clearing. The prompt now also says that sharing a name or topic with the earlier work doesn't make a request "same", and the quick follow-up rules only skip short prompts, so longer ones that point back reach the judge.
