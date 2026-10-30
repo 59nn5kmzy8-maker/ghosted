@@ -67,7 +67,7 @@ test('clear is the default: types /clear and says so on resume', () => {
   const input = { session_id: 'abc', cwd: s.cwd, transcript_path: s.transcript, prompt: 'write a brand new readme for the docs folder' };
   assert.equal(run('prompt', input, env).decision, 'block');
   assert.equal(typedText(s)[0], '\x03/clear\r\r');
-  assert.match(run('resume', { session_id: 'x', cwd: s.cwd }, env).hookSpecificOutput.additionalContext, /freed the context \(clear\)/);
+  assert.match(run('resume', { session_id: 'x', cwd: s.cwd }, env).hookSpecificOutput.additionalContext, /cleared the conversation because the user started a new, unrelated task/);
 });
 
 test('a skill command with a request is judged; after the clear it is retyped once, not judged again', () => {
@@ -146,33 +146,42 @@ function withUsage(s, tokens) {
     usage: { input_tokens: 10, cache_read_input_tokens: tokens - 10, cache_creation_input_tokens: 0 } } }));
 }
 
-test('mid-run: over the limit stops, types /compact, and resumes with "Continue where you left off."', () => {
+test('related task: compacts keeping what it needs, says so on resume; the message offers /resume', () => {
   const s = setup();
-  const env = { ...envFor(s, 'new'), GHOSTED_MAX_CONTEXT: '250000' };
-  const input = { session_id: 'abc', cwd: s.cwd, transcript_path: s.transcript };
-  withUsage(s, 200000);
-  assert.equal(run('tool', input, env), null);
-  withUsage(s, 260000);
-  const out = run('tool', input, env);
-  assert.equal(out.continue, false);
-  assert.match(out.stopReason, /260k \(limit 250k\)/);
-  assert.match(typedText(s)[0], /^\/compact Context limit reached mid-task/);
-  assert.equal(run('tool', input, env), null); // pending: no second stop while compacting
-  const ctx = run('resume', { session_id: 'abc', cwd: s.cwd }, env).hookSpecificOutput.additionalContext;
-  assert.match(ctx, /continue the task you were doing/);
-  assert.equal(typedText(s)[1], 'Continue where you left off.\r');
-  assert.equal(run('prompt', { ...input, prompt: 'Continue where you left off.' }, env), null);
-  assert.equal(pendingFiles(s).length, 0);
-  fs.appendFileSync(s.transcript, '\n' + JSON.stringify({ type: 'system', subtype: 'compact_boundary' }));
-  assert.equal(run('tool', input, env), null); // old usage before the boundary no longer counts
-  assert.equal(run('tool', input, { ...env, GHOSTED_MAX_CONTEXT: '0' }), null);
+  const env = envFor(s, 'related');
+  const out = run('prompt', { session_id: 'abc', cwd: s.cwd, transcript_path: s.transcript, prompt: 'now write the release notes for this project' }, env);
+  assert.equal(out.decision, 'block');
+  assert.match(out.reason, /summarised first[\s\S]*\/resume/);
+  assert.match(typedText(s)[0], /^\x03\/compact Keep only what helps with the next task: fake focus/);
+  assert.match(run('resume', { session_id: 'abc', cwd: s.cwd }, env).hookSpecificOutput.additionalContext, /summarised the conversation[\s\S]*release notes/);
+  const ev = fs.readFileSync(path.join(s.dir, 'events.jsonl'), 'utf8').trim().split('\n').map(l => JSON.parse(l));
+  assert.equal(ev.find(e => e.kind === 'switch').how, 'compact');
 });
 
-test('terse mode: auto is full, but steps aside when caveman is active; off adds nothing', () => {
+test('first session start shows the welcome once', () => {
+  const s = setup();
+  assert.match(run('start', {}, envFor(s, 'new')).systemMessage, /ghosted_ is on[\s\S]*\/resume/);
+  assert.equal(run('start', {}, envFor(s, 'new')), null);
+});
+
+test('archives older than the retention are deleted with their index lines', () => {
+  const s = setup();
+  const env = envFor(s, 'new');
+  run('prompt', { session_id: 'a', cwd: s.cwd, transcript_path: s.transcript, prompt: 'new: one' }, env);
+  run('resume', { session_id: 'b', cwd: s.cwd }, env);
+  const dir = path.join(s.dir, 'archive'), index = path.join(dir, 'index.jsonl');
+  const old = JSON.parse(fs.readFileSync(index, 'utf8'));
+  fs.writeFileSync(index, JSON.stringify({ ...old, ts: '2020-01-01T00:00:00.000Z' }) + '\n');
+  run('prompt', { session_id: 'c', cwd: s.cwd, transcript_path: s.transcript, prompt: 'new: two' }, env);
+  assert.equal(fs.existsSync(old.file), false);
+  assert.equal(fs.readFileSync(index, 'utf8').trim().split('\n').length, 1);
+});
+
+test('terse mode: auto is lite, but steps aside when caveman is active; off adds nothing', () => {
   const s = setup();
   const home = fs.mkdtempSync(path.join(os.tmpdir(), 'ghosted-home-'));
   const auto = { ...envFor(s, 'new'), GHOSTED_TERSE: '', HOME: home, USERPROFILE: home };
-  assert.match(run('start', {}, auto).hookSpecificOutput.additionalContext, /terse mode \(full\)/);
+  assert.match(run('start', {}, auto).hookSpecificOutput.additionalContext, /terse mode \(lite\)/);
   fs.mkdirSync(path.join(home, '.claude'));
   fs.writeFileSync(path.join(home, '.claude', 'settings.json'), JSON.stringify({ hooks: { SessionStart: [{ hooks: [{ type: 'command', command: '/x/caveman-proxy native-hook' }] }] } }));
   assert.equal(run('start', {}, auto), null);
@@ -185,17 +194,18 @@ test('terse mode: auto is full, but steps aside when caveman is active; off adds
 test('obvious follow-ups skip the judge', () => {
   const s = setup();
   const input = { session_id: 'abc', cwd: s.cwd, transcript_path: s.transcript };
-  for (const prompt of ['ok', 'yes do it', 'also add a docstring to every function please', 'fix it and run the tests again',
-    'update that file so the parser handles empty input too', 'apply the same pattern to the other two modules'])
-    assert.equal(run('prompt', { ...input, prompt }, envFor(s, 'new')), null, prompt);
+  for (const prompt of ['ok', 'yes do it', 'fix it and run the tests again', 'update that file so the parser handles empty input too'])
+    assert.equal(run('prompt', { ...input, prompt }, envFor(s, 'same')), null, prompt);
+  // longer prompts that share a name with the earlier work go to the judge: they can be a related task
+  const t = setup();
+  assert.equal(run('prompt', { ...input, cwd: t.cwd, transcript_path: t.transcript, prompt: 'also write a blog post about the same parser for our newsletter readers' },
+    envFor(t, 'related')).decision, 'block');
   assert.equal(run('prompt', { ...input, prompt: 'build a small web server that serves static files' }, envFor(s, 'new')).decision, 'block');
 });
 
 test('settings accept 250k, unreadable values fall back to the default', () => {
   const s = setup();
   const input = { session_id: 'abc', cwd: s.cwd, transcript_path: s.transcript };
-  withUsage(s, 260000);
-  assert.equal(run('tool', input, { ...envFor(s, 'new'), CLAUDE_PLUGIN_OPTION_max_context: '250k' }).continue, false);
   const t = setup();
   assert.equal(run('prompt', { session_id: 'a', cwd: t.cwd, transcript_path: t.transcript, prompt: 'build a small web server for static files' },
     { ...envFor(t, 'new'), GHOSTED_MIN_TOKENS: 'lots' }).decision, 'block'); // 'lots' -> default 20000, transcript is ~25k
@@ -226,22 +236,19 @@ test('terse mode adds a one-line reminder to prompts that pass, not to blocked o
   assert.equal(run('prompt', { ...input, prompt: 'new: write docs' }, env).decision, 'block');
 });
 
-test('/ghosted command: terse level, max, pause, stats, help', () => {
+test('/ghosted command: terse level, pause, stats, help', () => {
   const s = setup();
   const cmd = (...a) => spawnSync(process.execPath, [SCRIPT, 'cmd', s.dir, ...a], { encoding: 'utf8', env: { ...process.env, GHOSTED_TERSE: '' } }).stdout;
   assert.match(cmd('lite'), /terse: lite/);
   const env = { ...envFor(s, 'new'), GHOSTED_TERSE: '' };
   assert.match(run('start', {}, env).hookSpecificOutput.additionalContext, /terse mode \(lite\)/); // override beats the default
-  assert.match(cmd('max', '250k'), /250,000 tokens/);
-  const input = { session_id: 'abc', cwd: s.cwd, transcript_path: s.transcript };
-  withUsage(s, 260000);
-  assert.equal(run('tool', input, env).continue, false);
   assert.match(cmd('pause'), /paused/);
   assert.equal(run('start', {}, env), null);
-  assert.match(cmd('stats'), /mid-run compactions  1[\s\S]*PAUSED/);
+  assert.match(cmd('stats'), /estimated saved[\s\S]*PAUSED/);
   assert.match(cmd('reset'), /cleared/);
   assert.match(cmd(), /\/ghosted-stats[\s\S]*\/ghosted-off/);
-  assert.match(cmd("help"), /\/ghosted full \| lite/);
+  assert.match(cmd("help"), /\/ghosted terse/);
+  assert.match(cmd('terse'), /terse: lite/);
   // arguments on stdin, as the skill passes them
   assert.match(spawnSync(process.execPath, [SCRIPT, 'cmd', s.dir], { input: 'full\n', encoding: 'utf8' }).stdout, /terse: full/);
 });

@@ -2,6 +2,26 @@
 
 Every number here comes from real Claude Code runs in hidden terminals, started from seeded conversations of a known size. Costs are what `/cost` reported, judge included. Runs that had unit tests passed them unless noted.
 
+## Three-way judge (0.10.0)
+
+Since 0.10.0 the judge answers same, related or new. Related means a new job on the same project or subject: ghosted_ compacts, keeping what the new task needs, instead of clearing. The prompt now also says that sharing a name or topic with the earlier work doesn't make a request "same", and the quick follow-up rules only skip short prompts, so longer ones that point back reach the judge.
+
+25 labelled prompts, run three times each against a seeded 33k-token coding conversation (fixing token refresh in a Next.js app):
+
+| Group | Prompts | Expected |
+|---|---|---|
+| Follow-ups ("the test still fails on CI", "commit these auth fixes") | 8 | same |
+| New jobs on the same app ("add rate limiting to the login endpoint") | 5 | related or new |
+| Unrelated ("plan a 3-day trip to Lisbon") | 7 | new |
+| Shares only a name or topic ("write a LinkedIn post announcing the app's new pricing") | 5 | related or new, never same |
+
+| Judge | Right | Wrong switches | Missed switches |
+|---|---|---|---|
+| 0.9 (new task yes/no) | 68 / 75 | 1 ("commit these auth fixes" cleared) | 6 |
+| 0.10 (same / related / new) | 70 / 75 | 0 | 5 |
+
+All 5 misses in 0.10 kept the chat for a report about the work just done (a changelog entry, an incident report), where keeping the context is arguably right. The 0.9 judge cleared all related jobs; 0.10 compacted 3 of 5 and kept the summary.
+
 ## Measured: clear vs compact vs off (v0.2.0)
 
 Six scenarios, three arms each, two repetitions per arm (36 runs, Opus). Costs are averages per run, judge included. Each run started from its own clone of the seed, so no run reused another's prompt cache.

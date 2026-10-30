@@ -142,10 +142,15 @@
   const tryform = $('#tryform');
   if (tryform) {
     const q = $('#tryq'), log = $('#trylog'), ctx = $('#tryctx'), steps = $$('#trysteps li');
-    const obvious = p => p.split(/\s+/).filter(Boolean).length <= 2
-      || /^(ok(ay)?|yes|yep|no|nope|sure|thanks|thank you|great|nice|perfect|continue|go on|go ahead|do it|also|again|retry|try again|fix (it|that|this))\b/i.test(p)
-      || /\b(you (already|just)|what you (saw|read|found|wrote|did)|based on (that|this|what|your)|your (analysis|summary|comparison|overview|answer|code)|as (before|above)|above|earlier|previous(ly)?|that (file|function|change|one|error|bug)|those|the same)\b/i.test(p);
+    const obvious = p => {
+      const n = p.split(/\s+/).filter(Boolean).length;
+      return n <= 2 || (n <= 8 && /^(ok(ay)?|yes|yep|no|nope|sure|thanks|thank you|great|nice|perfect|continue|go on|go ahead|do it|retry|try again|fix (it|that|this))\b/i.test(p))
+        || (n <= 10 && /\b(you (already|just)|what you (saw|read|found|wrote|did)|as (before|above)|above|earlier|previous(ly)?|that (file|function|change|one|error|bug)|those)\b/i.test(p));
+    };
+    // simulated judge: continuing the auth fix is same, another job in the same app is related, anything else is new
     const aboutAuth = p => /\b(auth|login|logout|token|session|password|sign ?in|expir)/i.test(p);
+    const continues = p => /^(also|and|now (fix|test|check)|why|explain|revert|undo|commit|test|check|run|cover|handle)\b|\b(the fix|this fix|you (changed|fixed|added))\b/i.test(p);
+    const sameApp = p => aboutAuth(p) || /\b(settings|endpoint|api|page|component|build|test|readme|release notes|changelog)\b/i.test(p);
     let run = 0;
     const wait = ms => new Promise(r => setTimeout(r, still ? 0 : ms));
     const line = async (text, cls, my) => {
@@ -170,21 +175,23 @@
         await wait(400); await line('⏺ Working on it with the full context', '', my);
         return;
       }
-      mark('judge', 'on'); await line('  judge: is this a new task? …', 'd', my); await wait(900);
+      mark('judge', 'on'); await line('  judge: same, related or new? …', 'd', my); await wait(900);
       if (my !== run) return;
-      if (!forced && aboutAuth(p)) {
+      if (!forced && aboutAuth(p) && continues(p)) {
         mark('judge', 'hit'); ['clear', 'start'].forEach(n => mark(n, 'skip'));
-        await line('  judge: same task (still the auth work) · context kept', 'd', my);
+        await line('  judge: same (continues the auth fix) · context kept', 'd', my);
         await wait(400); await line('⏺ Continuing with the full context', '', my);
         return;
       }
-      await line('ghosted: new task detected, clearing first.', 'g', my);
+      const related = !forced && sameApp(p), to = related ? 46 : 18;
+      await line(related ? 'ghosted_: this looks like a new task on the same work, so the chat is summarised first.'
+        : 'ghosted_: this looks like a new task, so Claude starts on a fresh chat.', 'g', my);
       mark('clear', 'on'); await wait(500);
-      await line('/clear', 'u', my); await line('  ✓ old chat archived  ✓ prompt saved', 'd', my);
-      if (still) ctx.textContent = '18k'; else tween(900, k => { ctx.textContent = Math.round(176 - 158 * k) + 'k'; });
+      await line(related ? '/compact' : '/clear', 'u', my); await line('  ✓ old chat archived  ✓ prompt saved', 'd', my);
+      if (still) ctx.textContent = to + 'k'; else tween(900, k => { ctx.textContent = Math.round(176 - (176 - to) * k) + 'k'; });
       await wait(600); mark('start', 'on'); mark('start', 'hit');
       await line('Start the pending task.', 'u', my);
-      await line('  ✓ prompt restored with 5 facts from the auth work', 'd', my);
+      await line(related ? '  ✓ summary of the auth work kept' : '  ✓ prompt restored with the few facts it needs', 'd', my);
       await wait(400); await line(`⏺ Working on: ${p.replace(/^new:\s*/i, '')}`, '', my);
     };
     tryform.addEventListener('submit', e => { e.preventDefault(); go(q.value); });

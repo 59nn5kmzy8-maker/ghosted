@@ -18,7 +18,7 @@
 <meta name="twitter:image" content="https://giovanbelle.github.io/ghosted/og.png">
 <link rel="icon" href="favicon.png">
 <link rel="preload" href="fonts/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="style.css?v=0aa25c16">
+<link rel="stylesheet" href="style.css?v=2e5fa7a9">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -45,6 +45,7 @@
   .dots { display: grid; grid-template-columns: repeat(16, 1fr); gap: 8px; max-width: 420px; }
   .dots i { aspect-ratio: 1; border-radius: 50%; background: var(--fg); }
   .dots i.s { background: transparent; border: 1.5px solid #555; }
+  .dots i.m { background: #3a3a3a; }
   @media (max-width: 900px) { .scn { grid-template-columns: 1fr 52px; } .scn .lab { grid-column: 1 / -1; } }
 </style>
 <div class="wrap">
@@ -78,11 +79,11 @@
     <div class="grid2" style="gap:40px;align-items:center">
       <div class="rv">
         <p class="kicker">Judge accuracy</p>
-        <h2 id="acc-h">0 wrong switches in 64 prompts.</h2>
-        <p class="dim">32 labelled prompts (15 follow-ups, 17 new tasks) against a real 176k conversation, run repeatedly. A wrong switch is the one mistake that costs you context, so the judge answers “same” whenever it is unsure.</p>
-        <div class="legend" style="margin-top:18px"><span><i style="background:#f5f5f5;border-radius:50%"></i>Judged correctly</span><span><i style="border:1.5px solid #555;border-radius:50%"></i>Obvious follow-up, judge skipped</span></div>
+        <h2 id="acc-h">0 wrong switches in 75 prompts.</h2>
+        <p class="dim">25 labelled prompts, run three times against a 33k-token coding conversation: 8 follow-ups, 5 new jobs on the same project, 7 unrelated tasks, and 5 that only share a name or topic with the earlier work (a LinkedIn post about the same app, for example). The judge answers same, related (summarise) or new (clear). A wrong switch is the one mistake that costs you context, so when unsure it keeps the chat. The 5 misses kept the chat for a report about the work just done. The previous judge, on the same prompts: 68 of 75, with 1 wrong switch.</p>
+        <div class="legend" style="margin-top:18px"><span><i style="background:#f5f5f5;border-radius:50%"></i>Judged correctly</span><span><i style="border:1.5px solid #555;border-radius:50%"></i>Obvious follow-up, judge skipped</span><span><i style="background:#3a3a3a;border-radius:50%"></i>Kept, summary expected</span></div>
       </div>
-      <div class="fig rv"><div class="dots" role="img" aria-label="64 dots: 50 judged correctly, 14 skipped the judge as obvious follow-ups, 0 wrong."><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="s"></i><i class="s"></i><i class="s"></i><i class="s"></i><i class="s"></i><i class="s"></i><i class="s"></i><i class="s"></i><i class="s"></i><i class="s"></i><i class="s"></i><i class="s"></i><i class="s"></i><i class="s"></i></div></div>
+      <div class="fig rv"><div class="dots" role="img" aria-label="75 dots: 67 judged correctly, 3 skipped the judge as obvious follow-ups, 5 kept the chat where a summary was expected, 0 wrong switches."><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="s"></i><i class="s"></i><i class="s"></i><i class="m"></i><i class="m"></i><i class="m"></i><i class="m"></i><i class="m"></i></div></div>
     </div>
   </section>
 
@@ -128,8 +129,8 @@
     <div class="shead rv"><h2 id="no-h">Where it doesn't help</h2></div>
     <div class="grid3">
       <div class="panel rv"><h3>One long task, no switch</h3><p>Nothing to clear, so nothing saved. ghosted_ stays out of the way.</p></div>
-      <div class="panel rv"><h3>Mid-run compaction</h3><p>In single runs it cost more ($8.61 vs $9.73), because files get read again. That's why it's off by default.</p></div>
-      <div class="panel rv"><h3>A wrong switch</h3><p>Once, before the judge fix, a follow-up was judged new and the work was lost. Since then: 0 in 64, and <code>same:</code> blocks it.</p></div>
+      <div class="panel rv"><h3>Mid-run compaction</h3><p>In single runs it cost more ($9.73 vs $8.61), because files get read again. It was opt-in, and was removed in 0.10.</p></div>
+      <div class="panel rv"><h3>A wrong switch</h3><p>Once, before the judge fix, a follow-up was judged new and the work was lost. Since then: 0 in 139 judged test prompts. <code>/resume</code> brings the old chat back, and <code>same:</code> blocks a switch.</p></div>
     </div>
     <p class="note">Full method, raw numbers and older runs: <a href="https://github.com/giovanbelle/ghosted/blob/main/BENCHMARKS.md">BENCHMARKS.md</a></p>
   </section>
@@ -151,6 +152,6 @@
   </div>
   <div class="wordmark" aria-hidden="true">ghosted_</div>
 </footer>
-<script src="site.js?v=0aa25c16"></script>
+<script src="site.js?v=2e5fa7a9"></script>
 </body>
 </html>

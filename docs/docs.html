@@ -18,7 +18,7 @@
 <meta name="twitter:image" content="https://giovanbelle.github.io/ghosted/og.png">
 <link rel="icon" href="favicon.png">
 <link rel="preload" href="fonts/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="style.css?v=0aa25c16">
+<link rel="stylesheet" href="style.css?v=2e5fa7a9">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -53,33 +53,33 @@
       <div><span class="p">$ </span>claude plugin marketplace add giovanbelle/ghosted</div>
       <div><span class="p">$ </span>claude plugin install ghosted@ghosted</div>
     </div>
-    <p>Restart Claude Code. It asks four setup questions: press Enter on each to keep the defaults. Then work as usual. The first time you start a new task you'll see a line from ghosted_, and your task starts by itself. Run <code>/ghosted-stats</code> any time to see what it saved.</p>
+    <p>Restart Claude Code. It asks one setup question: press Enter to keep the default. Then work as usual. The first time you start a new task you'll see a line from ghosted_, and your task starts by itself. Run <code>/ghosted-stats</code> any time to see what it saved.</p>
 
     <h2 id="commands">Commands</h2>
-    <p>One short command per action. Type <code>/ghosted</code> for the list.</p>
+    <p>Type <code>/ghosted</code> for the list. The slash menu shows plugin commands as <code>/ghosted:ghosted</code>; typing <code>/ghosted</code> works too.</p>
     <div class="tablewrap"><table>
       <thead><tr><th scope="col">Command</th><th scope="col">What it does</th></tr></thead>
       <tbody>
         <tr><td><code>/ghosted-stats</code></td><td>Opens your local dashboard: switches, tokens dropped, estimated savings, warm pings, judge spend and archive search.</td></tr>
-        <tr><td><code>/ghosted-terse</code> · <code>lite</code> · <code>off</code></td><td>Terse answers on, lighter, or off.</td></tr>
-        <tr><td><code>/ghosted-warm</code> · <code>90m</code> · <code>off</code></td><td>Keep the cache warm for 2h, or the time you give, after your last turn.</td></tr>
-        <tr><td><code>/ghosted-off</code> · <code>/ghosted-on</code></td><td>Pause or resume everything.</td></tr>
-        <tr><td><code>/ghosted-setup</code> · <code>off</code></td><td>Auto-typing in any terminal (VS Code, Ghostty, Alacritty).</td></tr>
-        <tr><td><code>/ghosted-recall &lt;words&gt;</code></td><td>Find archived work.</td></tr>
+        <tr><td><code>/ghosted-off</code> · <code>/ghosted on</code></td><td>Pause or resume everything.</td></tr>
+        <tr><td><code>/ghosted-recall &lt;words&gt;</code></td><td>Find an old conversation. Archives are kept 30 days.</td></tr>
+        <tr><td><code>/resume</code></td><td>Claude Code's own command: go back to the chat from before a switch.</td></tr>
         <tr><td><code>new:</code> · <code>same:</code> before a prompt</td><td>Force or block a task switch.</td></tr>
-        <tr><td><code>/ghosted max 250k</code></td><td>Compact mid-run past this context size, then continue.</td></tr>
+        <tr><td><code>/ghosted terse</code> · <code>full</code> · <code>lite</code> · <code>off</code></td><td>Shorter answers. Default: lite.</td></tr>
+        <tr><td><code>/ghosted warm</code> · <code>90m</code> · <code>off</code></td><td>Keep the cache warm for 1h, or the time you give, after your last turn.</td></tr>
+        <tr><td><code>/ghosted setup</code> · <code>off</code></td><td>Auto-typing in any terminal (VS Code, Ghostty, Alacritty).</td></tr>
       </tbody>
     </table></div>
 
     <h2 id="settings">Settings</h2>
-    <p>Set in <code>/config</code>, or change them with the commands above. Commands stick across sessions.</p>
+    <p>Change them with the commands above; they stick across sessions. Cache warming can also be set in <code>/config</code>.</p>
     <div class="tablewrap"><table>
       <thead><tr><th scope="col">Setting</th><th scope="col">Default</th><th scope="col">Meaning</th></tr></thead>
       <tbody>
-        <tr><td>Check for a new task above</td><td><code>20000</code></td><td>Below this many tokens, prompts are never judged.</td></tr>
-        <tr><td>Keep the cache warm for</td><td><code>2h</code></td><td>After your last turn. <code>off</code> disables it.</td></tr>
-        <tr><td>Compact mid-run at</td><td><code>0</code> (off)</td><td>For example <code>250k</code>. Values under 100k count as 100k.</td></tr>
-        <tr><td>Terse answers</td><td><code>auto</code></td><td><code>full</code>, <code>lite</code> or <code>off</code>.</td></tr>
+        <tr><td>Keep the cache warm for</td><td><code>1h</code></td><td>After your last turn. <code>off</code> disables it.</td></tr>
+        <tr><td>Terse answers</td><td><code>auto</code></td><td>Lite (no filler), or off when caveman is active. Also <code>full</code>, <code>lite</code>, <code>off</code>.</td></tr>
+        <tr><td>Check for a new task above</td><td>about 20k tokens</td><td>Shorter chats are never judged. Environment only: <code>GHOSTED_MIN_TOKENS</code>.</td></tr>
+        <tr><td>Keep archives for</td><td>30 days</td><td>Environment only: <code>GHOSTED_ARCHIVE_DAYS</code> (0 keeps them forever).</td></tr>
       </tbody>
     </table></div>
 
@@ -93,10 +93,10 @@
       <thead><tr><th scope="col">Variable</th><th scope="col">Effect</th></tr></thead>
       <tbody>
         <tr><td><code>GHOSTED_OFF=1</code></td><td>Turn everything off.</td></tr>
-        <tr><td><code>GHOSTED_MODE=compact</code></td><td>Compact instead of clear on a task switch.</td></tr>
+        <tr><td><code>GHOSTED_MODE=compact</code></td><td>Compact instead of clear on an unrelated task too.</td></tr>
         <tr><td><code>GHOSTED_MIN_TOKENS</code></td><td>Overrides the switch threshold.</td></tr>
         <tr><td><code>GHOSTED_KEEP_WARM</code></td><td>Overrides the cache-warming window.</td></tr>
-        <tr><td><code>GHOSTED_MAX_CONTEXT</code></td><td>Overrides the mid-run limit.</td></tr>
+        <tr><td><code>GHOSTED_ARCHIVE_DAYS</code></td><td>Days to keep archived chats (default 30, 0 = forever).</td></tr>
         <tr><td><code>GHOSTED_TERSE</code></td><td>Overrides the terse level.</td></tr>
       </tbody>
     </table></div>
@@ -120,8 +120,8 @@
     <p>To delete its archives and stats, remove <code>~/.claude/plugins/data/ghosted-ghosted</code>. Nothing is stored anywhere else.</p>
 
     <h2 id="faq">FAQ</h2>
-    <details><summary>Will it clear something I still needed?</summary><p>Rarely: 0 wrong switches in the latest 64 test prompts, and the judge answers “same” when unsure. If it happens, the old chat is archived and <code>/ghosted-recall</code> finds it. Start a prompt with <code>same:</code> to block a switch.</p></details>
-    <details><summary>Why clear instead of compact?</summary><p>A compact summary still carries a lot of old text and costs a model call to write. Clearing with a few carried facts saved 70%; compacting saved 34%.</p></details>
+    <details><summary>Will it clear something I still needed?</summary><p>Rarely: 0 wrong switches in the latest 75 judged test prompts, and the judge answers “same” when unsure. If a new task builds on the earlier work, it summarises the chat instead of clearing it. If a switch was wrong, run <code>/resume</code> and pick the previous chat. Start a prompt with <code>same:</code> to block a switch.</p></details>
+    <details><summary>When does it clear, and when does it compact?</summary><p>An unrelated task gets <code>/clear</code>: in tests that saved 70%, against 34% for compacting, because a summary still carries old text. A new task on the same project or subject gets <code>/compact</code>, so what Claude learned comes along.</p></details>
     <details><summary>I already use caveman. Do I need both?</summary><p>They stack: $3.32 per run with caveman alone, $0.92 with ghosted_ added. ghosted_'s own terse mode steps aside while caveman is active.</p></details>
     <details><summary>Nothing happened after “new task detected”.</summary><p>Your terminal can't be typed into from outside, or macOS automation permission was declined. Run <code>/clear</code>, then type <code>go</code>; your task comes back. To make it automatic, run <code>/ghosted setup</code> once.</p></details>
     <p class="note">Something else? <a href="https://github.com/giovanbelle/ghosted/issues">Open an issue on GitHub</a>.</p>
@@ -149,6 +149,6 @@
   </div>
   <div class="wordmark" aria-hidden="true">ghosted_</div>
 </footer>
-<script src="site.js?v=0aa25c16"></script>
+<script src="site.js?v=2e5fa7a9"></script>
 </body>
 </html>

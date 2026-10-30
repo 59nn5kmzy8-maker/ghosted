@@ -37,16 +37,20 @@ claude plugin marketplace add giovanbelle/ghosted
 claude plugin install ghosted@ghosted
 ```
 
-Restart Claude Code and press Enter on the setup questions to keep the defaults (change them any time in `/config`). Then work as usual: the first time you start a new task you'll see a line from ghosted_, and your task starts by itself.
+Restart Claude Code and press Enter on the one setup question to keep the default. Then work as usual: the first time you start a new task you'll see a line from ghosted_, and your task starts by itself. Wrong call? `/resume` brings the old chat back.
 
 ## What it does
 
-- **Task switch:** when there's more than about 20k tokens of context and your prompt starts something new, ghosted_ runs `/clear` (or `/compact`), restores your prompt and types `Start the pending task.` Up to 5 facts from the old work and the archive path come along.
-- **Long runs (optional):** past a limit you choose (for example 250k), it stops the run, compacts, and types `Continue where you left off.`
-- **Terse answers (on by default):** compressed notes in the terminal, like caveman, with a one-line reminder on every prompt so it doesn't fade. In tests: 20% less text and 19% lower cost than no terse mode, and less text than caveman. Code and files Claude writes stay normal.
-- **Cache warming (on, 2 hours):** Claude's prompt cache expires after 5 minutes, or 1 hour on most subscriptions. After a longer break, your next message writes the whole context to the cache again, at 1.25× or 2× the input price. While you're away, ghosted_ re-sends the session just before the cache expires, through a hidden copy of the session that is deleted right after. A cache read costs 0.1× the input price. It stops once you're back, when Claude Code closes, and before the pings cost half of the rewrite they prevent. Measured: one ping read 191,089 tokens from the cache and wrote 372.
+- **Task switch:** when there's more than about 20k tokens of context, a Haiku judge sorts each prompt that isn't an obvious follow-up into one of three:
+  - **same:** it continues the current work. Nothing happens.
+  - **related:** a new job on the same project or subject. ghosted_ runs `/compact`, keeping what the new task needs, then starts it.
+  - **new:** an unrelated task. ghosted_ runs `/clear`, then starts it with up to 5 facts from the old work.
+
+  The old chat is archived first, and `/resume` brings it back if the call was wrong.
+- **Terse answers (on by default):** answers without filler. The default, lite, keeps full sentences. `full` turns them into compressed notes like caveman (20% less text and 19% lower cost in tests). Code and files Claude writes stay normal.
+- **Cache warming (on, 1 hour):** Claude's prompt cache expires after 5 minutes, or 1 hour on most subscriptions. After a longer break, your next message writes the whole context to the cache again, at 1.25× or 2× the input price. While you're away, ghosted_ re-sends the session just before the cache expires, through a hidden copy of the session that is deleted right after. A cache read costs 0.1× the input price. It stops once you're back, when Claude Code closes, and before the pings cost half of the rewrite they prevent. Measured: one ping read 191,089 tokens from the cache and wrote 372.
 - **Dashboard:** `/ghosted-stats` opens a local page (127.0.0.1, only you can open it) with task switches, tokens dropped, an estimated saving at your own price, warm pings, judge spend and archive search. It stops itself after 30 idle minutes.
-- **Recall:** every cleared conversation is archived and indexed. `/ghosted-recall <words>` returns a short digest of the matching work.
+- **Recall:** every cleared or summarised conversation is archived and indexed for 30 days. `/ghosted-recall <words>` returns a short digest of the matching work.
 
 Anything that goes wrong fails open: your prompt goes through as if ghosted_ weren't there.
 
@@ -54,12 +58,12 @@ Anything that goes wrong fails open: your prompt goes through as if ghosted_ wer
 
 | Setting | Default | |
 |---|---|---|
-| Compact mid-run at (tokens) | `0` (off) | e.g. `250000` or `250k`; values under 100k count as 100k |
-| Check for a new task above (tokens) | `20000` | below this, prompts are never judged |
-| Keep the cache warm for | `2h` | after your last turn; `off` to disable, e.g. `90m` |
-| Terse answers | `auto` | `auto` = `full` (compressed notes), or off when caveman is already active; also `full`, `lite`, `off` |
+| Keep the cache warm for | `1h` | after your last turn; `off` to disable, e.g. `90m`. Asked at install, or `/ghosted warm` |
+| Terse answers | `auto` | `auto` = `lite`, or off when caveman is already active; also `full`, `off`. `/ghosted terse` |
+| Check for a new task above | about 20k tokens | `GHOSTED_MIN_TOKENS` |
+| Keep archives for | 30 days | `GHOSTED_ARCHIVE_DAYS` (0 = forever) |
 
-Each has an environment override: `GHOSTED_MAX_CONTEXT`, `GHOSTED_MIN_TOKENS`, `GHOSTED_KEEP_WARM`, `GHOSTED_TERSE`. Also `GHOSTED_MODE=compact` (compact instead of clear on a switch) and `GHOSTED_OFF=1`.
+Environment overrides: `GHOSTED_KEEP_WARM`, `GHOSTED_TERSE`, `GHOSTED_MIN_TOKENS`, `GHOSTED_ARCHIVE_DAYS`, `GHOSTED_MODE=compact` (compact unrelated tasks too) and `GHOSTED_OFF=1`.
 
 ## Commands
 
@@ -67,14 +71,15 @@ Each has an environment override: `GHOSTED_MAX_CONTEXT`, `GHOSTED_MIN_TOKENS`, `
 |---|---|
 | `/ghosted` | status and the list below |
 | `/ghosted-stats` | opens the local dashboard: switches, tokens dropped, estimated savings, warm pings, judge spend, archive search |
-| `/ghosted-terse` · `lite` · `off` | terse answers on, lighter, or off |
-| `/ghosted-warm` · `90m` · `off` | keep the prompt cache warm for 2h (or the time you give) after your last turn |
-| `/ghosted-off` · `/ghosted-on` | pause or resume everything |
-| `/ghosted-setup` · `off` | auto-typing in any terminal (VS Code, Ghostty, Alacritty) |
+| `/ghosted-off` · `/ghosted on` | pause or resume everything |
 | `/ghosted-recall <words>` | find archived work |
+| `/resume` | Claude Code's own command: go back to the chat from before a switch |
 | `new:` · `same:` before a prompt | force or block a task switch |
+| `/ghosted terse` · `full` · `lite` · `off` | shorter answers |
+| `/ghosted warm` · `90m` · `off` | keep the prompt cache warm for 1h (or the time you give) after your last turn |
+| `/ghosted setup` · `off` | auto-typing in any terminal (VS Code, Ghostty, Alacritty) |
 
-Less common settings still work through `/ghosted <setting>`, for example `/ghosted max 250k` for mid-run compaction. Settings stick across sessions; environment variables still win over them.
+The slash menu shows plugin commands with a prefix (`/ghosted:ghosted`); typing `/ghosted` works too. Settings stick across sessions; environment variables still win over them.
 
 ## Platforms
 
@@ -95,19 +100,19 @@ Needs Node.js and the `claude` CLI on your PATH. Cache warming and the terminal 
 ```
 your prompt ──► UserPromptSubmit hook
                  ├─ small context, bare or built-in command, "same:", obvious follow-up ──► passes through
-                 └─ Haiku judge: new task?
-                      ├─ no  ──► passes through
-                      └─ yes ──► archive old chat, save prompt, block, type /clear
+                 └─ Haiku judge: same, related or new?
+                      ├─ same    ──► passes through
+                      ├─ related ──► archive old chat, save prompt, block, type /compact (keep what the task needs)
+                      └─ new     ──► archive old chat, save prompt, block, type /clear
                                    └─► SessionStart hook: inject prompt + carried facts,
                                        type "Start the pending task."
 ```
 
-The judge runs `claude -p --model haiku` with no settings, plugins, MCP servers or tools loaded, at about $0.0013 a switch and 3.5s. Obvious follow-ups ("ok", "also…", "fix it", "that file") skip it.
+The judge runs `claude -p --model haiku` with no settings, plugins, MCP servers or tools loaded, at about $0.0013 a switch and 3.5s. Obvious follow-ups (short replies, "ok", "fix it", short back-references like "that file") skip it.
 
 ## Limits
 
-- A wrong "new task" verdict drops the context the prompt needed. It's rare (0 in the last 64 judged prompts), the old conversation is always archived, and `same:` prevents it.
-- Mid-run compaction cost more than it saved in single long runs, so it's off by default.
+- A wrong switch drops context the prompt needed. It's rare (0 in the last 75 judged prompts), the old chat is archived first, `/resume` brings it back, and `same:` prevents it.
 - Terse mode shortens the text you read, not code or tool calls, so its saving depends on how much of a session is prose.
 - Cache warming spends a little to save more only if you come back to the session. Each ping costs about a tenth of the context, and it stops at half the cost of the rewrite it prevents. If a ping ever misses the cache, warming stops for that session. Turn it off with `/ghosted warm off`.
 - The transcript's `compact_boundary` marker isn't documented. If it changes, ghosted_ judges more often but stays safe.

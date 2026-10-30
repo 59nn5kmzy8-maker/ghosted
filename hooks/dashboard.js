@@ -146,8 +146,8 @@ function render() {
     : '<p class="empty">No task switches yet.</p>';
   // settings
   const s = D.settings;
-  $('#settings').innerHTML = '<table>' + [['Terse', s.terse || 'auto'], ['Keep warm', s.keep_warm || '2h (default)'], ['Mid-run limit', s.max_context && s.max_context !== '0' ? k(+s.max_context) : 'off'], ['Paused', s.paused ? 'yes' : 'no']]
-    .map(([a, b]) => '<tr><td>' + a + '</td><td class="n">' + esc(b) + '</td></tr>').join('') + '</table><p style="color:#555;font-size:12px;margin:12px 0 0">Change with /ghosted-terse, /ghosted-warm, /ghosted-off</p>';
+  $('#settings').innerHTML = '<table>' + [['Terse', s.terse || 'auto'], ['Keep warm', s.keep_warm || '1h (default)'], ['Paused', s.paused ? 'yes' : 'no']]
+    .map(([a, b]) => '<tr><td>' + a + '</td><td class="n">' + esc(b) + '</td></tr>').join('') + '</table><p style="color:#555;font-size:12px;margin:12px 0 0">Change with /ghosted terse, /ghosted warm, /ghosted-off</p>';
   // recent
   const rows = ev.slice(-30).reverse();
   $('#recent').innerHTML = rows.length ? '<table><thead><tr><th>When</th><th>Event</th><th>Detail</th><th style="text-align:right">Tokens</th></tr></thead><tbody>' + rows.map(e => {

@@ -1,6 +1,6 @@
 ---
 name: ghosted-off
-description: Pauses ghosted_ completely (no task switching, terse rules or cache warming) until /ghosted-on. Use when the user types /ghosted-off or wants ghosted_ to stop.
+description: Pauses ghosted_ completely (no task switching, terse rules or cache warming) until /ghosted on. Use when the user types /ghosted-off or wants ghosted_ to stop.
 ---
 
 ```bash

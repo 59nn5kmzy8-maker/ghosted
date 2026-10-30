@@ -18,7 +18,7 @@
 <meta name="twitter:image" content="https://giovanbelle.github.io/ghosted/og.png">
 <link rel="icon" href="favicon.png">
 <link rel="preload" href="fonts/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="style.css?v=0aa25c16">
+<link rel="stylesheet" href="style.css?v=2e5fa7a9">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -125,7 +125,7 @@
       <dl class="proof">
         <div><dt>−70%</dt><dd>cost in sessions where you switch tasks</dd></div>
         <div><dt>3.3×</dt><dd>more work per Pro/Max limit, same sessions</dd></div>
-        <div><dt>0 / 64</dt><dd>wrong switches. Old chats are never deleted</dd></div>
+        <div><dt>0 / 75</dt><dd>wrong switches. The old chat is always saved first</dd></div>
       </dl>
     </div>
 
@@ -155,7 +155,7 @@
       <li><span>1</span><div><b>Check Node.js</b><p>Run <code>node -v</code>. If it says “command not found”, install it from <a href="https://nodejs.org">nodejs.org</a> first.</p></div></li>
       <li><span>2</span><div><b>Install</b><p>Paste both lines in your terminal:</p>
         <div class="install"><button type="button" class="btn sm" data-copy="claude plugin marketplace add giovanbelle/ghosted\nclaude plugin install ghosted@ghosted" aria-label="Copy install commands">Copy</button><div><span class="p">$ </span>claude plugin marketplace add giovanbelle/ghosted</div><div><span class="p">$ </span>claude plugin install ghosted@ghosted</div></div></div></li>
-      <li><span>3</span><div><b>Restart Claude Code and work as usual</b><p>Press Enter on the four setup questions. The first time you switch tasks you'll see a line from ghosted_, then your task starts by itself. <code>/ghosted-stats</code> shows what it saved.</p></div></li>
+      <li><span>3</span><div><b>Restart Claude Code and work as usual</b><p>Press Enter on the setup question. The first time you switch tasks you'll see a line from ghosted_, then your task starts by itself. <code>/ghosted-stats</code> shows what it saved.</p></div></li>
     </ol>
   </section>
   <section style="padding-top:72px"><div class="shead rv"><p class="kicker">In your terminal</p><h2>What a task switch looks like</h2><p>You type as usual. When a prompt starts a new task, you see this.</p></div>
@@ -173,13 +173,12 @@
         <div class="l">&nbsp;</div>
         <div class="l u">/ghosted-stats</div>
 <pre class="l">ghosted_ stats
-  task switches        12  (last 12: 1,458k tokens of old
-                           conversation no longer re-sent each turn)
-  mid-run compactions  0
+  task switches        12  (4 kept a summary)
+  estimated saved      about $3.65  (1,458k tokens of old chat
+                           no longer re-read on every message)
   cache warm pings     6  (1,146k tokens kept warm)
   judge calls          31  ($0.0403 total)
-  settings             terse auto (full), mid-run off,
-                       warm 120m, judge above 20k</pre>
+  settings             terse auto (lite), warm 60m, judge above 20k</pre>
       </div>
     </div>
     <div class="foot"><span>Example session · numbers illustrative</span><span>Your numbers: /ghosted-stats</span></div>
@@ -220,7 +219,7 @@
     <div class="shead rv"><p class="kicker">Measured</p><h2 id="num-h">Results</h2></div>
     <div class="nums rv">
       <div><b>−70%</b><p>Total cost over 36 Opus runs in 6 scenarios: $15.88 without, $4.78 with.</p></div>
-      <div><b>0 / 64</b><p>Wrong task switches in the latest judge test. When unsure, it keeps the context.</p></div>
+      <div><b>0 / 75</b><p>Wrong task switches in the latest judge test. When unsure, it keeps the context.</p></div>
       <div><b>191k</b><p>Tokens read from cache by one warm ping, against 372 written.</p></div>
     </div>
     <p class="note rv"><a href="benchmarks.html">All benchmarks, including where it doesn't help</a></p>
@@ -265,6 +264,6 @@
   </div>
   <div class="wordmark" aria-hidden="true">ghosted_</div>
 </footer>
-<script src="site.js?v=0aa25c16"></script>
+<script src="site.js?v=2e5fa7a9"></script>
 </body>
 </html>

@@ -18,7 +18,7 @@
 <meta name="twitter:image" content="https://giovanbelle.github.io/ghosted/og.png">
 <link rel="icon" href="favicon.png">
 <link rel="preload" href="fonts/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="style.css?v=0aa25c16">
+<link rel="stylesheet" href="style.css?v=2e5fa7a9">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -42,13 +42,13 @@
   <section aria-labelledby="flow-h" style="padding-top:56px">
     <div class="shead rv"><h2 id="flow-h">The decision path</h2><p>Every arrow down means your prompt goes through untouched.</p></div>
     <figure class="fig rv" style="margin:0">
-      <svg viewBox="0 0 1000 300" role="img" aria-label="Flowchart. Your prompt goes to quick checks. Small context, built-in commands, obvious follow-ups and same: prompts pass through. Otherwise the Haiku judge decides. Same task, unsure or error passes through. New task: archive and clear, then the prompt is restored and the task starts.">
+      <svg viewBox="0 0 1000 300" role="img" aria-label="Flowchart. Your prompt goes to quick checks. Small context, slash commands, obvious follow-ups and same: prompts pass through. Otherwise the Haiku judge decides. Same task, unsure or error passes through. New task: archive and clear. Related task: archive and compact. Then the prompt is restored and the task starts.">
         <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#9a9a9a"/></marker></defs>
         <g font-family="Geist,sans-serif" font-size="15" text-anchor="middle">
           <rect x="10" y="40" width="160" height="64" rx="12" fill="#111" stroke="#2e2e2e"/><text x="90" y="77" fill="#f5f5f5">Your prompt</text>
           <rect x="210" y="40" width="170" height="64" rx="12" fill="#111" stroke="#2e2e2e"/><text x="295" y="70" fill="#f5f5f5">Quick checks</text><text x="295" y="90" fill="#5e5e5e" font-size="12" font-family="Geist,sans-serif">~55ms, no model</text>
           <rect x="420" y="40" width="170" height="64" rx="12" fill="#111" stroke="#2e2e2e"/><text x="505" y="70" fill="#f5f5f5">Haiku judge</text><text x="505" y="90" fill="#5e5e5e" font-size="12" font-family="Geist,sans-serif">~3.5s · $0.0013</text>
-          <rect x="630" y="40" width="160" height="64" rx="12" fill="#111" stroke="#2e2e2e"/><text x="710" y="70" fill="#f5f5f5">Archive</text><text x="710" y="90" fill="#f5f5f5">+ /clear</text>
+          <rect x="630" y="40" width="160" height="64" rx="12" fill="#111" stroke="#2e2e2e"/><text x="710" y="70" fill="#f5f5f5">Archive</text><text x="710" y="90" fill="#f5f5f5">/clear · /compact</text>
           <rect x="830" y="40" width="160" height="64" rx="12" fill="#f5f5f5"/><text x="910" y="70" fill="#000" font-weight="600">Task starts</text><text x="910" y="90" fill="#333" font-size="12" font-family="Geist,sans-serif">prompt + 5 facts</text>
           <rect x="210" y="226" width="380" height="54" rx="12" fill="none" stroke="#2e2e2e" stroke-dasharray="5 5"/><text x="400" y="259" fill="#9a9a9a">Passes through unchanged</text>
         </g>
@@ -57,8 +57,8 @@
           <path d="M295,104 V222"/><path d="M505,104 V222"/>
         </g>
         <g font-family="Geist,sans-serif" font-size="11.5" fill="#9a9a9a">
-          <text x="398" y="62" text-anchor="middle">else</text><text x="608" y="62" text-anchor="middle">new</text>
-          <text x="287" y="140" text-anchor="end">small context</text><text x="287" y="156" text-anchor="end">built-in command</text><text x="287" y="172" text-anchor="end">"fix it", "that file"</text><text x="287" y="188" text-anchor="end">same: prompt</text>
+          <text x="398" y="62" text-anchor="middle">else</text><text x="608" y="62" text-anchor="middle">new, related</text>
+          <text x="287" y="140" text-anchor="end">small context</text><text x="287" y="156" text-anchor="end">slash command</text><text x="287" y="172" text-anchor="end">"fix it", "ok"</text><text x="287" y="188" text-anchor="end">same: prompt</text>
           <text x="515" y="148">same task</text><text x="515" y="164">unsure</text><text x="515" y="180">error or timeout</text>
         </g>
       </svg>
@@ -76,14 +76,14 @@
         <button class="btn primary sm" type="submit">Send</button>
       </form>
       <div class="chips" aria-label="Examples">
-        <button type="button">fix it</button><button type="button">also cover the logout race</button><button type="button">based on what you read, write the summary</button>
+        <button type="button">fix it</button><button type="button">also cover the logout race</button><button type="button">add rate limiting to the login endpoint</button>
         <button type="button">add dark mode to the settings page</button><button type="button">write the release notes</button><button type="button">why is the build slow?</button>
       </div>
       <div class="pgrid">
         <ol class="steps2" id="trysteps">
           <li data-s="check"><b>Quick checks</b><span>Follow-ups and short replies pass straight through</span></li>
-          <li data-s="judge"><b>Haiku judge</b><span>Is this a new task? Unsure means same</span></li>
-          <li data-s="clear"><b>Archive and /clear</b><span>Old chat saved, context cleared</span></li>
+          <li data-s="judge"><b>Haiku judge</b><span>Same, related or new? Unsure means same</span></li>
+          <li data-s="clear"><b>Archive, then /clear or /compact</b><span>New: cleared. Related: summarised</span></li>
           <li data-s="start"><b>Task starts</b><span>Prompt restored with 5 facts</span></li>
         </ol>
         <div class="term"><div class="tbar"><i></i><i></i><i></i><span>claude · ~/my-app</span><span class="ctx">context <b id="tryctx">176k</b></span></div><div class="tlog" id="trylog" aria-live="polite"><div class="d">Pick an example or type your own prompt.</div></div></div>
@@ -100,22 +100,21 @@
         <button role="tab" id="t-terse" aria-controls="p-terse" data-key="terse">Terse answers</button>
         <button role="tab" id="t-recall" aria-controls="p-recall" data-key="recall">Recall</button>
         <button role="tab" id="t-warm" aria-controls="p-warm" data-key="warm">Cache warming</button>
-        <button role="tab" id="t-long" aria-controls="p-long" data-key="long">Long runs</button>
         <button role="tab" id="t-ctl" aria-controls="p-ctl" data-key="ctl">Overrides</button>
       </div>
 
       <div role="tabpanel" id="p-switch" aria-labelledby="t-switch" class="panel">
         <div class="tabbody">
-          <div><h3>Task switch <code>on</code></h3><p>Above 20k tokens of context, a prompt that starts something new triggers a clean restart.</p>
-            <ul><li>Old chat archived, readable only by you</li><li>Prompt restored and started automatically</li><li>Up to 5 facts from the old work carried over</li></ul></div>
-          <div class="term"><div class="tbar"><i></i><i></i><i></i><span>context 176k → 18k</span></div><div class="tlog"><div class="l u">fix the token refresh in auth.ts</div><div class="l">⏺ Fixed the expiry check · 3 tests pass</div><div class="l u">now write the release notes</div><div class="l d">  ghosted_ asks Haiku: new task? → yes (3.4s, $0.0013)</div><div class="l g">ghosted: new task detected, clearing first.</div><div class="l d">  ✓ old chat archived  ✓ your prompt saved</div><div class="l u">/clear</div><div class="l u">Start the pending task.</div><div class="l d">  ✓ carried: CHANGELOG uses Keep a Changelog · next version 2.4.0 · auth fix merged</div><div class="l">⏺ Reading CHANGELOG.md</div><div class="l">⏺ Drafted the 2.4.0 notes</div></div></div>
+          <div><h3>Task switch <code>on</code></h3><p>Above 20k tokens of context, a prompt that starts something new frees the context. An unrelated task gets a fresh chat. A new task on the same work keeps a summary.</p>
+            <ul><li>Old chat archived, readable only by you</li><li>Prompt restored and started automatically</li><li>Wrong call? <code>/resume</code> brings the old chat back</li></ul></div>
+          <div class="term"><div class="tbar"><i></i><i></i><i></i><span>context 176k → 18k</span></div><div class="tlog"><div class="l u">fix the token refresh in auth.ts</div><div class="l">⏺ Fixed the expiry check · 3 tests pass</div><div class="l u">plan a 3-day trip to Lisbon</div><div class="l d">  ghosted_ asks Haiku: same, related or new? → new (3.4s, $0.0013)</div><div class="l g">ghosted_: this looks like a new task, so Claude starts on a fresh chat.</div><div class="l d">  ✓ old chat archived  ✓ your prompt saved</div><div class="l u">/clear</div><div class="l u">Start the pending task.</div><div class="l d">  ✓ nothing from the auth work needed</div><div class="l">⏺ Day 1: Alfama and the castle…</div></div></div>
         </div>
       </div>
 
       <div role="tabpanel" id="p-terse" aria-labelledby="t-terse" class="panel" hidden>
         <div class="tabbody">
-          <div><h3>Terse answers <code>auto</code></h3><p>Short notes in the terminal instead of paragraphs. Code and files Claude writes stay normal.</p>
-            <ul><li>20% less text, 19% lower cost in tests</li><li>Steps aside when caveman is installed</li><li><code>/ghosted-terse</code>, <code>lite</code> or <code>off</code></li></ul></div>
+          <div><h3>Terse answers <code>auto</code></h3><p>Answers without filler. The default (lite) keeps full sentences; full turns them into short notes. Code and files Claude writes stay normal.</p>
+            <ul><li>full: 20% less text, 19% lower cost in tests</li><li>Steps aside when caveman is installed</li><li><code>/ghosted terse</code> <code>full</code>, <code>lite</code> or <code>off</code></li></ul></div>
           <div class="grid2" style="gap:10px">
             <div class="term"><div class="tbar"><span>off</span></div><div class="tlog" style="font-size:12px"><div class="l u">why does the login test fail?</div><div class="l">I've looked into the issue and it seems the problem is that the token expiry check uses a strict less-than comparison, which means tokens expire one second early…</div></div></div>
             <div class="term"><div class="tbar"><span>full</span></div><div class="tlog" style="font-size:12px"><div class="l u">why does the login test fail?</div><div class="l">Expiry check uses &lt; not &lt;=. Tokens expire 1s early. Fix in auth.ts:42.</div></div></div>
@@ -133,17 +132,9 @@
 
  <div role="tabpanel" id="p-warm" aria-labelledby="t-warm" class="panel" hidden>
         <div class="tabbody">
-          <div><h3>Cache warming <code>on · 2h</code></h3><p>Claude's prompt cache expires after a break. Coming back then means writing the whole context to the cache again, at up to 2× the input price. ghosted_ keeps it warm while you're away.</p>
+          <div><h3>Cache warming <code>on · 1h</code></h3><p>Claude's prompt cache expires after a break. Coming back then means writing the whole context to the cache again, at up to 2× the input price. ghosted_ keeps it warm while you're away.</p>
             <ul><li>A hidden copy of the session sends one short turn just before expiry</li><li>Measured: 191,089 tokens read from cache, 372 written</li><li>Stops when you're back, or before it costs half of what it saves</li></ul></div>
           <div class="term"><div class="tbar"><i></i><i></i><i></i><span>you step away</span></div><div class="tlog"><div class="l d">12:00  your last turn · cache lives 1 hour</div><div class="l d">12:55  ghosted_ opens a hidden copy of the session</div><div class="l">12:55  ping · 191,089 tokens read from cache · 372 written</div><div class="l d">12:55  hidden copy deleted · your chat untouched</div><div class="l">13:50  ping · 191,089 read · cache alive until 14:50</div><div class="l u">back at 14:20: continue with the tests</div><div class="l g">cache hit · no full rewrite of 191k tokens</div></div></div>
-        </div>
-      </div>
-
-      <div role="tabpanel" id="p-long" aria-labelledby="t-long" class="panel" hidden>
-        <div class="tabbody">
-          <div><h3>Long runs <code>opt-in</code></h3><p>For runs that go on long after their early context went stale. Off by default, because in single runs it cost more than it saved.</p>
-            <ul><li>Set a limit: <code>/ghosted max 250k</code></li><li>Past it: stop, <code>/compact</code>, continue</li><li><code>/ghosted max off</code> to turn it off</li></ul></div>
-          <div class="term"><div class="tbar"><i></i><i></i><i></i><span>limit 250k</span></div><div class="tlog"><div class="l u">migrate every API route to the new router</div><div class="l">⏺ Editing src/api/users.ts</div><div class="l">⏺ Editing src/api/orders.ts</div><div class="l d">  … 31 files later, context 251k</div><div class="l g">ghosted: context at 251k (limit 250k), compacting. The run continues automatically.</div><div class="l u">/compact</div><div class="l u">Continue where you left off.</div><div class="l">⏺ Editing src/api/payments.ts</div></div></div>
         </div>
       </div>
 
@@ -190,6 +181,6 @@
   </div>
   <div class="wordmark" aria-hidden="true">ghosted_</div>
 </footer>
-<script src="site.js?v=0aa25c16"></script>
+<script src="site.js?v=2e5fa7a9"></script>
 </body>
 </html>
