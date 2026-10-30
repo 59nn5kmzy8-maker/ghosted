@@ -85,6 +85,17 @@ test('a skill command with a request is judged; after the clear it is retyped on
   assert.equal(run('prompt', input, env).decision, 'block'); // only once
 });
 
+test('screenshots in tool results do not count as context', () => {
+  const s = setup();
+  const img = { type: 'image', source: { type: 'base64', media_type: 'image/png', data: 'A'.repeat(400000) } };
+  fs.writeFileSync(s.transcript, [
+    JSON.stringify({ type: 'user', message: { role: 'user', content: 'take a screenshot' } }),
+    JSON.stringify({ type: 'user', message: { role: 'user', content: [{ type: 'tool_result', content: [img] }] } }),
+  ].join('\n'));
+  const input = { session_id: 'abc', cwd: s.cwd, transcript_path: s.transcript, prompt: 'build a new login page' };
+  assert.equal(run('prompt', input, envFor(s, 'new')), null); // tiny real context: never judged
+});
+
 test('passes through: same task, judge error, slash, same:, small context, child', () => {
   const s = setup();
   const input = { session_id: 'abc', cwd: s.cwd, transcript_path: s.transcript, prompt: 'tweak it' };
