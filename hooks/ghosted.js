@@ -19,7 +19,7 @@ try { OVERRIDES = JSON.parse(fs.readFileSync(OVERRIDES_FILE, 'utf8')); } catch {
 // Settings: an env var wins, then /ghosted, then the value picked in the plugin's config (/config), then the default.
 const opt = (env, key, dflt) => process.env[env] || OVERRIDES[key.toLowerCase()] || process.env[`CLAUDE_PLUGIN_OPTION_${key}`]
   || process.env[`CLAUDE_PLUGIN_OPTION_${key.toLowerCase()}`] || dflt;
-const OFF = process.env.GHOSTED_OFF || OVERRIDES.paused;
+const OFF = !/^(0|false|no|off)?$/i.test(process.env.GHOSTED_OFF || '') || OVERRIDES.paused;
 // Token counts: 250000, 250k or 1m. Anything unreadable falls back to the default instead of silently disabling a check.
 function tokens(v, dflt) {
   const m = String(v).trim().match(/^(\d+(?:\.\d+)?)\s*([km]?)$/i);
@@ -75,15 +75,22 @@ function writePending(cwd, data) {
 }
 
 // anyCwd: after /clear the new session may start in another folder (Claude cd'd during the old task),
-// so resume also accepts the newest fresh pending file.
+// so resume also accepts the newest fresh pending file written by this same Claude Code process (null = unknown, as before).
 function readPending(cwd, anyCwd = false) {
   let file = pendingPath(cwd);
   if (anyCwd && !fs.existsSync(file)) {
-    const dir = path.dirname(file);
-    let names = [];
-    try { names = fs.readdirSync(dir).filter(n => n.endsWith('.json')); } catch {}
-    const newest = names.map(n => path.join(dir, n)).sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs)[0];
-    if (newest) file = newest;
+    const dir = path.dirname(file), me = claudePid();
+    const mine = [];
+    try {
+      for (const n of fs.readdirSync(dir).filter(n => n.endsWith('.json'))) {
+        try {
+          const f = path.join(dir, n), d = JSON.parse(fs.readFileSync(f, 'utf8'));
+          if ((d.claude ?? null) === me) mine.push({ f, t: fs.statSync(f).mtimeMs });
+        } catch {} // half-written or just consumed
+      }
+    } catch {}
+    const newest = mine.sort((a, b) => b.t - a.t)[0];
+    if (newest) file = newest.f;
   }
   try {
     if (Date.now() - fs.statSync(file).mtimeMs > PENDING_TTL_MS) { fs.rmSync(file, { force: true }); return null; }
@@ -274,15 +281,17 @@ function command(args) {
     const ev = jsonl(path.join(DATA_DIR, 'events.jsonl')), costs = jsonl(path.join(DATA_DIR, 'judge-costs.jsonl'));
     const sum = (a, f) => a.reduce((t, x) => t + (Number(f(x)) || 0), 0);
     const idx = jsonl(path.join(DATA_DIR, 'archive', 'index.jsonl'));
-    const midRuns = idx.filter(r => /mid-run/.test(r.task)).length; // the archive index predates events.jsonl, so count from it
     const sw = ev.filter(e => e.kind === 'switch'), warm = ev.filter(e => e.kind === 'warm');
+    // the archive index predates events.jsonl, but archiving can be off: take whichever counted more
+    const midRuns = Math.max(idx.filter(r => /mid-run/.test(r.task)).length, ev.filter(e => e.kind === 'midrun').length);
+    const switches = Math.max(idx.length - idx.filter(r => /mid-run/.test(r.task)).length, sw.length);
     const miss = ev.filter(e => e.kind === 'warm-miss').length;
     const k = n => `${Math.round(n / 1000).toLocaleString('en')}k`;
     const url = verb === 'dashboard' ? ensureDashboard() : null;
     if (url && !process.env.GHOSTED_NO_OPEN) openUrl(url);
     return [
       'ghosted_ stats',
-      `  task switches        ${idx.length - midRuns}${sw.length ? `  (last ${sw.length}: ${k(sum(sw, e => e.tokens))} tokens of old conversation no longer re-sent each turn)` : ''}`,
+      `  task switches        ${switches}${sw.length ? `  (last ${sw.length}: ${k(sum(sw, e => e.tokens))} tokens of old conversation no longer re-sent each turn)` : ''}`,
       `  mid-run compactions  ${midRuns}`,
       `  cache warm pings     ${warm.length}${warm.length ? `  (${k(sum(warm, e => e.tokens))} tokens kept warm${miss ? `, ${miss} missed` : ''})` : ''}`,
       `  judge calls          ${costs.length}  ($${sum(costs, c => c.usd).toFixed(4)} total)`,
@@ -310,8 +319,8 @@ function command(args) {
 // Judge spend per session, so the cost of the plugin itself is visible.
 function logCost(sessionId, usd) {
   if (typeof usd !== 'number') return;
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-  fs.appendFileSync(path.join(DATA_DIR, 'judge-costs.jsonl'), JSON.stringify({ ts: new Date().toISOString(), session: sessionId, usd }) + '\n');
+  privateDir(DATA_DIR);
+  fs.appendFileSync(path.join(DATA_DIR, 'judge-costs.jsonl'), JSON.stringify({ ts: new Date().toISOString(), session: sessionId, usd }) + '\n', PRIVATE);
 }
 
 // Compaction is lossy: keep the old conversation byte-exact on disk and list it in index.jsonl,
@@ -322,7 +331,7 @@ function archive(conversation, input, oldTask) {
   const ts = new Date().toISOString();
   const file = path.join(dir, `${ts.replace(/[:.]/g, '-')}-${String(input.session_id).slice(0, 8)}.md`);
   fs.writeFileSync(file, `# ghosted archive\ncwd: ${input.cwd}\nsession: ${input.session_id}\ntask: ${oldTask}\n\n${conversation}\n`, PRIVATE);
-  fs.appendFileSync(path.join(dir, 'index.jsonl'), JSON.stringify({ ts, cwd: input.cwd, task: oldTask, file }) + '\n', PRIVATE);
+  fs.appendFileSync(path.join(dir, 'index.jsonl'), JSON.stringify({ ts, cwd: input.cwd, task: oldTask, file, tokens: Math.round(conversation.length / 4) }) + '\n', PRIVATE);
   return file;
 }
 
@@ -572,6 +581,13 @@ ${END}
   return changed;
 }
 
+// The shell function runs a copy in DATA_DIR (it must outlive plugin updates); keep that copy current.
+function refreshBridge() {
+  if (WIN || !bridgeInstalled()) return;
+  const src = path.join(__dirname, 'ghosted-pty.py'), bin = path.join(DATA_DIR, 'ghosted-pty.py');
+  try { if (fs.readFileSync(src, 'utf8') !== fs.readFileSync(bin, 'utf8')) fs.copyFileSync(src, bin); } catch { try { fs.copyFileSync(src, bin); } catch {} }
+}
+
 // Windows: this hook's ancestors, nearest first (the shell, then Claude Code itself).
 function ancestorPids() {
   const r = spawnSync('powershell.exe', ['-NoProfile', '-Command',
@@ -606,19 +622,28 @@ function onPrompt(input) {
   if (OFF || process.env.GHOSTED_CHILD || process.env.GHOSTED_WARMING) return;
   // `!` is Claude Code's shell mode, so the overrides are plain-word prefixes.
   if ((prompt.startsWith('/') && !taskCommand(prompt)) || /^same:/i.test(prompt) || prompt === RESUME_TEXT || prompt === CONTINUE_TEXT) return;
+  // Messages Claude Code injects (<task-notification>, <agent-message>, ...) report on the current work: never a switch.
+  if (/^<[\w-]+[\s>]/.test(prompt)) return;
   if (takeRetyped(prompt)) return; // the command ghosted just retyped after clearing
 
   if (readPending(input.cwd)) return; // mid-handoff: never judge
 
+  const forced = /^new:/i.test(prompt), short = prompt.slice(0, 80);
+  // Checked before reading the transcript (over a second on a 100+ MB one). A skill command with a request is never
+  // a follow-up by length alone. Logged only when the file could be over the threshold, as before.
+  if (!forced && !taskCommand(prompt) && obviousFollowUp(prompt)) {
+    let size = 0; try { size = fs.statSync(input.transcript_path).size; } catch {}
+    if (size / 4 >= MIN_TOKENS) logEvent('kept', null, { why: 'follow-up', prompt: short }); // saves the ~3.5s judge call
+    return;
+  }
   const conversation = conversationSinceCompact(input.transcript_path);
   let verdict;
-  if (/^new:/i.test(prompt)) {
+  if (forced) {
     verdict = { new_task: true, focus: prompt.slice(4).trim().slice(0, 120), old_task: '', carry: '' };
   } else {
     debug('context tokens est', Math.round(conversation.length / 4));
     if (conversation.length / 4 < MIN_TOKENS) return;
-    const ctx = Math.round(conversation.length / 4), short = prompt.slice(0, 80);
-    if (obviousFollowUp(prompt)) { logEvent('kept', ctx, { why: 'follow-up', prompt: short }); return; } // saves the ~3.5s judge call
+    const ctx = Math.round(conversation.length / 4);
     const t0 = Date.now();
     verdict = judge(conversation.slice(0, 2000), conversation.slice(-6000), prompt.slice(0, 4000), input.session_id);
     debug('verdict', JSON.stringify(verdict));
@@ -627,8 +652,12 @@ function onPrompt(input) {
   }
 
   const oneLine = s => String(s || '').replace(/\s+/g, ' ').trim();
+  // Claim the handoff first, so a lost race leaves no orphan archive that stats would count as a switch.
+  const pending = { prompt: input.prompt, mode: MODE, carry: String(verdict.carry || '').slice(0, 1500), claude: claudePid() };
+  if (!writePending(input.cwd, pending)) return;
   const archived = archive(conversation, input, oneLine(verdict.old_task).slice(0, 200) || 'earlier task');
-  if (!writePending(input.cwd, { prompt: input.prompt, mode: MODE, carry: String(verdict.carry || '').slice(0, 1500), archive: archived })) return;
+  writeJson(pendingPath(input.cwd), { ...pending, archive: archived });
+  stopWarmer(warmPidFile(input.session_id)); // this session is about to be cleared: its cache is not worth keeping
   logEvent('switch', Math.round(conversation.length / 4), {
     old: oneLine(verdict.old_task).slice(0, 120), focus: oneLine(verdict.focus).slice(0, 120),
     carry: String(verdict.carry || '').split('\n').filter(l => l.trim()).length, why: verdict.ms ? 'judge' : 'new:', ms: verdict.ms,
@@ -656,10 +685,11 @@ function onTool(input) {
   const tokens = contextTokens(input.transcript_path);
   debug('tool context tokens', tokens);
   if (!tokens || tokens < MAX_CONTEXT) return;
-  if (!writePending(input.cwd, { mode: 'continue', tokens })) return; // another tool call got there first
+  const claude = claudePid();
+  if (!writePending(input.cwd, { mode: 'continue', tokens, claude })) return; // another tool call got there first
   logEvent('midrun', tokens);
   const archived = archive(conversationSinceCompact(input.transcript_path), input, 'run in progress (compacted mid-run)');
-  writeJson(pendingPath(input.cwd), { mode: 'continue', tokens, archive: archived });
+  writeJson(pendingPath(input.cwd), { mode: 'continue', tokens, claude, archive: archived });
   // Always /compact here: /clear would drop the task itself. The input is empty after a stop, so no Ctrl-C
   // (Ctrl-C on an empty input arms "press again to exit").
   const command = `/compact Context limit reached mid-task. Keep everything needed to finish the current task: the goal, files, decisions, what is done and what is left. ${TERSE_SUMMARY}`;
@@ -676,6 +706,7 @@ function onTool(input) {
 function writeJson(file, data) { fs.writeFileSync(file, JSON.stringify(data), PRIVATE); }
 
 function onResume(input) {
+  if (input.source === 'clear') stopWarmers(claudePid()); // the cleared session is gone: its warmer would ping a dead cache
   const pending = readPending(input.cwd, true);
   if (!pending) return;
   // Used once: a later /clear, /compact or auto-compact must not inject this task again.
@@ -734,6 +765,7 @@ const TERSE_RULES = {
 // A one-line reminder on every prompt: a rule given only at session start fades over a long session.
 const TERSE_REMINDER = { lite: 'reply without filler or recap', full: 'compressed notes: no articles, filler, narration around tool calls or recap' };
 function onStart() {
+  refreshBridge();
   const rule = TERSE_RULES[TERSE];
   if (!rule || OFF || process.env.GHOSTED_CHILD) return;
   process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: `ghosted_ terse mode (${TERSE}): ${rule}` } }));
@@ -790,9 +822,8 @@ function claudePid() {
 
 function onStop(input) {
   if (OFF || !WARM_MS || process.env.GHOSTED_CHILD || process.env.GHOSTED_WARMING || !input.transcript_path || !input.session_id) return;
-  const dir = privateDir(path.join(DATA_DIR, 'warm'));
-  const pidFile = path.join(dir, `${input.session_id.replace(/[^\w-]/g, '')}.pid`);
-  try { process.kill(Number(fs.readFileSync(pidFile, 'utf8')), 'SIGTERM'); } catch {} // one warmer per session
+  const pidFile = warmPidFile(input.session_id);
+  stopWarmer(pidFile); // one warmer per session
   const ctx = contextTokens(input.transcript_path);
   if (!ctx || ctx < MIN_TOKENS) return;
   const pid = claudePid();
@@ -801,14 +832,42 @@ function onStop(input) {
     detached: true, stdio: 'ignore', env: { ...process.env, GHOSTED_WARM_JOB: JSON.stringify(job) },
   });
   child.on('error', () => {});
-  fs.writeFileSync(pidFile, String(child.pid), PRIVATE);
+  fs.writeFileSync(pidFile, JSON.stringify({ pid: child.pid, claude: pid }), PRIVATE);
   child.unref();
+}
+
+const warmPidFile = session => path.join(privateDir(path.join(DATA_DIR, 'warm')), `${String(session).replace(/[^\w-]/g, '')}.pid`);
+function readWarmer(file) {
+  try { const t = fs.readFileSync(file, 'utf8'); return /^\d+$/.test(t.trim()) ? { pid: Number(t) } : JSON.parse(t); } catch { return null; }
+}
+// A pid file can outlive its warmer and the pid be reused: only signal a process that is a ghosted_ warmer.
+function isWarmer(pid) {
+  if (!(pid > 1) || !alive(pid)) return false;
+  const cmd = WIN ? winArgs(pid).join(' ') : spawnSync('ps', ['-ww', '-o', 'args=', '-p', String(pid)], { encoding: 'utf8' }).stdout || '';
+  return /ghosted\.js\S*\s+warm\b/.test(cmd);
+}
+function stopWarmer(file) {
+  const w = readWarmer(file);
+  if (w && isWarmer(w.pid)) try { process.kill(w.pid, 'SIGTERM'); } catch {}
+  fs.rmSync(file, { force: true });
+}
+// Every warmer started by this Claude Code process.
+function stopWarmers(claude) {
+  if (!claude) return;
+  const dir = path.join(DATA_DIR, 'warm');
+  let names = []; try { names = fs.readdirSync(dir).filter(n => n.endsWith('.pid')); } catch {}
+  for (const n of names) if (readWarmer(path.join(dir, n))?.claude === claude) stopWarmer(path.join(dir, n));
 }
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const alive = pid => { try { process.kill(pid, 0); return true; } catch { return false; } };
 
 async function warmLoop(job) {
+  // Stopped by a new turn or a clear: also end the ping in flight (its own process group) and drop its fork.
+  process.on('SIGTERM', () => {
+    if (pinging) { killPing(pinging.child); removeFork(pinging.projDir, pinging.before, findFork(pinging.projDir, pinging.before)); }
+    process.exit(0);
+  });
   const size = () => { try { return fs.statSync(job.transcript).size; } catch { return -1; } };
   await sleep(10000); // Claude Code may still be finishing the transcript when Stop fires
   const start = size(), model = lastModel(job.transcript);
@@ -830,7 +889,7 @@ async function warmLoop(job) {
     spent += cost;
     if (spent + cost > rewrite / 2) break;
   }
-  try { if (fs.readFileSync(job.pidFile, 'utf8') === String(process.pid)) fs.rmSync(job.pidFile); } catch {}
+  if (readWarmer(job.pidFile)?.pid === process.pid) fs.rmSync(job.pidFile, { force: true });
 }
 
 function lastModel(transcriptPath) {
@@ -921,33 +980,49 @@ async function warmPing(job, model) {
     : spawn('python3', [path.join(__dirname, 'warm-pty.py'), delay, WARM_TEXT, 'claude', ...args],
       { cwd: job.cwd, detached: true, stdio: 'ignore', env: pingEnv(job.envNames) });
   child.on('error', () => {});
+  pinging = { child, projDir, before };
   let usage = null, fork = null;
   for (let t = 0; t < 120 + Number(delay) && !usage; t++) {
     await sleep(1000);
-    for (const f of fs.readdirSync(projDir)) {
-      if (before.has(f) || !f.endsWith('.jsonl')) continue;
-      const E = jsonl(path.join(projDir, f));
-      const at = E.findIndex(e => e.type === 'user' && JSON.stringify(e.message?.content || '').includes('keep-warm ping'));
-      if (at < 0) continue;
-      fork = f;
-      const done = E.slice(at).filter(e => e.type === 'assistant' && e.message?.usage).pop();
-      if (done && done.message.stop_reason === 'end_turn') usage = done.message.usage;
-    }
+    const f = findFork(projDir, before);
+    if (!f) continue;
+    fork = f.name;
+    const done = f.entries.slice(f.at).filter(e => e.type === 'assistant' && e.message?.usage).pop();
+    if (done && done.message.stop_reason === 'end_turn') usage = done.message.usage;
   }
-  if (WIN) spawnSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], { windowsHide: true });
-  else try { process.kill(-child.pid, 'SIGTERM'); } catch {}
+  killPing(child);
+  pinging = null;
   await sleep(1500);
-  if (fork) for (const f of fs.readdirSync(projDir)) {
-    if (!before.has(f) && f.startsWith(fork.slice(0, -6))) fs.rmSync(path.join(projDir, f), { recursive: true, force: true });
-  }
+  removeFork(projDir, before, fork && { name: fork });
   debug('warm ping', JSON.stringify(usage));
   return usage;
 }
 
+let pinging = null; // the ping in flight, for the SIGTERM handler
+// The fork's transcript: a new file in the project folder that holds the ping.
+function findFork(projDir, before) {
+  for (const name of fs.readdirSync(projDir)) {
+    if (before.has(name) || !name.endsWith('.jsonl')) continue;
+    const entries = jsonl(path.join(projDir, name));
+    const at = entries.findIndex(e => e.type === 'user' && JSON.stringify(e.message?.content || '').includes('keep-warm ping'));
+    if (at >= 0) return { name, entries, at };
+  }
+  return null;
+}
+function removeFork(projDir, before, fork) {
+  if (fork) for (const f of fs.readdirSync(projDir)) {
+    if (!before.has(f) && f.startsWith(fork.name.slice(0, -6))) fs.rmSync(path.join(projDir, f), { recursive: true, force: true });
+  }
+}
+function killPing(child) {
+  if (WIN) spawnSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], { windowsHide: true });
+  else try { process.kill(-child.pid, 'SIGTERM'); } catch {}
+}
+
 function debug(...a) {
   if (!process.env.GHOSTED_DEBUG) return;
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-  fs.appendFileSync(path.join(DATA_DIR, 'debug.log'), `${new Date().toISOString()} ${a.join(' ')}\n`);
+  privateDir(DATA_DIR);
+  fs.appendFileSync(path.join(DATA_DIR, 'debug.log'), `${new Date().toISOString()} ${a.join(' ')}\n`, PRIVATE); // holds prompt previews
 }
 
 function main() {

@@ -138,7 +138,7 @@ function render() {
     arcs += '<path d="M' + (100 + 80 * Math.cos(a0)) + ',' + (100 + 80 * Math.sin(a0)) + ' A80,80 0 ' + big + ' 1 ' + (100 + 80 * Math.cos(a1)) + ',' + (100 + 80 * Math.sin(a1)) + '" fill="none" stroke="' + c + '" stroke-width="22"/>'; a0 = a1 + 0.0001; });
   $('#donut').innerHTML = total ? '<svg viewBox="0 0 200 200" style="max-width:200px;margin:0 auto 14px">' + arcs + '<text x="100" y="98" text-anchor="middle" fill="#fff" font-size="28" font-weight="600">' + total + '</text><text x="100" y="118" text-anchor="middle" fill="#666" font-size="11">prompts</text></svg>'
     + parts.map(p => '<div style="display:flex;justify-content:space-between;padding:4px 0;color:#8f8f8f"><span><i style="display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:8px;background:' + p[2] + '"></i>' + p[0] + '</span><b style="color:#fff;font-weight:500">' + p[1] + '</b></div>').join('')
-    : '<p class="empty">No prompts judged yet. They show up once a session passes 20k tokens.</p>';
+    : '<p class="empty">No prompts judged yet. They show up once a session is past the judge threshold (20k tokens by default).</p>';
   // drops
   const last = sw.slice(-24), dm = Math.max(1, ...last.map(e => e.tokens || 0));
   $('#drops').innerHTML = last.length ? '<svg viewBox="0 0 700 150">' + last.map((e, i) => { const h = (e.tokens || 0) / dm * 120, w = 700 / Math.max(last.length, 8);

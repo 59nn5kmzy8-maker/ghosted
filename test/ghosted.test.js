@@ -3,7 +3,7 @@ const assert = require('node:assert');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { spawnSync } = require('child_process');
+const { spawn, spawnSync } = require('child_process');
 
 const SCRIPT = path.join(__dirname, '..', 'hooks', 'ghosted.js');
 
@@ -269,13 +269,67 @@ test('stop: starts one warmer per session above the threshold, none when off or 
   run('stop', input, { ...env, GHOSTED_KEEP_WARM: 'off' });
   assert.ok(!fs.existsSync(pidFile), 'off: no warmer');
   run('stop', input, env);
-  const first = Number(fs.readFileSync(pidFile, 'utf8'));
+  const warmerPid = () => JSON.parse(fs.readFileSync(pidFile, 'utf8')).pid;
+  const first = warmerPid();
   run('stop', input, env); // the next turn replaces the warmer
-  const second = Number(fs.readFileSync(pidFile, 'utf8'));
+  const second = warmerPid();
   assert.notEqual(first, second);
   await new Promise(r => setTimeout(r, 500));
   assert.throws(() => process.kill(first, 0), 'old warmer stopped');
   process.kill(second, 'SIGTERM');
+});
+
+test('a stale warmer pid file never signals a process that is not a warmer', () => {
+  const s = setup();
+  const usage = JSON.stringify({ type: 'assistant', message: { role: 'assistant', content: [], usage: { cache_read_input_tokens: 150000 } } });
+  fs.writeFileSync(s.transcript, usage + '\n');
+  const bystander = spawn(process.execPath, ['-e', 'setTimeout(() => {}, 30000)'], { stdio: 'ignore' });
+  fs.mkdirSync(path.join(s.dir, 'warm'), { recursive: true });
+  fs.writeFileSync(path.join(s.dir, 'warm', 'w2.pid'), String(bystander.pid)); // old format, reused pid
+  run('stop', { session_id: 'w2', cwd: s.cwd, transcript_path: s.transcript }, { CLAUDE_PLUGIN_DATA: s.dir, GHOSTED_WARM_EVERY_S: '3600' });
+  assert.doesNotThrow(() => process.kill(bystander.pid, 0), 'bystander still alive');
+  bystander.kill();
+  process.kill(JSON.parse(fs.readFileSync(path.join(s.dir, 'warm', 'w2.pid'), 'utf8')).pid, 'SIGTERM');
+});
+
+test('a task switch stops the old session warmer; so does a clear in the same Claude Code', async () => {
+  const s = setup();
+  const env = { ...envFor(s, 'new'), CLAUDE_PID: String(process.pid), GHOSTED_WARM_EVERY_S: '3600' };
+  const startWarmer = id => {
+    fs.appendFileSync(s.transcript, '\n' + JSON.stringify({ type: 'assistant', message: { role: 'assistant', content: [], usage: { cache_read_input_tokens: 150000 } } }));
+    run('stop', { session_id: id, cwd: s.cwd, transcript_path: s.transcript }, env);
+    return JSON.parse(fs.readFileSync(path.join(s.dir, 'warm', `${id}.pid`), 'utf8')).pid;
+  };
+  const gone = async pid => { await new Promise(r => setTimeout(r, 500)); assert.throws(() => process.kill(pid, 0)); };
+  const a = startWarmer('sa');
+  assert.equal(run('prompt', { session_id: 'sa', cwd: s.cwd, transcript_path: s.transcript, prompt: 'build a small web server that serves static files' }, env).decision, 'block');
+  await gone(a);
+  run('resume', { session_id: 'sb', cwd: s.cwd, source: 'clear' }, env);
+  const b = startWarmer('sb');
+  run('resume', { session_id: 'sc', cwd: s.cwd, source: 'clear' }, env); // a manual /clear
+  await gone(b);
+});
+
+test('injected messages and one-word skill requests', () => {
+  const s = setup();
+  const input = { session_id: 'abc', cwd: s.cwd, transcript_path: s.transcript };
+  for (const prompt of ['<task-notification>\nAgent result: built a static server in main.go\n</task-notification>', '<agent-message from="x">done: wrote the parser</agent-message>'])
+    assert.equal(run('prompt', { ...input, prompt }, envFor(s, 'new')), null, prompt);
+  assert.equal(run('prompt', { ...input, prompt: '/claude-seo:seo-audit example.com' }, envFor(s, 'new')).decision, 'block');
+});
+
+test('resume only takes a pending task from another folder when the same Claude Code wrote it', () => {
+  const s = setup();
+  const input = { session_id: 'abc', cwd: s.cwd, transcript_path: s.transcript, prompt: 'build a new login page' };
+  run('prompt', input, { ...envFor(s, 'new'), CLAUDE_PID: '111' });
+  assert.equal(run('resume', { session_id: 'x', cwd: path.join(s.dir, 'other') }, { ...envFor(s, 'new'), CLAUDE_PID: '222' }), null);
+  assert.match(run('resume', { session_id: 'y', cwd: path.join(s.dir, 'other') }, { ...envFor(s, 'new'), CLAUDE_PID: '111' }).hookSpecificOutput.additionalContext, /login page/);
+});
+
+test('GHOSTED_OFF=0 does not pause', () => {
+  const s = setup();
+  const out = spawnSync(process.execPath, [SCRIPT, 'cmd', s.dir, 'status'], { input: '', encoding: 'utf8', env: { ...process.env, GHOSTED_OFF: '0' } }).stdout;
+  assert.match(out, /^ghosted_ on/);
 });
 
 test('/ghosted-stats starts a local dashboard that needs its token', async () => {
