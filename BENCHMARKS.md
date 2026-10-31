@@ -2,6 +2,34 @@
 
 Every number here comes from real Claude Code runs in hidden terminals, started from seeded conversations of a known size. Costs are what `/cost` reported, judge included. Runs that had unit tests passed them unless noted.
 
+## Off, compact, clear and handoff notes (0.14.1, Opus 5.5)
+
+Same setup as the section below: scripted chats in hidden terminals, warm cache, each chat starting by reading large standard-library files. "Compact" runs 0.14.1 with `GHOSTED_RELATED=compact` (the 0.13 behaviour for related tasks); "notes" is the 0.14 default, a fresh chat seeded with Haiku handoff notes. Totals are the sum of `/cost` across clears.
+
+| Chat after the reading | Off | Compact | Notes | Clear |
+|---|---|---|---|---|
+| cli: a related new tool, then 3 feature turns (3 / 3 / 4 runs) | $2.12, $2.11, $2.09 | $3.65, $2.49, $2.30 (**+33%**) | $1.89, $2.03, $1.93, $2.05 (**−7%**) | |
+| 12 turns building a todo app (2 / 2 / 3 runs) | $5.20, $4.43 | $3.43, $3.61 (−27%) | $3.55, $3.54, $3.61 (−26%) | |
+| an app, then a related web server, then 3 turns (2 / 1 / 3 runs) | $3.12, $3.09 | $2.79 (−10%) | $2.66, $2.81, $2.96 (−10%) | |
+| 3 unrelated small jobs (2 / 2 runs) | $1.81, $1.83 | | | $0.57, $0.50 (**−71%**) |
+
+The switch turn itself, across all related switches measured: compact $0.47 to $1.39 (average $0.79, 5 switches), notes $0.33 to $0.34 (4 switches). The turns after a switch cost the same in both modes, so the difference is the switch. On a short chat compacting never earns its cost back and ends up dearer than doing nothing; notes are about break-even after one turn. In the longer chats the judge mixed switch types within a run (a compact and a clear, or two notes switches), so those totals tie. Tests passed in every cli, todo and app run. A bakery-site scenario was dropped from the totals because the judge switched in only 3 of 6 runs, at different turns.
+
+### Coming back after a long break (0.14.1)
+
+A seeded chat (about 100k tokens of conversation) whose last reply was moved 3 hours into the past, then 3 work turns, ghosted_ off and on:
+
+| Run | Off | On | Fresh start with notes |
+|---|---|---|---|
+| 3 | $1.61 | $0.61 | yes |
+| 5 | $1.70 | $1.73 | no |
+| 6 | $1.61 | $0.81 | yes |
+| 7 | $1.76 | $1.82 | no |
+| 8 | $1.64 | $1.70 | no |
+| Average | $1.66 | $1.33 (−20%) | |
+
+When the fresh start fires it saves 50 to 62%, because the first turn no longer rewrites the expired cache ($1.13 down to about $0.40). The three misses were the same first prompt ("Add a clear-done command…"), which the judge scores 9 for depending on the last messages, and the rule keeps the chat at 9 or more. The first turn after a fresh start takes about 15 seconds longer while the notes are written.
+
 ## Live cost, open chats (0.13.2, Opus 5.5)
 
 The same scripted chat run with ghosted_ off and on, two runs each, Claude Code (Opus 5.5) in hidden terminals with the cache warm the whole time. Each chat starts by reading two large standard-library files (about 100k tokens of conversation on top of about 110k of fixed context), then switches to new work. Costs are priced from the API usage in the transcripts plus what `/cost` reported for the rest of the session; tests passed in every run.
