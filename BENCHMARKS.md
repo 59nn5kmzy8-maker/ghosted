@@ -31,7 +31,11 @@ What changed:
 
 **Fewer judge calls (0.13.1).** Skill names and image tags no longer count as words for the follow-up check, so "keep going /caveman" and "do them all /caveman" skip the judge, as do prompts of up to 3 words and a few more verbs ("relaunch", "restart", "keep working"). On the 177 moments that skipped 14 more prompts, all real follow-ups.
 
-Tried and dropped: example anchors in the prompt (no gain, 60% more cost), asking "would a summary do?" instead (more needless compacts), stopping the output early (no speed gain on its own), a pre-started judge process (0.25s faster, not worth a background process).
+Tried and dropped: example anchors in the prompt (no gain, 60% more cost), asking "would a summary do?" instead (more needless compacts), stopping the output early (no speed gain on its own), a pre-started judge process (0.25s faster, not worth a background process), showing the judge more of the chat's start or less of its end (within run-to-run noise), and averaging two or three judge calls (steadier, not better on average, at two or three times the cost).
+
+**Run-to-run noise.** The same judge run three times on both sets scored 138.5 to 144 on the first and 85.5 to 94 on the second (score = right + half of partly right − 2 × wrong clears − needless compacts − half of missed switches). About 13% of judged prompts change answer between runs; a change to the prompt needs to beat that spread before it counts.
+
+**What it saves on real sessions.** Replaying the judge's calls on the 304 sampled prompts against the sessions they came from: every later request in that session sends the removed conversation again unless ghosted_ switched. The judge's switches cut 5.7% of the input tokens that followed (summary requests already subtracted); perfect calls on the same prompts would cut 7.0%. Only the sampled prompts were judged here, so a live session, where every prompt is judged, switches more often. About a third of all input in these sessions was the fixed context every request starts with (system prompt, tools, MCP servers, skills, memory: about 110k tokens), which no compaction can remove.
 
 The real missed switches are mostly new features on the same app that Haiku rates as needing recent detail ("add an icon for the web", "add an online mode"). Lowering the threshold to catch them adds needless compacts at the same rate. Of the 14 older real prompts, 12 were right in both rounds.
 
