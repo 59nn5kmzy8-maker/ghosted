@@ -33,6 +33,8 @@ function duration(v, dflt) {
   return m ? Math.round(m[1] * (/^h$/i.test(m[2] || '') ? 3600e3 : 60e3)) : dflt;
 }
 const WARM_MS = duration(opt('GHOSTED_KEEP_WARM', 'KEEP_WARM', '1h'), 3600e3);
+// Claude Code caches for an hour; the warmer keeps it alive for WARM_MS after the last reply.
+const COLD_MS = WARM_MS + 3600e3;
 // auto (default): lite, unless caveman is already shaping replies. Two style rules stacked cost more than either alone.
 // Lite, not full: compressed notes read oddly to people who use Claude Code for writing or research, not only code.
 const TERSE_SETTING = opt('GHOSTED_TERSE', 'TERSE', 'auto');
@@ -102,6 +104,21 @@ function readPending(cwd, anyCwd = false) {
 }
 
 // Text of the conversation since the last compaction, oldest first.
+// Time of Claude's last reply, which is when the cache was last used. Read from the end, so a big file costs
+// nothing. Not the newest entry: Claude Code writes the new prompt to the transcript before this hook runs.
+function lastActivity(transcriptPath) {
+  try {
+    const fd = fs.openSync(transcriptPath, 'r'), size = fs.fstatSync(fd).size, len = Math.min(size, 1024 * 1024);
+    const buf = Buffer.alloc(len); fs.readSync(fd, buf, 0, len, size - len); fs.closeSync(fd);
+    const lines = buf.toString('utf8').split('\n');
+    for (let i = lines.length - 1; i >= 0; i--) {
+      if (!/"type":\s*"assistant"/.test(lines[i])) continue;
+      try { const t = Date.parse(JSON.parse(lines[i]).timestamp); if (t) return t; } catch {} // first line may be cut
+    }
+  } catch {}
+  return null;
+}
+
 function conversationSinceCompact(transcriptPath) {
   let buf;
   try { buf = fs.readFileSync(transcriptPath); } catch { return ''; }
@@ -191,7 +208,7 @@ function claudeCli(args, input, timeout = 25000) {
 function judge(head, recent, prompt, sessionId) {
   // Tests: GHOSTED_FAKE_JUDGE=new|related|same|error.
   const fake = process.env.GHOSTED_FAKE_JUDGE;
-  const fakeAsk = d => d === 'error' ? null : { decision: d, focus: 'fake focus', old_task: 'fake old task', carry: '' };
+  const fakeAsk = d => d === 'error' ? null : { decision: d === 'same-low' ? 'same' : d, detail: d === 'same-low' ? 7 : undefined, focus: 'fake focus', old_task: 'fake old task', carry: '' };
   const question = [
     'You decide what an assistant should do with its conversation history before a user\'s new request.',
     'The user may be coding, writing, researching, analysing data or anything else.',
@@ -356,8 +373,8 @@ function command(args) {
     const sw = ev.filter(e => e.kind === 'switch'), warm = ev.filter(e => e.kind === 'warm');
     // the archive index predates events.jsonl, but archiving can be off: take whichever counted more
     const switches = Math.max(idx.filter(r => !/mid-run/.test(r.task)).length, sw.length);
-    // Same estimate as the dashboard: each dropped token would have been re-read ~5 more turns at $0.50/M (Opus cache read).
-    const saved = sum(sw, e => e.tokens) * 5 * 0.5 / 1e6;
+    // Same estimate as the dashboard: each dropped token would have been re-read ~5 more turns at $0.20/M (Opus 5.5 cache read).
+    const saved = sum(sw, e => e.tokens) * 5 * 0.2 / 1e6;
     const miss = ev.filter(e => e.kind === 'warm-miss').length;
     const k = n => `${Math.round(n / 1000).toLocaleString('en')}k`;
     const url = verb === 'dashboard' ? ensureDashboard() : null;
@@ -467,40 +484,15 @@ function findTty() {
   return null;
 }
 
-const MAC_TYPE = `on run argv
-  set theTty to item 1 of argv
-  tell application "Terminal"
-    repeat with w in windows
-      repeat with t in tabs of w
-        if tty of t is theTty then
-          repeat with i from 2 to (count of argv) by 2
-            delay ((item i of argv) as real)
-            do script (item (i + 1) of argv) in t
-          end repeat
-          return
-        end if
-      end repeat
-    end repeat
-  end tell
-end run`;
-
-const MAC_FIND = `on run argv
-  tell application "Terminal"
-    repeat with w in windows
-      repeat with t in tabs of w
-        if tty of t is (item 1 of argv) then return "ok"
-      end repeat
-    end repeat
-  end tell
-  return "none"
-end run`;
 
 // Types keystrokes into this Claude Code session after the current hook returns.
 // steps: [[delaySeconds, text], ...]. Claude Code submits on a CR that arrives on its own
 // (a CR inside a burst of text counts as pasted), so callers send '\r' as a separate step.
 // Hooks have no controlling terminal, so this goes through the terminal itself: tmux, WezTerm and kitty have a CLI,
-// iTerm2 and Terminal.app take AppleScript, Windows consoles take WriteConsoleInput.
-// shortcut: VS Code, Ghostty, Alacritty and other Linux terminals have no way in; ghosted_ tells the user what to type.
+// iTerm2 takes AppleScript, Windows consoles take WriteConsoleInput.
+// Terminal.app is left out: its `do script` always adds a Return, so Claude Code takes every step as a paste and
+// the typed command ends up appended to the user's restored prompt. Terminal.app, VS Code, Ghostty, Alacritty and
+// other terminals go through the /ghosted setup bridge; without it ghosted_ tells the user what to type.
 function typeLater(steps) {
   if (process.env.GHOSTED_DRY_TYPE) {
     fs.appendFileSync(process.env.GHOSTED_DRY_TYPE, JSON.stringify(steps) + '\n'); // one JSON line per call
@@ -520,12 +512,7 @@ function typeLater(steps) {
     // the helper attaches to the console of Claude Code (an ancestor of this hook) and writes key events into it
     child = spawn('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', path.join(__dirname, 'type-keys.ps1'),
       '-Steps', Buffer.from(JSON.stringify(steps)).toString('base64'), '-Pids', ancestorPids().join(',')], { detached: true, stdio: 'ignore', windowsHide: true });
-  } else {
-    const tty = process.env.TERM_PROGRAM === 'Apple_Terminal' ? findTty() : null;
-    // Check first that the tab is there and Terminal may be scripted: otherwise say so instead of promising typing.
-    if (!tty || spawnSync('osascript', ['-e', MAC_FIND, tty], { encoding: 'utf8', timeout: 3000 }).stdout?.trim() !== 'ok') return false;
-    child = spawn('osascript', ['-e', MAC_TYPE, tty, ...steps.flatMap(([d, t]) => [String(d), t])], { detached: true, stdio: 'ignore' });
-  }
+  } else return false;
   child.on('error', () => {});
   child.unref();
   return true;
@@ -736,6 +723,12 @@ function onPrompt(input) {
     const talk = digest(conversation, Infinity, 1200) || conversation; // user and assistant messages only
     verdict = judge(talk.slice(0, 2000), talk.slice(-6000), prompt.slice(0, 4000), input.session_id);
     debug('verdict', JSON.stringify(verdict));
+    // Back after the cache expired: keeping the chat means writing all of it to the cache again at twice the input
+    // price. Unless the request continues exactly the last messages, starting fresh with handoff notes is cheaper.
+    const idle = Date.now() - (lastActivity(input.transcript_path) || Date.now());
+    if (verdict && verdict.decision === 'same' && idle > COLD_MS && RELATED_NOTES && (verdict.detail ?? 10) < 9) {
+      verdict.decision = 'related'; verdict.cold = Math.round(idle / 60e3);
+    }
     if (!verdict || verdict.decision === 'same') { logEvent('kept', ctx, { why: !verdict ? 'judge-error' : 'judge', ms: Date.now() - t0, prompt: short }); return; } // fail open
     verdict.ms = Date.now() - t0;
   }
@@ -751,14 +744,15 @@ function onPrompt(input) {
   stopWarmer(warmPidFile(input.session_id)); // this session is about to be cleared: its cache is not worth keeping
   logEvent('switch', ctx, {
     old: oneLine(verdict.old_task).slice(0, 120), focus: oneLine(verdict.focus).slice(0, 120),
-    carry: String(verdict.carry || '').split('\n').filter(l => l.trim()).length, why: verdict.ms ? 'judge' : 'new:', ms: verdict.ms, how: mode,
+    carry: String(verdict.carry || '').split('\n').filter(l => l.trim()).length, why: verdict.cold ? 'cold' : verdict.ms ? 'judge' : 'new:', ms: verdict.ms, how: mode, idle_min: verdict.cold,
   });
   const focus = oneLine(verdict.focus).slice(0, 200);
   const command = mode === 'clear' ? '/clear' : `/compact Keep only what helps with the next task: ${focus}. ${TERSE_SUMMARY}`;
   // Claude Code puts a blocked prompt back in the input; Ctrl-C clears it first.
   // The first CR can be taken by the slash-command menu; a second CR on an empty input does nothing.
   const typed = typeLater([[0.7, '\x03'], [0.4, command], [0.8, '\r'], [0.8, '\r']]);
-  const what = mode === 'compact' ? 'a new task on the same work, so the chat is summarised first'
+  const what = verdict.cold ? `back after ${verdict.cold >= 120 ? Math.round(verdict.cold / 60) + ' hours' : verdict.cold + ' minutes'}, so the chat's cache has expired. Claude starts on a fresh chat with notes from this one, which is cheaper than sending it all again`
+    : mode === 'compact' ? 'a new task on the same work, so the chat is summarised first'
     : notes ? 'a new task on the same work, so Claude starts on a fresh chat with notes from this one'
     : 'a new task, so Claude starts on a fresh chat';
   const undo = 'The old chat is saved. Not a new task? Run /resume and pick the previous chat, or start your prompt with "same:".';

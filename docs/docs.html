@@ -106,11 +106,11 @@
     <div class="tablewrap"><table>
       <thead><tr><th scope="col">Terminal</th><th scope="col">Types /clear for you</th><th scope="col">Cache warming</th></tr></thead>
       <tbody>
-        <tr><td>macOS Terminal.app, iTerm2</td><td class="ok">Yes</td><td class="ok">Yes</td></tr>
+        <tr><td>macOS iTerm2</td><td class="ok">Yes</td><td class="ok">Yes</td></tr>
         <tr><td>tmux, in any terminal</td><td class="ok">Yes</td><td class="ok">Yes</td></tr>
         <tr><td>WezTerm, kitty</td><td class="ok">Yes</td><td class="ok">Yes</td></tr>
         <tr><td>Windows console, Windows Terminal</td><td class="ok">Yes</td><td class="ok">Yes</td></tr>
-        <tr><td>VS Code terminal, Ghostty, Alacritty, any terminal</td><td class="ok">Yes, after <code>/ghosted setup</code> once</td><td class="ok">Yes</td></tr>
+        <tr><td>macOS Terminal.app, VS Code terminal, Ghostty, Alacritty, any terminal</td><td class="ok">Yes, after <code>/ghosted setup</code> once</td><td class="ok">Yes</td></tr>
       </tbody>
     </table></div>
     <p>Some terminals, like VS Code's, Ghostty and Alacritty, give outside programs no way to type into them. Run <code>/ghosted setup</code> once: it adds a small <code>claude</code> function to your shell config that runs Claude Code through ghosted_'s own pass-through terminal layer, so ghosted_ can type for you there too. Everything you type and see is unchanged. <code>/ghosted setup off</code> removes it.</p>

@@ -96,7 +96,7 @@ pre { white-space: pre-wrap; font: 12px/1.6 var(--mono); color: var(--dim); marg
 </div>
 <div class="grid">
   <div class="card"><h2>Context dropped at each task switch</h2><div id="drops"></div>
-    <div class="est">Estimated saving: <b id="saved" style="color:#fff">$0</b> at <input id="price" type="number" step="0.05" value="0.50"> $ per million cached tokens, <input id="turns" type="number" step="1" value="5"> turns per task</div></div>
+    <div class="est">Estimated saving: <b id="saved" style="color:#fff">$0</b> at <input id="price" type="number" step="0.05" value="0.20"> $ per million cached tokens, <input id="turns" type="number" step="1" value="5"> turns per task</div></div>
   <div class="card"><h2>Settings</h2><div id="settings"></div></div>
 </div>
 <div class="card" style="margin-bottom:16px"><h2>Recent</h2><div id="recent"></div></div>

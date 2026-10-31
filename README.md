@@ -87,11 +87,11 @@ The slash menu shows plugin commands with a prefix (`/ghosted:ghosted`); typing 
 
 | | Judge, recall, terse | Types the commands for you | Cache warming |
 |---|---|---|---|
-| macOS Terminal.app, iTerm2 | yes | yes (AppleScript; asks once for permission) | yes |
+| macOS iTerm2 | yes | yes (AppleScript; asks once for permission) | yes |
 | tmux, inside any terminal (VS Code, Linux, SSH) | yes | yes (`tmux send-keys`) | yes |
 | WezTerm, kitty (with remote control on) | yes | yes (their CLI) | yes |
 | Windows console, Windows Terminal | yes | yes (`WriteConsoleInput`, tested in CI) | yes (ConPTY, tested in CI) |
-| VS Code terminal, Ghostty, Alacritty, any other terminal | yes | yes, after running `/ghosted setup` once (macOS, Linux) | yes |
+| macOS Terminal.app, VS Code terminal, Ghostty, Alacritty, any other terminal | yes | yes, after running `/ghosted setup` once (macOS, Linux) | yes |
 
 Needs Node.js and the `claude` CLI on your PATH. Cache warming and the terminal bridge use `python3` on macOS and Linux. No other dependencies.
 

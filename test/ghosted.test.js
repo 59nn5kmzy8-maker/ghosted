@@ -171,6 +171,22 @@ test('related task with GHOSTED_RELATED=compact: compacts keeping what it needs;
   assert.equal(ev.find(e => e.kind === 'switch').how, 'compact');
 });
 
+test('back after the cache expired: a loose follow-up starts fresh with notes, a close one keeps the chat', () => {
+  for (const [judge, switched] of [['same-low', true], ['same', false]]) {
+    const s = setup();
+    const old = new Date(Date.now() - 3 * 3600e3).toISOString(); // 3 hours ago: past the 1h cache plus 1h warming
+    fs.appendFileSync(s.transcript, '\n' + JSON.stringify({ type: 'assistant', timestamp: old, message: { role: 'assistant', content: [{ type: 'text', text: 'done' }] } }));
+    // Claude Code has already written the new prompt when the hook runs
+    fs.appendFileSync(s.transcript, '\n' + JSON.stringify({ type: 'user', timestamp: new Date().toISOString(), message: { role: 'user', content: 'also add a search box to the page' } }));
+    const out = run('prompt', { session_id: 'abc', cwd: s.cwd, transcript_path: s.transcript, prompt: 'also add a search box to the page' }, envFor(s, judge));
+    assert.equal(out?.decision === 'block', switched, judge);
+    if (switched) assert.match(out.reason, /back after 3 hours[\s\S]*notes/);
+  }
+  const s = setup(); // recent chat: kept
+  const out = run('prompt', { session_id: 'abc', cwd: s.cwd, transcript_path: s.transcript, prompt: 'also add a search box to the page' }, envFor(s, 'same-low'));
+  assert.equal(out, null);
+});
+
 test('size gate counts what the API saw beyond the first request (attachments are outside the messages)', () => {
   const usage = n => JSON.stringify({ type: 'assistant', message: { role: 'assistant', content: [{ type: 'text', text: 'ok' }], usage: { input_tokens: 2, cache_read_input_tokens: n } } });
   const user = JSON.stringify({ type: 'user', message: { role: 'user', content: 'small chat' } });

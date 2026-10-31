@@ -23,5 +23,5 @@ How ghosted_ works, for questions:
 - `new: <prompt>` forces a switch; `same: <prompt>` blocks one.
 - Cache warming (`/ghosted warm 1h`, default 1h): while the session is idle, a hidden fork of it sends one short turn just before the prompt cache expires, so a break doesn't force a full cache rewrite. Stops when the user is back, when Claude Code exits, or before it costs half the rewrite.
 - Terse answers: auto (default) means lite (no filler, full sentences), off when caveman is active. full is compressed notes.
-- Auto-typing works in Terminal.app, iTerm2, tmux, WezTerm, kitty and Windows consoles; elsewhere (VS Code terminal, Ghostty, Alacritty) `/ghosted setup` adds a `claude` shell function that runs Claude Code through ghosted_'s terminal bridge. Without it, ghosted_ says which command to run, then the user types `go`.
+- Auto-typing works in iTerm2, tmux, WezTerm, kitty and Windows consoles; elsewhere (Terminal.app, VS Code terminal, Ghostty, Alacritty) `/ghosted setup` adds a `claude` shell function that runs Claude Code through ghosted_'s terminal bridge. Without it, ghosted_ says which command to run, then the user types `go`.
 - Environment variables override everything: `GHOSTED_TERSE`, `GHOSTED_MIN_TOKENS`, `GHOSTED_KEEP_WARM`, `GHOSTED_ARCHIVE_DAYS`, `GHOSTED_MODE=compact`, `GHOSTED_OFF=1`.
