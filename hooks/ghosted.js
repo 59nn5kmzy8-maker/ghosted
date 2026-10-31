@@ -208,7 +208,7 @@ function claudeCli(args, input, timeout = 25000) {
 function judge(head, recent, prompt, sessionId) {
   // Tests: GHOSTED_FAKE_JUDGE=new|related|same|error.
   const fake = process.env.GHOSTED_FAKE_JUDGE;
-  const fakeAsk = d => d === 'error' ? null : { decision: d === 'same-low' ? 'same' : d, detail: d === 'same-low' ? 7 : undefined, focus: 'fake focus', old_task: 'fake old task', carry: '' };
+  const fakeAsk = d => d === 'error' ? null : { decision: d.startsWith('same') ? 'same' : d, detail: d === 'same-low' ? 7 : d === 'same-9' ? 9 : undefined, focus: 'fake focus', old_task: 'fake old task', carry: '' };
   const question = [
     'You decide what an assistant should do with its conversation history before a user\'s new request.',
     'The user may be coding, writing, researching, analysing data or anything else.',
@@ -726,7 +726,7 @@ function onPrompt(input) {
     // Back after the cache expired: keeping the chat means writing all of it to the cache again at twice the input
     // price. Unless the request continues exactly the last messages, starting fresh with handoff notes is cheaper.
     const idle = Date.now() - (lastActivity(input.transcript_path) || Date.now());
-    if (verdict && verdict.decision === 'same' && idle > COLD_MS && RELATED_NOTES && (verdict.detail ?? 10) < 9) {
+    if (verdict && verdict.decision === 'same' && idle > COLD_MS && RELATED_NOTES && (verdict.detail ?? 10) < 10) {
       verdict.decision = 'related'; verdict.cold = Math.round(idle / 60e3);
     }
     if (!verdict || verdict.decision === 'same') { logEvent('kept', ctx, { why: !verdict ? 'judge-error' : 'judge', ms: Date.now() - t0, prompt: short }); return; } // fail open

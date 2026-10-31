@@ -28,7 +28,7 @@ A seeded chat (about 100k tokens of conversation) whose last reply was moved 3 h
 | 8 | $1.64 | $1.70 | no |
 | Average | $1.66 | $1.33 (−20%) | |
 
-When the fresh start fires it saves 50 to 62%, because the first turn no longer rewrites the expired cache ($1.13 down to about $0.40). The three misses were the same first prompt ("Add a clear-done command…"), which the judge scores 9 for depending on the last messages, and the rule keeps the chat at 9 or more. The first turn after a fresh start takes about 15 seconds longer while the notes are written.
+When the fresh start fires it saves 50 to 62%, because the first turn no longer rewrites the expired cache ($1.13 down to about $0.40). The three misses were the same first prompt ("Add a clear-done command…"), which the judge scores 9 for depending on the last messages, and the 0.14.1 rule kept the chat at 9 or more. 0.14.2 keeps it only at 10, which would have fired in all five runs; quick follow-ups such as "keep going" skip the judge and still keep the chat. The first turn after a fresh start takes about 15 seconds longer while the notes are written.
 
 ## Live cost, open chats (0.13.2, Opus 5.5)
 

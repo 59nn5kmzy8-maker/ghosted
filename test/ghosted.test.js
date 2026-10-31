@@ -171,8 +171,8 @@ test('related task with GHOSTED_RELATED=compact: compacts keeping what it needs;
   assert.equal(ev.find(e => e.kind === 'switch').how, 'compact');
 });
 
-test('back after the cache expired: a loose follow-up starts fresh with notes, a close one keeps the chat', () => {
-  for (const [judge, switched] of [['same-low', true], ['same', false]]) {
+test('back after the cache expired: starts fresh with notes unless the judge scores the prompt 10', () => {
+  for (const [judge, switched] of [['same-low', true], ['same-9', true], ['same', false]]) {
     const s = setup();
     const old = new Date(Date.now() - 3 * 3600e3).toISOString(); // 3 hours ago: past the 1h cache plus 1h warming
     fs.appendFileSync(s.transcript, '\n' + JSON.stringify({ type: 'assistant', timestamp: old, message: { role: 'assistant', content: [{ type: 'text', text: 'done' }] } }));
