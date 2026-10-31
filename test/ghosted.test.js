@@ -146,9 +146,22 @@ function withUsage(s, tokens) {
     usage: { input_tokens: 10, cache_read_input_tokens: tokens - 10, cache_creation_input_tokens: 0 } } }));
 }
 
-test('related task: compacts keeping what it needs, says so on resume; the message offers /resume', () => {
+test('related task: clears with handoff notes, injects them on resume', () => {
   const s = setup();
   const env = envFor(s, 'related');
+  const out = run('prompt', { session_id: 'abc', cwd: s.cwd, transcript_path: s.transcript, prompt: 'now write the release notes for this project' }, env);
+  assert.equal(out.decision, 'block');
+  assert.match(out.reason, /fresh chat with notes[\s\S]*\/resume/);
+  assert.match(typedText(s)[0], /^\x03\/clear/);
+  assert.match(run('resume', { session_id: 'abc', cwd: s.cwd }, env).hookSpecificOutput.additionalContext,
+    /same work[\s\S]*Handoff notes[\s\S]*src\/app\.js[\s\S]*release notes/);
+  const ev = fs.readFileSync(path.join(s.dir, 'events.jsonl'), 'utf8').trim().split('\n').map(l => JSON.parse(l));
+  assert.equal(ev.find(e => e.kind === 'switch').how, 'clear');
+});
+
+test('related task with GHOSTED_RELATED=compact: compacts keeping what it needs; the message offers /resume', () => {
+  const s = setup();
+  const env = { ...envFor(s, 'related'), GHOSTED_RELATED: 'compact' };
   const out = run('prompt', { session_id: 'abc', cwd: s.cwd, transcript_path: s.transcript, prompt: 'now write the release notes for this project' }, env);
   assert.equal(out.decision, 'block');
   assert.match(out.reason, /summarised first[\s\S]*\/resume/);

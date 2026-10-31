@@ -45,7 +45,7 @@ Restart Claude Code and press Enter on the one setup question to keep the defaul
 
 - **Task switch:** when there's more than about 20k tokens of context, a Haiku judge sorts each prompt that isn't an obvious follow-up into one of three:
   - **same:** it continues the current work. Nothing happens.
-  - **related:** a new job on the same project or subject. ghosted_ runs `/compact`, keeping what the new task needs, then starts it.
+  - **related:** a new job on the same project or subject. Haiku writes handoff notes from the old chat (files, decisions, state, how to test), ghosted_ runs `/clear` and starts the task with those notes. Measured on Opus 5.5, a switch this way costs about $0.18 (the notes about $0.002, the rest is rebuilding the cache) and 10 seconds, against about $0.45 and 35 seconds for a `/compact`, which sends the old chat to the main model again.
   - **new:** an unrelated task. ghosted_ runs `/clear`, then starts it with up to 5 facts from the old work.
 
   The old chat is archived first, and `/resume` brings it back if the call was wrong.
@@ -65,7 +65,7 @@ Anything that goes wrong fails open: your prompt goes through as if ghosted_ wer
 | Check for a new task above | about 20k tokens | `GHOSTED_MIN_TOKENS` |
 | Keep archives for | 30 days | `GHOSTED_ARCHIVE_DAYS` (0 = forever) |
 
-Environment overrides: `GHOSTED_KEEP_WARM`, `GHOSTED_TERSE`, `GHOSTED_MIN_TOKENS`, `GHOSTED_ARCHIVE_DAYS`, `GHOSTED_MODE=compact` (compact unrelated tasks too) and `GHOSTED_OFF=1`.
+Environment overrides: `GHOSTED_KEEP_WARM`, `GHOSTED_TERSE`, `GHOSTED_MIN_TOKENS`, `GHOSTED_ARCHIVE_DAYS`, `GHOSTED_RELATED=compact` (use `/compact` for related tasks), `GHOSTED_MODE=compact` (compact unrelated tasks too) and `GHOSTED_OFF=1`.
 
 ## Commands
 
@@ -104,7 +104,7 @@ your prompt ──► UserPromptSubmit hook
                  ├─ small context, bare or built-in command, "same:", obvious follow-up ──► passes through
                  └─ Haiku judge: same, related or new?
                       ├─ same    ──► passes through
-                      ├─ related ──► archive old chat, save prompt, block, type /compact (keep what the task needs)
+                      ├─ related ──► archive old chat, Haiku handoff notes, save prompt, block, type /clear
                       └─ new     ──► archive old chat, save prompt, block, type /clear
                                    └─► SessionStart hook: inject prompt + carried facts,
                                        type "Start the pending task."

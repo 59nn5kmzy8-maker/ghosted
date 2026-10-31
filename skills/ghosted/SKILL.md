@@ -17,7 +17,7 @@ If the output sets a terse level other than off, write in that style from your n
 How ghosted_ works, for questions:
 - Above about 20k tokens of conversation, a Haiku judge looks at each prompt that isn't an obvious follow-up and answers one of three things:
   - same: it continues the current work. Nothing happens.
-  - related: a new job on the same project or subject. ghosted_ runs `/compact` keeping what the new task needs, then starts the task.
+  - related: a new job on the same project or subject. Haiku writes handoff notes from the old chat, ghosted_ runs `/clear`, then starts the task with the notes (`GHOSTED_RELATED=compact` uses `/compact` instead).
   - new: an unrelated task. ghosted_ runs `/clear`, then starts the task with up to 5 facts from the old work.
 - The old conversation is always archived. `/resume` brings back the chat from before a switch; `/ghosted-recall <words>` searches archives (kept 30 days).
 - `new: <prompt>` forces a switch; `same: <prompt>` blocks one.

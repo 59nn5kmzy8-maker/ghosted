@@ -82,8 +82,8 @@
       <div class="pgrid">
         <ol class="steps2" id="trysteps">
           <li data-s="check"><b>Quick checks</b><span>Follow-ups and short replies pass straight through</span></li>
-          <li data-s="judge"><b>Judge</b><span>Haiku decides. Same project means summarise, not clear</span></li>
-          <li data-s="clear"><b>Archive, then /clear or /compact</b><span>New: cleared. Related: summarised</span></li>
+          <li data-s="judge"><b>Judge</b><span>Haiku decides. Same project means handoff notes come along</span></li>
+          <li data-s="clear"><b>Archive, then /clear</b><span>New: cleared. Related: cleared with handoff notes</span></li>
           <li data-s="start"><b>Task starts</b><span>Prompt restored with 5 facts</span></li>
         </ol>
         <div class="term"><div class="tbar"><i></i><i></i><i></i><span>claude · ~/my-app</span><span class="ctx">context <b id="tryctx">176k</b></span></div><div class="tlog" id="trylog" aria-live="polite"><div class="d">Pick an example or type your own prompt.</div></div></div>
@@ -105,7 +105,7 @@
 
       <div role="tabpanel" id="p-switch" aria-labelledby="t-switch" class="panel">
         <div class="tabbody">
-          <div><h3>Task switch <code>on</code></h3><p>Above 20k tokens of context, a prompt that starts something new frees the context. An unrelated task gets a fresh chat. A new task on the same work keeps a summary.</p>
+          <div><h3>Task switch <code>on</code></h3><p>Above 20k tokens of context, a prompt that starts something new frees the context. An unrelated task gets a fresh chat. A new task on the same work starts fresh with handoff notes written by Haiku.</p>
             <ul><li>Old chat archived, readable only by you</li><li>Prompt restored and started automatically</li><li>Wrong call? <code>/resume</code> brings the old chat back</li></ul></div>
           <div class="term"><div class="tbar"><i></i><i></i><i></i><span>context 176k → 18k</span></div><div class="tlog"><div class="l u">fix the token refresh in auth.ts</div><div class="l">⏺ Fixed the expiry check · 3 tests pass</div><div class="l u">plan a 3-day trip to Lisbon</div><div class="l d">  ghosted_ asks Haiku: same, related or new? → new (Haiku 3s, Sonnet agrees)</div><div class="l g">ghosted_: this looks like a new task, so Claude starts on a fresh chat.</div><div class="l d">  ✓ old chat archived  ✓ your prompt saved</div><div class="l u">/clear</div><div class="l u">Start the pending task.</div><div class="l d">  ✓ nothing from the auth work needed</div><div class="l">⏺ Day 1: Alfama and the castle…</div></div></div>
         </div>
