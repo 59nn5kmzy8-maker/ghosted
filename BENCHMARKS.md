@@ -2,6 +2,28 @@
 
 Every number here comes from real Claude Code runs in hidden terminals, started from seeded conversations of a known size. Costs are what `/cost` reported, judge included. Runs that had unit tests passed them unless noted.
 
+## 177 real moments, scored judge (0.13.0)
+
+The earlier real test had 14 prompts, labelled by the author. 0.13 is tuned on a bigger set: 180 prompts typed in 110 of the author's own sessions (Dutch and English, coding, websites, research), each with at least 20k tokens of context. Each was labelled by Opus twice, with hindsight: it saw the conversation, the prompt, and what Claude did next, and judged whether the full chat was needed (same), a summary would do (related) or nothing was needed (new). The two passes agreed on 177: 154 same, 19 related, 4 new. Real use is mostly follow-ups, so a needless switch is the error to avoid. Tuning used two thirds of the cases; the other third was only used to check.
+
+| Judge | Right (of 177) | Wrong clear | Needless compact | Missed switch |
+|---|---|---|---|---|
+| 0.12 | 148 | 0 | 15 | 14 |
+| 0.13 | 157 | 0 | 3 | 16 |
+
+The 0.12 run hit 19 judge errors while Claude Code updated itself mid-run; an error keeps the chat, so 3 of its 14 misses came from that.
+
+What changed:
+
+- **The judge scores instead of picking a label.** It rates how much the request depends on the details of the last few messages (0-10) and how much it needs the earlier conversation at all (0-10). Detail 6 or more keeps the chat, otherwise history 1 or more compacts, otherwise it clears. The thresholds were picked on the training cases and held up on the check cases (train 98.5, check 48.5 against 80 and 46 for 0.12, on a score that counts a needless compact as -1 and a missed switch as -0.5).
+- **A new feature, page, document, report, analysis or setup scores at most 5 for detail**, even when it reuses the same files. Without that line, "add password reset using the same session helpers" was kept; with it, 22 and 24 of 25 synthetic prompts were right over two rounds.
+- **Low effort.** Haiku now thinks before answering by default. `--effort low` turns that off: on the same question, median 3.2s against 4.7s and about half the output tokens, with the same accuracy. Older Claude Code without the flag falls back to the default.
+- **The size check counts what Claude actually sends.** Attached files and skill text are stored outside the messages, so the old estimate saw 2k tokens where the API saw 131k. The check now uses the API's own count minus the session's first request (system prompt, tools, plugins, MCP, memory: a median of 108k tokens in the author's sessions, which `/clear` can't remove). 118 of 177 prompts were judged instead of 89.
+
+Tried and dropped: example anchors in the prompt (no gain, 60% more cost), asking "would a summary do?" instead (more needless compacts), stopping the output early (no speed gain on its own), a pre-started judge process (0.25s faster, not worth a background process).
+
+The real missed switches are mostly new features on the same app that Haiku rates as needing recent detail ("add an icon for the web", "add an online mode"). Lowering the threshold to catch them adds needless compacts at the same rate. Of the 14 older real prompts, 12 were right in both rounds.
+
 ## Compact on partial overlap, one model (0.12.0)
 
 0.11 asked Sonnet to confirm every switch. That stopped wrong switches but cost more, took about 6 seconds, and kept the full chat whenever a prompt touched the earlier subject even partly. 0.12 drops the second model and changes the rule: only a request that acts on the work of the last few messages ("push", "check what you skipped", "why did X not do Y") keeps the chat. A new job that touches the same project or subject, even partly, is compacted. When unsure between compact and clear, it compacts.

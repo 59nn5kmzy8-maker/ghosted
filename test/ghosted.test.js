@@ -158,6 +158,17 @@ test('related task: compacts keeping what it needs, says so on resume; the messa
   assert.equal(ev.find(e => e.kind === 'switch').how, 'compact');
 });
 
+test('size gate counts what the API saw beyond the first request (attachments are outside the messages)', () => {
+  const usage = n => JSON.stringify({ type: 'assistant', message: { role: 'assistant', content: [{ type: 'text', text: 'ok' }], usage: { input_tokens: 2, cache_read_input_tokens: n } } });
+  const user = JSON.stringify({ type: 'user', message: { role: 'user', content: 'small chat' } });
+  for (const [first, last, judged] of [[30000, 90000, true], [110000, 115000, false]]) {
+    const s = setup();
+    fs.writeFileSync(s.transcript, [user, usage(first), user, usage(last)].join('\n'));
+    const out = run('prompt', { session_id: 'abc', cwd: s.cwd, transcript_path: s.transcript, prompt: 'build a new login page' }, envFor(s, 'new'));
+    assert.equal(out?.decision === 'block', judged, `${first}->${last}`);
+  }
+});
+
 test('first session start shows the welcome once', () => {
   const s = setup();
   assert.match(run('start', {}, envFor(s, 'new')).systemMessage, /ghosted_ is on[\s\S]*\/resume/);

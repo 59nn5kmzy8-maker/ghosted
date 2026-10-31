@@ -108,11 +108,11 @@ your prompt ──► UserPromptSubmit hook
                                        type "Start the pending task."
 ```
 
-The judge runs `claude -p --model haiku` with no settings, plugins, MCP servers or tools loaded, and reads only the user and assistant messages. A new job on the same project or subject is compacted, even when it only partly overlaps; only an unrelated one is cleared. Typical cost is under $0.001 and about 4 seconds per judged prompt. Obvious follow-ups (short replies, "ok", "fix it", short back-references like "that file") skip it.
+The judge runs `claude -p --model haiku` with no settings, plugins, MCP servers or tools loaded, and reads only the user and assistant messages. It scores how much the request depends on the last few messages and how much it needs the earlier conversation at all: a follow-up keeps the chat, a new feature, page, document or analysis on the same project is compacted, and unrelated work is cleared. It runs at low effort (no thinking). Typical cost is under $0.001 and about 3 seconds per judged prompt. Short chats on top of the fixed system prompt are never judged: the size check uses Claude's own token count minus the session's first request, so attached files count and plugin or MCP overhead doesn't. Obvious follow-ups (short replies, "ok", "fix it", short back-references like "that file") skip it.
 
 ## Limits
 
-- A wrong switch drops context the prompt needed. In the latest judge tests 109 of 117 calls were right (42 from real sessions), and most misses compacted rather than cleared. The old chat is archived first, `/resume` brings it back, and `same:` prevents it.
+- A wrong switch drops context the prompt needed. On 177 real moments from the author's sessions, labelled with hindsight, 157 calls were right and none cleared a chat that was needed. The old chat is archived first, `/resume` brings it back, and `same:` prevents it.
 - Terse mode shortens the text you read, not code or tool calls, so its saving depends on how much of a session is prose.
 - Cache warming spends a little to save more only if you come back to the session. Each ping costs about a tenth of the context, and it stops at half the cost of the rewrite it prevents. If a ping ever misses the cache, warming stops for that session. Turn it off with `/ghosted warm off`.
 - The transcript's `compact_boundary` marker isn't documented. If it changes, ghosted_ judges more often but stays safe.
