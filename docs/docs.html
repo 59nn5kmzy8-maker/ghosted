@@ -18,7 +18,7 @@
 <meta name="twitter:image" content="https://giovanbelle.github.io/ghosted/og.png">
 <link rel="icon" href="favicon.png">
 <link rel="preload" href="fonts/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="style.css?v=0dcb4bca">
+<link rel="stylesheet" href="style.css?v=f8089982">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -121,7 +121,7 @@
 
     <h2 id="faq">FAQ</h2>
     <details><summary>Will it clear something I still needed?</summary><p>Rarely: on 177 real moments from real sessions, none cleared a chat that was still needed, and 3 summarised one that was. A new feature, page or document on the same project is summarised, not cleared. If a switch was wrong, run <code>/resume</code> and pick the previous chat. Start a prompt with <code>same:</code> to block a switch.</p></details>
-    <details><summary>When does it clear, and when does it compact?</summary><p>An unrelated task gets <code>/clear</code>: in tests that saved 70%, against 34% for compacting, because a summary still carries old text. A new task on the same project or subject gets <code>/compact</code>, so what Claude learned comes along.</p></details>
+    <details><summary>When does it clear, and when does it compact?</summary><p>An unrelated task gets <code>/clear</code>: on chats resumed after their cache expired that saved 70%, against 34% for compacting, because a summary still carries old text. In a chat you keep using, the saving is smaller and grows with the work that follows. A new task on the same project or subject gets <code>/compact</code>, so what Claude learned comes along.</p></details>
     <details><summary>I already use caveman. Do I need both?</summary><p>They stack: $3.32 per run with caveman alone, $0.92 with ghosted_ added. ghosted_'s own terse mode steps aside while caveman is active.</p></details>
     <details><summary>Nothing happened after “new task detected”.</summary><p>Your terminal can't be typed into from outside, or macOS automation permission was declined. Run <code>/clear</code>, then type <code>go</code>; your task comes back. To make it automatic, run <code>/ghosted setup</code> once.</p></details>
     <p class="note">Something else? <a href="https://github.com/giovanbelle/ghosted/issues">Open an issue on GitHub</a>.</p>
@@ -149,6 +149,6 @@
   </div>
   <div class="wordmark" aria-hidden="true">ghosted_</div>
 </footer>
-<script src="site.js?v=0dcb4bca"></script>
+<script src="site.js?v=f8089982"></script>
 </body>
 </html>

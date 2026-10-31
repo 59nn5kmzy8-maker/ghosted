@@ -18,7 +18,7 @@
 <meta name="twitter:image" content="https://giovanbelle.github.io/ghosted/og.png">
 <link rel="icon" href="favicon.png">
 <link rel="preload" href="fonts/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="style.css?v=0dcb4bca">
+<link rel="stylesheet" href="style.css?v=f8089982">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -52,17 +52,18 @@
   <section class="phead">
     <p class="kicker">Benchmarks</p>
     <h1>Cost and accuracy measurements</h1>
-    <p class="lede">Real Claude Code sessions in hidden terminals, started from seeded conversations of a known size. Costs are what <code>/cost</code> reported, judge included. Tests had to pass.</p>
+    <p class="lede">Real Claude Code sessions in hidden terminals. Costs are what the API billed, judge included. Tests had to pass. How much ghosted_ saves depends on whether the chat's cache is still warm: inside an open chat old context is cheap to carry, so the saving grows with the work that follows. Coming back to a big chat after its cache expired is where clearing saves the most.</p>
     <div class="stats rv">
-      <div><b>$15.88</b><span>36 runs without ghosted_</span></div>
+      <div><b data-count="-20" data-suffix="%">−20%</b><span>open chat, 12 turns of new work ($4.82 vs $3.87)</span></div>
+      <div><b>−3%</b><span>open chat, three short jobs</span></div>
+      <div><b>$15.88</b><span>36 resumed chats without ghosted_</span></div>
       <div><b>$4.78</b><span>the same runs with ghosted_</span></div>
-      <div><b data-count="-70" data-suffix="%">−70%</b><span>total cost</span></div>
-      <div><b>+8s</b><span>wall time (666s vs 674s)</span></div>
-    </div>
+      <div><b>−70%</b><span>resumed chats, cache expired</span></div>
+          </div>
   </section>
 
   <section aria-labelledby="scn-h" style="padding-top:64px">
-    <div class="shead rv"><h2 id="scn-h">Every scenario got cheaper</h2><p>Six scenarios, three setups, two runs each, on Opus. Average cost per run.</p></div>
+    <div class="shead rv"><h2 id="scn-h">Resumed chats: every scenario got cheaper</h2><p>Six scenarios, three setups, two runs each, on Opus. Each run resumed a seeded chat whose cache had expired. Average cost per run.</p></div>
     <div class="fig rv">
       <div class="legend"><span><i style="background:#3c3c3c"></i>No plugin</span><span><i style="background:#7a7a7a"></i>ghosted_ compact</span><span><i style="background:#f5f5f5"></i>ghosted_ clear (default)</span><span style="margin-left:auto">saved with clear</span></div>
       <div class="scn"><div class="lab"><b>Small session</b><span>57k context · 5 turns</span></div><div class="trio"><div class="tr"><div class="f a" data-w="42.8"></div></div><div class="tr"><div class="f b" data-w="38.4"></div></div><div class="tr"><div class="f c" data-w="23.6"></div></div></div><div class="pct">45%</div></div>
@@ -111,16 +112,16 @@
   </section>
 
   <section aria-labelledby="calc-h">
-    <div class="shead rv"><h2 id="calc-h">What would it save you?</h2><p>An estimate from the measured 70% on sessions with a task switch. Your mix will differ.</p></div>
+    <div class="shead rv"><h2 id="calc-h">What would it save you?</h2><p>An estimate from the 20% measured on longer work in an open chat. Coming back to old chats saves more. Your mix will differ.</p></div>
     <div class="grid2">
       <div class="panel rv">
         <div class="field"><label for="spend">Monthly Claude Code spend <output id="spendOut" for="spend">$200</output></label><input id="spend" type="range" min="20" max="2000" step="10" value="200"><small>On a Pro or Max plan, use what your usage would cost at API prices.</small></div>
         <div class="field"><label for="share">Sessions where you switch task <output id="shareOut" for="share">50%</output></label><input id="share" type="range" min="0" max="100" step="5" value="50"><small>A fresh session per task? Go low. One session all day? Go high.</small></div>
       </div>
       <div class="panel rv" aria-live="polite" style="display:grid;gap:22px;align-content:center">
-        <div><div class="big" id="saved">$70</div><p>estimated saving per month</p></div>
+        <div><div class="big" id="saved">$20</div><p>estimated saving per month</p></div>
         <div style="height:1px;background:var(--line)"></div>
-        <div><div class="big" id="mult">1.5×</div><p>more work before you hit a plan limit, for this mix. In switching sessions alone it measured 3.3×.</p></div>
+        <div><div class="big" id="mult">1.1×</div><p>more work before you hit a plan limit, for this mix. Coming back to an old chat it measured up to 3.3×.</p></div>
       </div>
     </div>
   </section>
@@ -152,6 +153,6 @@
   </div>
   <div class="wordmark" aria-hidden="true">ghosted_</div>
 </footer>
-<script src="site.js?v=0dcb4bca"></script>
+<script src="site.js?v=f8089982"></script>
 </body>
 </html>

@@ -112,11 +112,11 @@
     document.fonts && document.fonts.ready.then(() => p.move(p.current()));
   });
 
-  // Calculator: saving = spend × share of sessions with a switch × measured 70%.
+  // Calculator: saving = spend × share of sessions with a switch × 20% measured live (longer work, warm cache).
   const spend = $('#spend'), share = $('#share');
   if (spend && share) {
     const calc = () => {
-      const s = +spend.value, p = +share.value / 100, cut = p * 0.7;
+      const s = +spend.value, p = +share.value / 100, cut = p * 0.2;
       for (const r of [spend, share]) r.style.setProperty('--p', ((r.value - r.min) / (r.max - r.min) * 100) + '%');
       $('#spendOut').textContent = '$' + s.toLocaleString('en-US');
       $('#shareOut').textContent = Math.round(p * 100) + '%';

@@ -2,6 +2,21 @@
 
 Every number here comes from real Claude Code runs in hidden terminals, started from seeded conversations of a known size. Costs are what `/cost` reported, judge included. Runs that had unit tests passed them unless noted.
 
+## Live cost, open chats (0.13.2, Opus 5.5)
+
+The same scripted chat run with ghosted_ off and on, two runs each, Claude Code (Opus 5.5) in hidden terminals with the cache warm the whole time. Each chat starts by reading two large standard-library files (about 100k tokens of conversation on top of about 110k of fixed context), then switches to new work. Costs are priced from the API usage in the transcripts plus what `/cost` reported for the rest of the session; tests passed in every run.
+
+| Chat after the reading | Off | On | Cost | Wall time |
+|---|---|---|---|---|
+| 12 turns building a todo app | $5.20, $4.43 | $3.73, $4.00 | **−20%** | −4% (517s vs 494s) |
+| 3 unrelated small jobs (cleared) | $1.67, $1.68 | $1.63, $1.60 | −3% | same |
+| a question, 3 turns of a todo app, a haiku | $2.21, $2.20 | $2.23, $2.12 | −1% | +10% |
+| 5 turns of a todo app | $2.30, $2.70 | $2.43, $2.37 | −4% | +2% |
+
+Why less than the 70% below: Opus 5.5 reads cached tokens at $0.20 per million, 5% of the input price, so in a warm chat 100k tokens of old conversation cost about $0.02 per request. A compaction costs about $0.45 (part of the old context sent uncached, the cache rebuilt, a summary written) and 30 to 40 seconds; a clear costs about $0.18 to rebuild the cache. Both pay off only after enough requests: in these chats a few turns are 9 to 15 requests, 12 turns about 35. In the real sessions behind the judge eval, a median of 59 requests followed the moments labelled as switches.
+
+The 36-run benchmark further down resumed seeded chats whose cache had expired, so without ghosted_ the first request wrote 176k tokens to the cache again at twice the input price. That is what coming back to a big chat after an hour costs, and there clearing saved 70%.
+
 ## 177 real moments, scored judge (0.13.0)
 
 The earlier real test had 14 prompts, labelled by the author. 0.13 is tuned on a bigger set: 180 prompts typed in 110 of the author's own sessions (Dutch and English, coding, websites, research), each with at least 20k tokens of context. Each was labelled by Opus twice, with hindsight: it saw the conversation, the prompt, and what Claude did next, and judged whether the full chat was needed (same), a summary would do (related) or nothing was needed (new). The two passes agreed on 177: 154 same, 19 related, 4 new. Real use is mostly follow-ups, so a needless switch is the error to avoid. Tuning used two thirds of the cases; the other third was only used to check.
@@ -104,7 +119,7 @@ Since 0.10.0 the judge answers same, related or new. Related means a new job on 
 
 All 5 misses in 0.10 kept the chat for a report about the work just done (a changelog entry, an incident report), where keeping the context is arguably right. The 0.9 judge cleared all related jobs; 0.10 compacted 3 of 5 and kept the summary.
 
-## Measured: clear vs compact vs off (v0.2.0)
+## Measured: clear vs compact vs off, resumed chats with an expired cache (v0.2.0)
 
 Six scenarios, three arms each, two repetitions per arm (36 runs, Opus). Costs are averages per run, judge included. Each run started from its own clone of the seed, so no run reused another's prompt cache.
 

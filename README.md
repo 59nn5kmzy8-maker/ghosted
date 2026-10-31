@@ -10,7 +10,7 @@
 <p align="center">
   <a href="https://github.com/giovanbelle/ghosted/actions/workflows/test.yml"><img src="https://github.com/giovanbelle/ghosted/actions/workflows/test.yml/badge.svg" alt="tests"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-white" alt="Apache-2.0"></a>
-  <a href="BENCHMARKS.md"><img src="https://img.shields.io/badge/measured-70%25%20cheaper%20on%20task%20switches-black" alt="70% cheaper on task switches"></a>
+  <a href="BENCHMARKS.md"><img src="https://img.shields.io/badge/measured-20%25%20to%2070%25%20cheaper%20on%20task%20switches-black" alt="20% to 70% cheaper on task switches"></a>
   <a href="https://giovanbelle.github.io/ghosted/"><img src="https://img.shields.io/badge/site-ghosted__-black" alt="site"></a>
 </p>
 
@@ -20,11 +20,13 @@ Claude Code only compacts when the context is nearly full. So when you finish on
 
 **ghosted_** notices the switch. A small Haiku judge decides whether your prompt starts a new task. If it does, ghosted_ archives the old conversation, clears the context, puts your prompt back and starts it. You keep typing as usual.
 
-| | Without | With ghosted_ |
+| Measured on Opus 5.5 | Without | With ghosted_ |
 |---|---|---|
-| 36 runs, 6 scenarios (Opus) | $15.88 | **$4.78 (−70%)** |
-| Wall time | 666s | 674s |
-| Tests passing | all | all |
+| Open chat: a big read, then 12 turns of new work (2 runs each) | $4.82 | **$3.87 (−20%)** |
+| Coming back to a big chat after its cache expired (36 runs, 6 scenarios) | $15.88 | **$4.78 (−70%)** |
+| Open chat: a few short jobs after the switch | | about the same (−0 to −4%) |
+
+Inside a chat you keep using, old context is cheap: Opus 5.5 reads cached tokens at 5% of the input price, so the saving grows with how much work follows the switch. When you return to a big chat after its cache expired (an hour on a subscription), every old token has to be cached again at twice the input price, and that is where clearing saves the most. Tests passed in every run.
 
 Already using caveman? ghosted_ still cut a caveman setup's cost from $3.32 to $0.92 (−72%), because caveman shortens replies and ghosted_ drops the old conversation. Full numbers, including where it doesn't help, are in [BENCHMARKS.md](BENCHMARKS.md).
 
