@@ -184,6 +184,7 @@
         return;
       }
       const related = !forced && sameApp(p), to = related ? 46 : 18;
+      if (!forced) { await line(`  Haiku: ${related ? 'related' : 'new'} · second opinion (Sonnet): agrees`, 'd', my); await wait(300); }
       await line(related ? 'ghosted_: this looks like a new task on the same work, so the chat is summarised first.'
         : 'ghosted_: this looks like a new task, so Claude starts on a fresh chat.', 'g', my);
       mark('clear', 'on'); await wait(500);

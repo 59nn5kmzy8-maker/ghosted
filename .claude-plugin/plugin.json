@@ -1,7 +1,7 @@
 {
   "name": "ghosted",
   "displayName": "ghosted_",
-  "version": "0.10.1",
+  "version": "0.11.0",
   "description": "Makes Claude Code cheaper: when you start a new task it saves the old chat and starts you fresh (or summarises it when the new task builds on the old one), keeps answers short and keeps the cache warm during breaks.",
   "author": {
     "name": "Gio van Belle",

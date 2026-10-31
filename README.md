@@ -108,11 +108,11 @@ your prompt ──► UserPromptSubmit hook
                                        type "Start the pending task."
 ```
 
-The judge runs `claude -p --model haiku` with no settings, plugins, MCP servers or tools loaded, at about $0.0013 a switch and 3.5s. Obvious follow-ups (short replies, "ok", "fix it", short back-references like "that file") skip it.
+The judge runs `claude -p --model haiku` with no settings, plugins, MCP servers or tools loaded, and reads only the user and assistant messages. When Haiku wants to switch, Sonnet gets the same question, and the switch only happens if it agrees; otherwise the chat is kept. Typical cost is about $0.001 and 3 to 4 seconds per judged prompt, about 6 seconds when it switches. Obvious follow-ups (short replies, "ok", "fix it", short back-references like "that file") skip it.
 
 ## Limits
 
-- A wrong switch drops context the prompt needed. It's rare (0 in the last 75 judged prompts), the old chat is archived first, `/resume` brings it back, and `same:` prevents it.
+- A wrong switch drops context the prompt needed. It's rare (0 in the last 117 judged test prompts, 42 of them real sessions), the old chat is archived first, `/resume` brings it back, and `same:` prevents it.
 - Terse mode shortens the text you read, not code or tool calls, so its saving depends on how much of a session is prose.
 - Cache warming spends a little to save more only if you come back to the session. Each ping costs about a tenth of the context, and it stops at half the cost of the rewrite it prevents. If a ping ever misses the cache, warming stops for that session. Turn it off with `/ghosted warm off`.
 - The transcript's `compact_boundary` marker isn't documented. If it changes, ghosted_ judges more often but stays safe.

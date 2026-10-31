@@ -2,6 +2,21 @@
 
 Every number here comes from real Claude Code runs in hidden terminals, started from seeded conversations of a known size. Costs are what `/cost` reported, judge included. Runs that had unit tests passed them unless noted.
 
+## Second opinion on switches (0.11.0)
+
+The 25-prompt synthetic test looked fine, so 0.11 also tests the judge on real moments: 14 prompts from the author's own sessions that the plugin had judged, rebuilt from the transcripts exactly as they were (27k to 401k tokens, Dutch and English, with subagent reports and skill output mixed in). Each was labelled by hand: 3 should switch ("create a momo download and reroll key generator app", "add english mode for the website", a side question after a memory audit), 11 should not ("push", "deploy it when the agent is done", "why did ghosted not compress this task", "skill should be everywhere").
+
+On these, the 0.10 judge (Haiku alone) made 2 to 4 wrong switches per round. Rewriting its rule as two steps (first: does the request act on, ask about or complain about what was just done? then: same project or not?) helped on some rounds but not reliably. Sonnet alone made none, but costs about 10x more per call.
+
+0.11 uses both: Haiku answers first, and most prompts stop there. Only when Haiku wants to switch, Sonnet gets the same question, and the switch happens only if Sonnet agrees. If Sonnet says same, fails or runs out of time, the chat is kept. The judge now also reads only the user and assistant messages: in a 400k agent session, 5,300 of the last 6,000 characters it used to see were tool output.
+
+| Judge | Real moments (14 × 3) | Synthetic (25 × 3) | Typical time | Cost per judged prompt |
+|---|---|---|---|---|
+| 0.10: Haiku | about 9 wrong switches in 42 | 70 right, 0 wrong | ~3s | ~$0.0002 to $0.0013 |
+| 0.11: Haiku, Sonnet on switches | 38 right, 0 wrong switches | 69 right, 0 wrong | ~3 to 4s; ~6s when it switches | ~$0.001 average |
+
+The 4 real misses kept the chat: three times on a quick side question, once on "add english mode for the website". A miss only means less saved; a wrong switch loses context the next prompt needed. `GHOSTED_CONFIRM_MODEL=off` turns the second opinion off.
+
 ## Speed (0.10.1)
 
 Where the time goes on a prompt, measured on a MacBook Air:
