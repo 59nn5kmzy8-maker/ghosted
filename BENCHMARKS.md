@@ -2,6 +2,18 @@
 
 Every number here comes from real Claude Code runs in hidden terminals, started from seeded conversations of a known size. Costs are what `/cost` reported, judge included. Runs that had unit tests passed them unless noted.
 
+## Compact on partial overlap, one model (0.12.0)
+
+0.11 asked Sonnet to confirm every switch. That stopped wrong switches but cost more, took about 6 seconds, and kept the full chat whenever a prompt touched the earlier subject even partly. 0.12 drops the second model and changes the rule: only a request that acts on the work of the last few messages ("push", "check what you skipped", "why did X not do Y") keeps the chat. A new job that touches the same project or subject, even partly, is compacted. When unsure between compact and clear, it compacts.
+
+| Judge | Real moments (14 × 3) | Synthetic (25 × 3) | Typical time | Cost per judged prompt |
+|---|---|---|---|---|
+| 0.10: Haiku | about 9 wrong switches in 42 | 70 right, 0 wrong | ~3s | ~$0.0002 to $0.0013 |
+| 0.11: Haiku, Sonnet on switches | 38 right, 0 wrong, 4 missed | 69 right, 0 wrong | ~3 to 4s; ~6s on a switch | ~$0.001 |
+| 0.12: Haiku, compact on overlap | 35 right, 0 missed, 7 off-label | 74 right, 0 wrong | ~4s | ~$0.0007 |
+
+Of the 7 off-label real calls, 4 compacted a prompt labelled "keep" ("check the things you did not check", "do the wins to finish the website", "is ghosted updated on my device"), so the summary was kept. The other 3 were one prompt cleared in all three rounds: "why did ghosted not compress this task", asked in a session about website work. The judge's reason was that the question doesn't need the website work, which is defensible; it was labelled "keep" before the rule change.
+
 ## Second opinion on switches (0.11.0)
 
 The 25-prompt synthetic test looked fine, so 0.11 also tests the judge on real moments: 14 prompts from the author's own sessions that the plugin had judged, rebuilt from the transcripts exactly as they were (27k to 401k tokens, Dutch and English, with subagent reports and skill output mixed in). Each was labelled by hand: 3 should switch ("create a momo download and reroll key generator app", "add english mode for the website", a side question after a memory audit), 11 should not ("push", "deploy it when the agent is done", "why did ghosted not compress this task", "skill should be everywhere").
@@ -15,7 +27,7 @@ On these, the 0.10 judge (Haiku alone) made 2 to 4 wrong switches per round. Rew
 | 0.10: Haiku | about 9 wrong switches in 42 | 70 right, 0 wrong | ~3s | ~$0.0002 to $0.0013 |
 | 0.11: Haiku, Sonnet on switches | 38 right, 0 wrong switches | 69 right, 0 wrong | ~3 to 4s; ~6s when it switches | ~$0.001 average |
 
-The 4 real misses kept the chat: three times on a quick side question, once on "add english mode for the website". A miss only means less saved; a wrong switch loses context the next prompt needed. `GHOSTED_CONFIRM_MODEL=off` turns the second opinion off.
+The 4 real misses kept the chat: three times on a quick side question, once on "add english mode for the website". A miss only means less saved; a wrong switch loses context the next prompt needed. 0.12 removed the second opinion.
 
 ## Speed (0.10.1)
 

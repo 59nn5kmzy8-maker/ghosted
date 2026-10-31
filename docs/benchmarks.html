@@ -18,7 +18,7 @@
 <meta name="twitter:image" content="https://giovanbelle.github.io/ghosted/og.png">
 <link rel="icon" href="favicon.png">
 <link rel="preload" href="fonts/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="style.css?v=74459ce5">
+<link rel="stylesheet" href="style.css?v=0dcb4bca">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -79,8 +79,8 @@
     <div class="grid2" style="gap:40px;align-items:center">
       <div class="rv">
         <p class="kicker">Judge accuracy</p>
-        <h2 id="acc-h">0 wrong switches in 117 prompts.</h2>
-        <p class="dim">25 labelled prompts, run three times against a 33k-token coding conversation: 8 follow-ups, 5 new jobs on the same project, 7 unrelated tasks, and 5 that only share a name or topic with the earlier work (a LinkedIn post about the same app, for example). The judge answers same, related (summarise) or new (clear). A wrong switch is the one mistake that costs you context, so when unsure it keeps the chat. The 5 misses kept the chat for a report about the work just done. Since 0.11 a switch also needs Sonnet to agree. On 14 real moments from the author’s own sessions, run three times, that took wrong switches from about 9 in 42 to 0. The dots show the synthetic test.</p>
+        <h2 id="acc-h">109 of 117 calls right.</h2>
+        <p class="dim">25 labelled prompts, run three times against a 33k-token coding conversation: 8 follow-ups, 5 new jobs on the same project, 7 unrelated tasks, and 5 that only share a name or topic with the earlier work (a LinkedIn post about the same app, for example). The judge answers same, related (summarise) or new (clear). Since 0.12 a new job that only partly overlaps the earlier work is summarised instead of kept, and only unrelated work is cleared. 0.12 got 74 of 75 here, and 35 of 42 on 14 real moments from the author’s own sessions; most real misses summarised a follow-up rather than clearing it. The dots show the 0.10 synthetic run.</p>
         <div class="legend" style="margin-top:18px"><span><i style="background:#f5f5f5;border-radius:50%"></i>Judged correctly</span><span><i style="border:1.5px solid #555;border-radius:50%"></i>Obvious follow-up, judge skipped</span><span><i style="background:#3a3a3a;border-radius:50%"></i>Kept, summary expected</span></div>
       </div>
       <div class="fig rv"><div class="dots" role="img" aria-label="75 dots: 67 judged correctly, 3 skipped the judge as obvious follow-ups, 5 kept the chat where a summary was expected, 0 wrong switches."><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="s"></i><i class="s"></i><i class="s"></i><i class="m"></i><i class="m"></i><i class="m"></i><i class="m"></i><i class="m"></i></div></div>
@@ -152,6 +152,6 @@
   </div>
   <div class="wordmark" aria-hidden="true">ghosted_</div>
 </footer>
-<script src="site.js?v=74459ce5"></script>
+<script src="site.js?v=0dcb4bca"></script>
 </body>
 </html>

@@ -158,16 +158,6 @@ test('related task: compacts keeping what it needs, says so on resume; the messa
   assert.equal(ev.find(e => e.kind === 'switch').how, 'compact');
 });
 
-test('a switch needs the second opinion: a veto or a failed second call keeps the chat', () => {
-  for (const [fake, blocked, why] of [['new>same', false, 'second-opinion'], ['related>error', false, 'second-opinion'], ['new>related', true, null]]) {
-    const s = setup();
-    const out = run('prompt', { session_id: 'a', cwd: s.cwd, transcript_path: s.transcript, prompt: 'write a cover letter for a design job' }, envFor(s, fake));
-    assert.equal(out?.decision === 'block', blocked, fake);
-    if (why) assert.equal(JSON.parse(fs.readFileSync(path.join(s.dir, 'events.jsonl'), 'utf8')).why, why, fake);
-    if (blocked) assert.match(typedText(s)[0], /\/compact/); // the second opinion's answer wins: related
-  }
-});
-
 test('first session start shows the welcome once', () => {
   const s = setup();
   assert.match(run('start', {}, envFor(s, 'new')).systemMessage, /ghosted_ is on[\s\S]*\/resume/);
