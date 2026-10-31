@@ -650,9 +650,12 @@ function ancestorPids() {
 // Longer prompts go to the judge even when they point back ("based on that, write the plan"): that can be a related task.
 // Erring towards "same" is safe: the worst case is the old behaviour (no switch).
 function obviousFollowUp(raw) {
-  const prompt = raw.replace(/(^|\s)\/[\w:.-]+(?=\s|$)|\[Image #\d+\]/g, ' ').trim(); // "keep going /caveman": skill names and image tags say nothing about the task
+  const prompt = raw.replace(/<pasted_content[\s\S]*?<\/pasted_content>/g, ' ') // pasted text is not the user's own words
+    .replace(/(^|\s)\/[\w:.-]+(?=\s|$)|\[Image #\d+\]/g, ' ').trim(); // "keep going /caveman": skill names and image tags say nothing about the task
   const words = prompt.split(/\s+/).filter(Boolean).length;
   if (words <= 3) return true;
+  // Points back at what Claude just did, at any length: 43 of 44 such real prompts were follow-ups.
+  if (/\b(you (already|just) (read|saw|found|wrote|did|made|built|checked|ran|fixed|changed)|(from|in|using|based on|with) what you (saw|read|found|wrote|did)|(the )?files? you (already )?(read|opened|saw))\b/i.test(prompt)) return true;
   if (/^(ok(ay)?|yes|yep|no|nope|sure|thanks|thank you|great|nice|perfect|continue|keep (going|working)|go on|go ahead|do (it|them all|all of them)|retry|try again|fix (it|that|this)|relaunch|restart|redeploy|you (do|run) it)\b/i.test(prompt) && words <= 8) return true;
   return words <= 10 && /\b(you (already|just)|what you (saw|read|found|wrote|did)|as (before|above)|above|earlier|previous(ly)?|that (file|function|change|one|error|bug)|those)\b/i.test(prompt);
 }

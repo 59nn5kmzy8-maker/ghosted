@@ -206,7 +206,9 @@ test('obvious follow-ups skip the judge', () => {
   const s = setup();
   const input = { session_id: 'abc', cwd: s.cwd, transcript_path: s.transcript };
   for (const prompt of ['ok', 'yes do it', 'fix it and run the tests again', 'update that file so the parser handles empty input too',
-    'keep going /caveman', 'deploy the website', 'relaunch the app /caveman with these changes', 'do them all [Image #1] /caveman'])
+    'keep going /caveman', 'deploy the website', 'relaunch the app /caveman with these changes', 'do them all [Image #1] /caveman',
+    'Which method prints the usage message and exits when parsing fails? Answer from what you read.',
+    'From the files you already read: write notes.md with a 10-line summary of how they report errors.'])
     assert.equal(run('prompt', { ...input, prompt }, envFor(s, 'new')), null, prompt); // a judged prompt would switch here
   // longer prompts that share a name with the earlier work go to the judge: they can be a related task
   const t = setup();
