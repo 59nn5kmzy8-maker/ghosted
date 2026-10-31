@@ -20,6 +20,17 @@ What changed:
 - **Low effort.** Haiku now thinks before answering by default. `--effort low` turns that off: on the same question, median 3.2s against 4.7s and about half the output tokens, with the same accuracy. Older Claude Code without the flag falls back to the default.
 - **The size check counts what Claude actually sends.** Attached files and skill text are stored outside the messages, so the old estimate saw 2k tokens where the API saw 131k. The check now uses the API's own count minus the session's first request (system prompt, tools, plugins, MCP, memory: a median of 108k tokens in the author's sessions, which `/clear` can't remove). 118 of 177 prompts were judged instead of 89.
 
+**Checked on prompts never used for tuning.** Because the prompt wording was picked after looking at all 177, a second set was built afterwards: 129 other prompts from the same sessions, labelled the same way (both passes agreed on 127: 103 same, 24 related). 0.13.1 includes the follow-up rule below.
+
+| On 127 untouched moments | Right | Wrong clear | Needless compact | Missed switch |
+|---|---|---|---|---|
+| 0.12 | 92 | 4 | 18 | 13 |
+| 0.13.1 | 102 | 0 | 8 | 17 |
+
+4 of the 0.13.1 misses were judge errors, which keep the chat.
+
+**Fewer judge calls (0.13.1).** Skill names and image tags no longer count as words for the follow-up check, so "keep going /caveman" and "do them all /caveman" skip the judge, as do prompts of up to 3 words and a few more verbs ("relaunch", "restart", "keep working"). On the 177 moments that skipped 14 more prompts, all real follow-ups.
+
 Tried and dropped: example anchors in the prompt (no gain, 60% more cost), asking "would a summary do?" instead (more needless compacts), stopping the output early (no speed gain on its own), a pre-started judge process (0.25s faster, not worth a background process).
 
 The real missed switches are mostly new features on the same app that Haiku rates as needing recent detail ("add an icon for the web", "add an online mode"). Lowering the threshold to catch them adds needless compacts at the same rate. Of the 14 older real prompts, 12 were right in both rounds.

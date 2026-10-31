@@ -205,8 +205,9 @@ test('terse mode: auto is lite, but steps aside when caveman is active; off adds
 test('obvious follow-ups skip the judge', () => {
   const s = setup();
   const input = { session_id: 'abc', cwd: s.cwd, transcript_path: s.transcript };
-  for (const prompt of ['ok', 'yes do it', 'fix it and run the tests again', 'update that file so the parser handles empty input too'])
-    assert.equal(run('prompt', { ...input, prompt }, envFor(s, 'same')), null, prompt);
+  for (const prompt of ['ok', 'yes do it', 'fix it and run the tests again', 'update that file so the parser handles empty input too',
+    'keep going /caveman', 'deploy the website', 'relaunch the app /caveman with these changes', 'do them all [Image #1] /caveman'])
+    assert.equal(run('prompt', { ...input, prompt }, envFor(s, 'new')), null, prompt); // a judged prompt would switch here
   // longer prompts that share a name with the earlier work go to the judge: they can be a related task
   const t = setup();
   assert.equal(run('prompt', { ...input, cwd: t.cwd, transcript_path: t.transcript, prompt: 'also write a blog post about the same parser for our newsletter readers' },
